@@ -176,30 +176,6 @@ void setup() {
 
   }
 
-  if (Firebase.getJSON(firebaseData, path)) {
-    Serial.println("----------Get result-----------");
-    if (firebaseData.bufferOverflow())
-      Serial.println("Data Buffer overflow, increase FIREBASE_DATA_SIZE and FIREBASE_RESPONSE_SIZE in FirebaseESP8266.h");
-
-    Serial.println("PATH: " + firebaseData.dataPath());
-    Serial.println("TYPE: " + firebaseData.dataType());
-    Serial.print("VALUE: ");
-    if (firebaseData.dataType() == "int") Serial.println(firebaseData.intData());
-    else if (firebaseData.dataType() == "float") Serial.println(firebaseData.floatData());
-    else if (firebaseData.dataType() == "string") Serial.println(firebaseData.stringData());
-    else if (firebaseData.dataType() == "json") Serial.println(firebaseData.jsonData());
-    Serial.println("--------------------------------");
-    Serial.println();
-  } else {
-    Serial.println("----------Can't get data--------");
-    Serial.println("REASON: " + firebaseData.errorReason());
-    if (firebaseData.bufferOverflow())
-      Serial.println("Data Buffer overflow, increase FIREBASE_DATA_SIZE and FIREBASE_RESPONSE_SIZE in FirebaseESP8266.h");
-
-    Serial.println("--------------------------------");
-    Serial.println();
-  }
-
 
 }
 
