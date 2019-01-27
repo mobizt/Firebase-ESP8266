@@ -4,7 +4,6 @@
 
 #include <Arduino.h>
 #include <WiFiClientSecure.h>
-#include <ESP8266WiFi.h>
 
 
 /// HTTP client errors
