@@ -254,8 +254,8 @@ No root certificate or fingerprint required.
    WiFiClientSecure getWiFiClient();
    
    /**
-   * Pause/Unpause SSL WiFi client (WiFiClientSecure) from current Firebase jobs and do your alternate works.
-   * \param alternateWork True for pause and False for unpause
+   * Pause/Unpause SSL WiFi client (WiFiClientSecure) from current Firebase call to use WiFi client for your alternate works.
+   * \param alternateWork True for pause and False for unpause.
    * \return The operating status. True for success operation and False for failed operation.
    * Call FirebaseData.getWiFiClient to get WIFiClientSecure client to do your own http works.
    */
