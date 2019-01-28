@@ -1,4 +1,4 @@
-# Firebase-ESP8266
+# Firebase Arduino Client Library for ESP8266
 
 Google's Firebase real time database - ESP8266 library for Arduino
 
