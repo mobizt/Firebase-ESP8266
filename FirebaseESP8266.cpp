@@ -182,14 +182,8 @@ void FirebaseESP8266::firebaseBegin(const char* host, const char* auth, uint16_t
 
 int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const char* path, const uint8_t method, uint8_t dataType, const char* payload) {
 
-  if (dataObj._alternateWork) {
-    memset(dataObj._data, 0, sizeof dataObj._data);
-    dataObj._streamDataChanged = false;
-    dataObj._dataAvailable = false;
-    dataObj._httpCode = HTTP_CODE_OK;
-    dataObj._dataType = FirebaseDataType::NULL_;
-    return 0;
-  }
+  if (dataObj._alternateWork) return 0;
+
 
   if (strlen(path) == 0 || strlen(_host) == 0 || strlen(_auth) == 0) {
     dataObj._httpCode = HTTP_CODE_BAD_REQUEST;
@@ -263,14 +257,7 @@ bool FirebaseESP8266::sendRequest(FirebaseData &dataObj, const char* path, const
 
   bool flag = false;
 
-  if (dataObj._alternateWork) {
-    memset(dataObj._data, 0, sizeof dataObj._data);
-    dataObj._streamDataChanged = false;
-    dataObj._dataAvailable = false;
-    dataObj._httpCode = HTTP_CODE_OK;
-    dataObj._dataType = FirebaseDataType::NULL_;
-    return true;
-  }
+  if (dataObj._alternateWork) return true;
 
   if (strlen(path) == 0 || strlen(_host) == 0 || strlen(_auth) == 0) {
     dataObj._httpCode = HTTP_CODE_BAD_REQUEST;
@@ -353,14 +340,7 @@ bool FirebaseESP8266::sendRequest(FirebaseData &dataObj, const char* path, const
 }
 bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj) {
 
-  if (dataObj._alternateWork) {
-    memset(dataObj._data, 0, sizeof dataObj._data);
-    dataObj._streamDataChanged = false;
-    dataObj._dataAvailable = false;
-    dataObj._httpCode = HTTP_CODE_OK;
-    dataObj._dataType = FirebaseDataType::NULL_;
-    return true;
-  }
+  if (dataObj._alternateWork) return true;
 
   if (WiFi.status() != WL_CONNECTED) {
     dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
@@ -573,14 +553,7 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj) {
 }
 bool FirebaseESP8266::firebaseConnectStream(FirebaseData &dataObj, const char* path) {
 
-  if (dataObj._alternateWork) {
-    memset(dataObj._data, 0, sizeof dataObj._data);
-    dataObj._streamDataChanged = false;
-    dataObj._dataAvailable = false;
-    dataObj._httpCode = HTTP_CODE_OK;
-    dataObj._dataType = FirebaseDataType::NULL_;
-    return true;
-  }
+  if (dataObj._alternateWork) return true;
 
   dataObj._streamStop = false;
 
@@ -602,14 +575,7 @@ bool FirebaseESP8266::firebaseConnectStream(FirebaseData &dataObj, const char* p
 
 bool FirebaseESP8266::getServerStreamResponse(FirebaseData &dataObj) {
 
-  if (dataObj._alternateWork) {
-    memset(dataObj._data, 0, sizeof dataObj._data);
-    dataObj._streamDataChanged = false;
-    dataObj._dataAvailable = false;
-    dataObj._httpCode = HTTP_CODE_OK;
-    dataObj._dataType = FirebaseDataType::NULL_;
-    return true;
-  }
+  if (dataObj._alternateWork) return true;
 
   if (dataObj._streamStop) return true;
 
