@@ -180,8 +180,8 @@ No root certificate or fingerprint required.
    * \return The operating status. True for success operation and False for failed operation.
    * To get error reason, call FirebaseData.errorReason().
    * To get actual data type, call FirebaseData.dataType().
-   * To get actual return float data, call FirebaseData.floatData(). If the data at node path is other types than float or integer, 
-   * the return float data will be zero.
+   * To get actual return float data, call FirebaseData.floatData(). If the data at node path is other types 
+   * than float or integer, the return float data will be zero.
    */
     bool getFloat(FirebaseData &dataObj, String path);
 	
@@ -254,7 +254,8 @@ No root certificate or fingerprint required.
    WiFiClientSecure getWiFiClient();
    
    /**
-   * Pause/Unpause SSL WiFi client (WiFiClientSecure) from current Firebase call to use WiFi client for your alternate works.
+   * Pause/Unpause SSL WiFi client (WiFiClientSecure) from current Firebase call to use WiFi client 
+   * for your alternate works.
    * \param alternateWork True for pause and False for unpause.
    * \return The operating status. True for success operation and False for failed operation.
    * Call FirebaseData.getWiFiClient to get WIFiClientSecure client to do your own http works.
