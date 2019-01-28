@@ -248,6 +248,12 @@ No root certificate or fingerprint required.
  For FirebaseData object call
 
 	
+   /**
+   * Get the ssl WiFi client. This allow you to do something with the current WiFi client 
+   * that used in this library
+   */
+   WiFiClientSecure getWiFiClient();
+   
    
    /**
    * Return the actual data type that return as payload from get/set/push calls.
