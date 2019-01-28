@@ -58,6 +58,7 @@ void setup() {
 
 void loop() {
 
+  
   if (millis() - sendDataPrevMillis > 30000) {
     sendDataPrevMillis = millis();
     count++;
@@ -82,7 +83,7 @@ void loop() {
 
 
 
-    if (firebaseData.doAlternateWork(true)) {
+    if (firebaseData.pauseFirebase(true)) {
 
       WiFiClientSecure client = firebaseData.getWiFiClient();
 
@@ -96,14 +97,14 @@ void loop() {
       Serial.println("----------Can't pause the WiFi client--------");
     }
     //Unpause WiFi client
-    firebaseData.doAlternateWork(false);
+    firebaseData.pauseFirebase(false);
 
 
   }
 
   if (millis() - sendMessagePrevMillis > 60000) {
     sendMessagePrevMillis = millis();
-    if (firebaseData.doAlternateWork(true)) {
+    if (firebaseData.pauseFirebase(true)) {
 
       WiFiClientSecure client = firebaseData.getWiFiClient();
 
@@ -117,7 +118,7 @@ void loop() {
       Serial.println("----------Can't pause the WiFi client--------");
     }
     //Unpause WiFi client
-    firebaseData.doAlternateWork(false);
+    firebaseData.pauseFirebase(false);
 
   }
 
