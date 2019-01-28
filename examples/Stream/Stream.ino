@@ -70,8 +70,8 @@ void loop() {
       Serial.println();
     }
     
-    //Pause WiFi client from Firebase task to do your alternate work
-    if(firebaseData.doAlternateWork(true)){
+    //Pause WiFi client from all Firebase call to use shared SSL WiFi client
+    if(firebaseData.pauseFirebase(true)){
 
        WiFiClientSecure client = firebaseData.getWiFiClient(); 
        //Use the client to make your own http connection...
@@ -80,7 +80,7 @@ void loop() {
        Serial.println("----------Can't pause the WiFi client--------");
     }
     //Unpause WiFi client from Firebase task
-    firebaseData.doAlternateWork(false);
+    firebaseData.pauseFirebase(false);
 
   }
 
