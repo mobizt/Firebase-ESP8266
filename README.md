@@ -24,9 +24,7 @@ Able to PUT, POST, STREAM, PATCH, DELETE data using set, push, stream, update an
 Support integer, float, String and raw JSON String data types.
 
 Auto resume streaming when timeout and can be switch between get/set/push/update call and stream event monitoring inside 
-the Loop() easily.
-
-When doing get/set/push/update call, the stream will stop and can be resume. 
+the Loop() without problems.  When doing get/set/push/update call, the stream will stop and can be resume anytime by call Firebase.readStream(firebaseData) again. 
 
 No root certificate or fingerprint required.
 
