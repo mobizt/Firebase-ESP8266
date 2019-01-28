@@ -91,13 +91,14 @@ void loop() {
       if (status == LineNotifyESP8266::LineStatus::SENT_COMPLETED) Serial.println("Send text message completed");
       else if (status == LineNotifyESP8266::LineStatus::SENT_FAILED) Serial.println("Send text message was failed!");
       else if (status == LineNotifyESP8266::LineStatus::CONNECTION_FAILED) Serial.println("Connection to LINE sevice faild!");
+      
+      //Unpause WiFi client
+      firebaseData.pauseFirebase(false);
 
     } else {
-
       Serial.println("----------Can't pause the WiFi client--------");
     }
-    //Unpause WiFi client
-    firebaseData.pauseFirebase(false);
+    
 
 
   }
@@ -112,13 +113,14 @@ void loop() {
       if (status == LineNotifyESP8266::LineStatus::SENT_COMPLETED) Serial.println("Send text message completed");
       else if (status == LineNotifyESP8266::LineStatus::SENT_FAILED) Serial.println("Send text message was failed!");
       else if (status == LineNotifyESP8266::LineStatus::CONNECTION_FAILED) Serial.println("Connection to LINE sevice faild!");
+      
+      //Unpause WiFi client
+      firebaseData.pauseFirebase(false);
 
     } else {
-
       Serial.println("----------Can't pause the WiFi client--------");
     }
-    //Unpause WiFi client
-    firebaseData.pauseFirebase(false);
+    
 
   }
 
