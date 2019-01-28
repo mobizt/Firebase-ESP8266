@@ -320,17 +320,18 @@ class FirebaseData {
     FirebaseData();
   
    /**
-   * Get shared SSL WiFi client.
+   * Get refence to shared SSL WiFi client.
    */
    WiFiClientSecure getWiFiClient();
    
    /**
-   * Pause/Unpause SSL WiFi client (WiFiClientSecure) from current Firebase jobs and do your alternate works.
-   * \param alternateWork True for pause and False for unpause
+   * Pause/Unpause SSL WiFi client (WiFiClientSecure) from current Firebase call this allows you
+   * to use shared SSL WiFi client.
+   * \param pause True for pause and False for unpause
    * \return The operating status. True for success operation and False for failed operation.
-   * Call FirebaseData.getWiFiClient to get WIFiClientSecure client to do your own http works.
+   * Call FirebaseData.getWiFiClient to get shared WIFiClientSecure client.
    */
-   bool doAlternateWork(bool alternateWork);
+   bool pauseFirebase(bool pause);
    
    /**
    * Return the actual data type that return as payload from get/set/push calls.
@@ -452,7 +453,7 @@ class FirebaseData {
     bool _interruptRequest;
     bool _mismatchDataType;
     bool _pathNotExist;
-	bool _alternateWork;
+	bool _pause;
     uint8_t _dataType;
     uint8_t _dataType2;
     uint8_t _connectionStatus;
