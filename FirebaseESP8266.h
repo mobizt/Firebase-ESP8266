@@ -48,9 +48,7 @@
 
 #define KEEP_ALIVE_TIMEOUT 30000
 
-#define FIREBASE_ERROR_BUFFER_OVERFLOW -13
-#define FIREBASE_ERROR_DATA_TYPE_MISMATCH -14
-#define FIREBASE_ERROR_PATH_NOT_EXIST -15
+
 
 class FirebaseData;
 
@@ -322,6 +320,10 @@ class FirebaseData {
     FirebaseData();
   
    /**
+   * Get the ssl WiFi client.
+   */
+   WiFiClientSecure getWiFiClient();
+   /**
    * Return the actual data type that return as payload from get/set/push calls.
    * \return The data type String (int, float, string and json).
    */
@@ -431,7 +433,7 @@ class FirebaseData {
   protected:
     bool _isStreamTimeout;
     bool _isStream;
-  bool _streamStop;
+    bool _streamStop;
     bool _bufferOverflow;
     bool _streamDataChanged;
     bool _streamPathChanged;
