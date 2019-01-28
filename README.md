@@ -249,11 +249,17 @@ No root certificate or fingerprint required.
 
 	
    /**
-   * Get the ssl WiFi client. This allow you to do something with the current WiFi client 
-   * that used in this library
+   * Get shared SSL WiFi client.
    */
    WiFiClientSecure getWiFiClient();
    
+   /**
+   * Pause/Unpause SSL WiFi client (WiFiClientSecure) from current Firebase jobs and do your alternate works.
+   * \param alternateWork True for pause and False for unpause
+   * \return The operating status. True for success operation and False for failed operation.
+   * Call FirebaseData.getWiFiClient to get WIFiClientSecure client to do your own http works.
+   */
+   bool doAlternateWork(bool alternateWork);   
    
    /**
    * Return the actual data type that return as payload from get/set/push calls.
