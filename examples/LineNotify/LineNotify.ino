@@ -39,7 +39,7 @@ void setup() {
   Serial.println(WiFi.localIP());
   Serial.println();
 
-  lineNotify.init("Fk95gBBgE3WCXZdCQ4OSAFNMIlpapFRjwTeHbRneMtr");
+  lineNotify.init(LINE_TOKEN);
 
 
   Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
