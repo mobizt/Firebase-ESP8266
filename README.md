@@ -192,8 +192,8 @@ No root certificate or fingerprint required.
    * \return The operating status. True for success operation and False for failed operation.
    * To get error reason, call FirebaseData.errorReason().
    * To get actual data type, call FirebaseData.dataType().
-   * To get actual return String data, call FirebaseData.stringData(). If the data at node path is other types than String, 
-   * the return String data will be empty string.
+   * To get actual return String data, call FirebaseData.stringData(). If the data at node path is 
+   * other types than String, the return String data will be empty string.
    */
     bool getString(FirebaseData &dataObj, String path);
 	
@@ -204,8 +204,8 @@ No root certificate or fingerprint required.
    * \return The operating status. True for success operation and False for failed operation.
    * To get error reason, call FirebaseData.errorReason().
    * To get actual data type, call FirebaseData.dataType().
-   * To get actual return raw JSON String data, call FirebaseData.jsonData(). If the data at node path is other types than JSON, 
-   * the return String data will be empty string.
+   * To get actual return raw JSON String data, call FirebaseData.jsonData(). If the data at node path is
+   * other types than JSON, the return String data will be empty string.
    */
     bool getJSON(FirebaseData &dataObj, String path);
 	
@@ -228,7 +228,8 @@ No root certificate or fingerprint required.
     bool beginStream(FirebaseData &dataObj, const String path);
 	
    /**
-   * Read the stream event data at specified path. Should be called in loop or loop tasks after begin stream called in setup().
+   * Read the stream event data at specified path. Should be called in loop or loop tasks after begin
+   * stream called in setup().
    * \param dataObj - FirebaseData object that requred for internal works.
    * \return The operating status. True for success operation and False for failed operation.
    * To get error reason, call FirebaseData.errorReason().
