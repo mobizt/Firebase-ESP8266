@@ -28,6 +28,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+
 #ifndef FirebaseESP8266_CPP
 #define FirebaseESP8266_CPP
 
@@ -181,6 +182,15 @@ void FirebaseESP8266::firebaseBegin(const char* host, const char* auth, uint16_t
 
 int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const char* path, const uint8_t method, uint8_t dataType, const char* payload) {
 
+  if (dataObj._alternateWork) {
+    memset(dataObj._data, 0, sizeof dataObj._data);
+    dataObj._streamDataChanged = false;
+    dataObj._dataAvailable = false;
+    dataObj._httpCode = HTTP_CODE_OK;
+    dataObj._dataType = FirebaseDataType::NULL_;
+    return 0;
+  }
+
   if (strlen(path) == 0 || strlen(_host) == 0 || strlen(_auth) == 0) {
     dataObj._httpCode = HTTP_CODE_BAD_REQUEST;
     return HTTP_CODE_BAD_REQUEST;
@@ -238,8 +248,8 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const char* path, co
   }
 
   //Prepare request header
-  char header[FIREBASE_REQ_BUFFER_SIZE];  
-  
+  char header[FIREBASE_REQ_BUFFER_SIZE];
+
   buildFirebaseRequest(dataObj, _host, method, path, _auth,  payloadStr, header);
 
   //Send request w/wo payload
@@ -253,11 +263,18 @@ bool FirebaseESP8266::sendRequest(FirebaseData &dataObj, const char* path, const
 
   bool flag = false;
 
-
+  if (dataObj._alternateWork) {
+    memset(dataObj._data, 0, sizeof dataObj._data);
+    dataObj._streamDataChanged = false;
+    dataObj._dataAvailable = false;
+    dataObj._httpCode = HTTP_CODE_OK;
+    dataObj._dataType = FirebaseDataType::NULL_;
+    return true;
+  }
 
   if (strlen(path) == 0 || strlen(_host) == 0 || strlen(_auth) == 0) {
-     dataObj._httpCode = HTTP_CODE_BAD_REQUEST;
-      return false;
+    dataObj._httpCode = HTTP_CODE_BAD_REQUEST;
+    return false;
   }
 
 
@@ -336,10 +353,21 @@ bool FirebaseESP8266::sendRequest(FirebaseData &dataObj, const char* path, const
 }
 bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj) {
 
+  if (dataObj._alternateWork) {
+    memset(dataObj._data, 0, sizeof dataObj._data);
+    dataObj._streamDataChanged = false;
+    dataObj._dataAvailable = false;
+    dataObj._httpCode = HTTP_CODE_OK;
+    dataObj._dataType = FirebaseDataType::NULL_;
+    return true;
+  }
+
   if (WiFi.status() != WL_CONNECTED) {
     dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
     return false;
   }
+
+
 
   WiFiClientSecure client = dataObj._http.client;
   if (!dataObj._http.http_connected() || dataObj._interruptRequest) return cancelCurrentResponse(dataObj);
@@ -545,6 +573,15 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj) {
 }
 bool FirebaseESP8266::firebaseConnectStream(FirebaseData &dataObj, const char* path) {
 
+  if (dataObj._alternateWork) {
+    memset(dataObj._data, 0, sizeof dataObj._data);
+    dataObj._streamDataChanged = false;
+    dataObj._dataAvailable = false;
+    dataObj._httpCode = HTTP_CODE_OK;
+    dataObj._dataType = FirebaseDataType::NULL_;
+    return true;
+  }
+
   dataObj._streamStop = false;
 
   if (dataObj._isStream && strcmp(path, dataObj._streamPath) == 0) return true;
@@ -564,6 +601,15 @@ bool FirebaseESP8266::firebaseConnectStream(FirebaseData &dataObj, const char* p
 }
 
 bool FirebaseESP8266::getServerStreamResponse(FirebaseData &dataObj) {
+
+  if (dataObj._alternateWork) {
+    memset(dataObj._data, 0, sizeof dataObj._data);
+    dataObj._streamDataChanged = false;
+    dataObj._dataAvailable = false;
+    dataObj._httpCode = HTTP_CODE_OK;
+    dataObj._dataType = FirebaseDataType::NULL_;
+    return true;
+  }
 
   if (dataObj._streamStop) return true;
 
@@ -792,18 +838,18 @@ void FirebaseESP8266::errorToString(int httpCode, char* buf) {
     case HTTP_CODE_LENGTH_REQUIRED:
       strcpy(buf, (char*)F("length required"));
       return;
-	case HTTP_CODE_PAYLOAD_TOO_LARGE:
+    case HTTP_CODE_PAYLOAD_TOO_LARGE:
       strcpy(buf, (char*)F("payload too large"));
       return;
-	case HTTP_CODE_MISDIRECTED_REQUEST:
+    case HTTP_CODE_MISDIRECTED_REQUEST:
       strcpy(buf, (char*)F("mis-directed request"));
       return;
-	case HTTP_CODE_UNPROCESSABLE_ENTITY:
+    case HTTP_CODE_UNPROCESSABLE_ENTITY:
       strcpy(buf, (char*)F("unprocessable entity"));
-      return; 	  
-	case HTTP_CODE_URI_TOO_LONG:
+      return;
+    case HTTP_CODE_URI_TOO_LONG:
       strcpy(buf, (char*)F("uri too long"));
-      return;	  
+      return;
     case HTTP_CODE_TOO_MANY_REQUESTS:
       strcpy(buf, (char*)F("too many requests"));
       return;
@@ -828,9 +874,9 @@ void FirebaseESP8266::errorToString(int httpCode, char* buf) {
     case HTTP_CODE_NETWORK_AUTHENTICATION_REQUIRED:
       strcpy(buf, (char*)F("network authentication required"));
       return;
-	case HTTP_CODE_LOOP_DETECTED:
+    case HTTP_CODE_LOOP_DETECTED:
       strcpy(buf, (char*)F("loop detected"));
-      return;	
+      return;
     case FIREBASE_ERROR_BUFFER_OVERFLOW:
       strcpy(buf, (char*)F("data buffer overflow"));
       return;
@@ -904,6 +950,28 @@ FirebaseData::FirebaseData() {}
 
 WiFiClientSecure FirebaseData::getWiFiClient() {
   return _http.client;
+}
+
+bool FirebaseData::doAlternateWork(bool alternateWork) {
+
+  if (_http.http_connected() && alternateWork != _alternateWork) {
+    if (_http.client.available() > 0) {
+      _http.client.flush();
+      delay(50);
+    }
+    _http.client.stop();
+    delay(50);
+    if (!_http.http_connected()) {
+      _alternateWork = alternateWork;
+      return true;
+    }
+    return false;
+  } else {
+    _alternateWork = alternateWork;
+    return true;
+  }
+
+
 }
 
 
