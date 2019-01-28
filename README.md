@@ -23,11 +23,15 @@ Able to PUT, POST, STREAM, PATCH, DELETE data using set, push, stream, update an
 
 Support integer, float, String and raw JSON String data types.
 
-Auto resume streaming when timeout and can be switch between get/set/push/update call and stream event monitoring inside the Loop() easily.
+Auto resume streaming when timeout and can be switch between get/set/push/update call and stream event monitoring inside 
+the Loop() easily.
 
 When doing get/set/push/update call, the stream will stop and can be resume. 
 
 No root certificate or fingerprint required.
+
+Able to pause/unpause the WiFi/http client from Firebase calls and use it in your custom http connection. This helps you to save 
+RAM used in new created http client.
 
 **Supported functions**
 
