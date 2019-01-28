@@ -18,6 +18,7 @@
 FirebaseData firebaseData;
 
 unsigned long sendDataPrevMillis = 0;
+unsigned long sendMessagePrevMillis = 0;
 
 String path = "/ESP8266_Test/Stream";
 
@@ -79,11 +80,13 @@ void loop() {
       Serial.println();
     }
 
+
+
     if (firebaseData.doAlternateWork(true)) {
 
       WiFiClientSecure client = firebaseData.getWiFiClient();
 
-      uint8_t status =  lineNotify.sendLineMessage(client, "This is me!");
+      uint8_t status =  lineNotify.sendLineMessage(client, "Instant sending message after call!");
       if (status == LineNotifyESP8266::LineStatus::SENT_COMPLETED) Serial.println("Send text message completed");
       else if (status == LineNotifyESP8266::LineStatus::SENT_FAILED) Serial.println("Send text message was failed!");
       else if (status == LineNotifyESP8266::LineStatus::CONNECTION_FAILED) Serial.println("Connection to LINE sevice faild!");
@@ -95,6 +98,26 @@ void loop() {
     //Unpause WiFi client
     firebaseData.doAlternateWork(false);
 
+
+  }
+
+  if (millis() - sendMessagePrevMillis > 60000) {
+    sendMessagePrevMillis = millis();
+    if (firebaseData.doAlternateWork(true)) {
+
+      WiFiClientSecure client = firebaseData.getWiFiClient();
+
+      uint8_t status =  lineNotify.sendLineMessage(client, "Schedule message sending!");
+      if (status == LineNotifyESP8266::LineStatus::SENT_COMPLETED) Serial.println("Send text message completed");
+      else if (status == LineNotifyESP8266::LineStatus::SENT_FAILED) Serial.println("Send text message was failed!");
+      else if (status == LineNotifyESP8266::LineStatus::CONNECTION_FAILED) Serial.println("Connection to LINE sevice faild!");
+
+    } else {
+
+      Serial.println("----------Can't pause the WiFi client--------");
+    }
+    //Unpause WiFi client
+    firebaseData.doAlternateWork(false);
 
   }
 
@@ -126,8 +149,6 @@ void loop() {
     else if (firebaseData.dataType() == "json") Serial.println(firebaseData.jsonData());
     Serial.println();
   }
-
-
 
 
 }
