@@ -792,6 +792,18 @@ void FirebaseESP8266::errorToString(int httpCode, char* buf) {
     case HTTP_CODE_LENGTH_REQUIRED:
       strcpy(buf, (char*)F("length required"));
       return;
+	case HTTP_CODE_PAYLOAD_TOO_LARGE:
+      strcpy(buf, (char*)F("payload too large"));
+      return;
+	case HTTP_CODE_MISDIRECTED_REQUEST:
+      strcpy(buf, (char*)F("mis-directed request"));
+      return;
+	case HTTP_CODE_UNPROCESSABLE_ENTITY:
+      strcpy(buf, (char*)F("unprocessable entity"));
+      return; 	  
+	case HTTP_CODE_URI_TOO_LONG:
+      strcpy(buf, (char*)F("uri too long"));
+      return;	  
     case HTTP_CODE_TOO_MANY_REQUESTS:
       strcpy(buf, (char*)F("too many requests"));
       return;
@@ -816,6 +828,9 @@ void FirebaseESP8266::errorToString(int httpCode, char* buf) {
     case HTTP_CODE_NETWORK_AUTHENTICATION_REQUIRED:
       strcpy(buf, (char*)F("network authentication required"));
       return;
+	case HTTP_CODE_LOOP_DETECTED:
+      strcpy(buf, (char*)F("loop detected"));
+      return;	
     case FIREBASE_ERROR_BUFFER_OVERFLOW:
       strcpy(buf, (char*)F("data buffer overflow"));
       return;
@@ -886,6 +901,10 @@ char* FirebaseESP8266::replace_char(char* str, char in, char out) {
 
 
 FirebaseData::FirebaseData() {}
+
+WiFiClientSecure FirebaseData::getWiFiClient() {
+  return _http.client;
+}
 
 
 String FirebaseData::dataType() {
