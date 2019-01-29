@@ -22,9 +22,9 @@ This library works well in the following tested devices.
 
 Complete Firebase's REST API requests.
 
-Introduce the FirebaseData object that keeps the information and http client to be work and reused.
+Introduce the FirebaseData object that keeps the information and http client to work and reused.
 
-Able to PUT, POST, STREAM, PATCH, DELETE data using set, push, stream, update and delete functions.
+Able to GET, PUT, POST, STREAM, PATCH, DELETE data using get, set, push, stream, update and delete functions.
 
 Support integer, float, String and raw JSON String data types.
 
