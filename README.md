@@ -33,8 +33,8 @@ the Loop() without problems.  When doing get/set/push/update call, the stream wi
 
 No root certificate or fingerprint required.
 
-Able to pause/unpause the WiFi/http client from Firebase calls and use it in your custom http connection. This helps you to save 
-RAM used in new created http client.
+Able to pause all Firebase calls to perform other http connections or reuse the SSL WiFi client.
+
 
 ## Supported functions
 
