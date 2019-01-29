@@ -1,6 +1,9 @@
 # Firebase Arduino Client Library for ESP8266
 
-Google's Firebase real time database - ESP8266 library for Arduino
+Google's Firebase real time database - ESP8266 library for Arduino V 1.0
+
+This is not the official Firebase Arduino library from Google, unless introduce some similar and extra features with 
+difference core functions.
 
 This library provides ESP8266 to complete working with Google's Firebase database through the REST API. 
 
@@ -31,7 +34,7 @@ No root certificate or fingerprint required.
 Able to pause/unpause the WiFi/http client from Firebase calls and use it in your custom http connection. This helps you to save 
 RAM used in new created http client.
 
-**Supported functions**
+## Supported functions
 
 ```c++
    /**
