@@ -2,7 +2,7 @@
 
 Google's Firebase real time database - ESP8266 library for Arduino V 1.0
 
-This is not the official Firebase Arduino library from Google, unless introduce some similar and extra features with 
+This is not the official Firebase Arduino library from Google, unless this introduces some similar and extra features with 
 difference core functions.
 
 This library provides ESP8266 to complete working with Google's Firebase database through the REST API. 
