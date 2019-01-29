@@ -376,7 +376,13 @@ Able to pause all Firebase calls to perform other http connections or reuse the 
    bool bufferOverflow();
 
 ```
+## Install
 
+Click on Clone or download dropdown at the top of repository, select Download ZIP and save zip file to your computer.
+
+From Arduino IDE, goto menu Sketch -> Include Library -> Add .ZIP Library... and choose Firebase-ESP8266-master.zip from last download.
+
+Go to menu Files -> Examples -> Firebase-ESP8266-master and choose one from examples
 
 ## Usages
 
