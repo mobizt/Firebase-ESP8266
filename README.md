@@ -20,7 +20,7 @@ This library works well in the following tested devices.
  
 ## Features
 
-Completed Firebase's REST API requests.
+Perform Firebase's REST API requests.
 
 Introduce the FirebaseData object that keeps the information and http client to work and reused.
 
