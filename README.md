@@ -26,9 +26,11 @@ Introduces the FirebaseData object that keeps the information and http client to
 
 Able to GET, PUT, POST, STREAM, PATCH, DELETE data using get, set, push, stream, update and delete functions.
 
-Supports integer, float, String and raw JSON String data types. Boolean data type was removed due to I implement the feature that can return the actual data type after Firebase calls. You can use int or float data type and use non-zero value for True and zero value for False instead. 
+Supports integer, float, String and raw JSON String data types. Boolean data type was removed due to I implement the feature that can return the actual data type after Firebase calls. You can use int or float data type and use non-zero value for True and zero value for False instead.  For JSON string type, you need to include the external JSON library like ArduinoJson to parse raw JSON string as the object.
 
-Auto resume streaming when connection was timeout and can be switch between get/set/push/update/delete calls and stream event monitoring inside the same Loop with no problems.  When doing get/set/push/update/delete calls, the stream will stop and can be resume anytime by call Firebase.readStream(firebaseData) again.
+Auto resume streaming when connection was timeout. Call FirebaseData.streamTimeout() to check the stream timeout status. 
+
+Able to switch between get/set/push/update/delete calls and stream event monitoring in the same Loop function with no problems.  When doing get/set/push/update/delete calls, the stream will stop and can be resume anytime by call Firebase.readStream(firebaseData) again.
 
 No root certificate or fingerprint required.
 
