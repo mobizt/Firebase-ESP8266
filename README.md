@@ -20,16 +20,15 @@ This library works well in the following tested devices.
  
 ## Features
 
-Perform Firebase's REST API requests.
+Performs Firebase's REST API requests.
 
-Introduce the FirebaseData object that keeps the information and http client to work and reused.
+Introduces the FirebaseData object that keeps the information and http client to work and reused.
 
 Able to GET, PUT, POST, STREAM, PATCH, DELETE data using get, set, push, stream, update and delete functions.
 
-Support integer, float, String and raw JSON String data types. Boolean data type was removed due to I implement the feature that can return the actual data type after Firebase calls. You can use int or float data type and use non-zero value for True and zero value for False instead. 
+Supports integer, float, String and raw JSON String data types. Boolean data type was removed due to I implement the feature that can return the actual data type after Firebase calls. You can use int or float data type and use non-zero value for True and zero value for False instead. 
 
-Auto resume streaming when connection was timeout and can be switch between get/set/push/update calls and stream event monitoring inside 
-the Loop() with no problems.  When doing get/set/push/update call, the stream will stop and can be resume anytime by call Firebase.readStream(firebaseData) again.
+Auto resume streaming when connection was timeout and can be switch between get/set/push/update/delete calls and stream event monitoring inside the same Loop with no problems.  When doing get/set/push/update/delete calls, the stream will stop and can be resume anytime by call Firebase.readStream(firebaseData) again.
 
 No root certificate or fingerprint required.
 
