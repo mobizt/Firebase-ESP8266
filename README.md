@@ -376,7 +376,7 @@ Able to pause all Firebase calls to perform other http connections or reuse the 
    bool bufferOverflow();
 
 ```
-## Install
+## Installing
 
 Click on Clone or download dropdown at the top of repository, select Download ZIP and save zip file to your computer.
 
