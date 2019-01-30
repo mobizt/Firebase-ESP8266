@@ -70,7 +70,7 @@ void loop() {
       Serial.println();
     }
     
-    //Pause WiFi client from all Firebase call to use shared SSL WiFi client
+    //Pause WiFi client from all Firebase calls and use shared SSL WiFi client
     if(firebaseData.pauseFirebase(true)){
 
        WiFiClientSecure client = firebaseData.getWiFiClient(); 
