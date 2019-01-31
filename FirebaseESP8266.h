@@ -481,7 +481,7 @@ class FirebaseData {
    * #define FIREBASE_RESPONSE_SIZE xxxx
    * #define FIREBASE_DATA_SIZE xxxx
    */
-  bool bufferOverflow();
+   bool bufferOverflow();
   
 
 
