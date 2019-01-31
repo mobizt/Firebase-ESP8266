@@ -31,6 +31,7 @@ Supports integer, float, String and raw JSON String data types. Boolean data typ
 Auto resume streaming when connection was timeout. Call FirebaseData.streamTimeout() to check the stream timeout status. 
 
 Able to switch between get/set/push/update/delete calls and stream event monitoring in the same Loop function with no problems.  When doing get/set/push/update/delete calls, the stream will stop and can be resume anytime by call Firebase.readStream(firebaseData) again.
+Idle time for more than 2-3 seconds required after you switch from normal get/set/push/update/delete calls to stream event call which allows the new stream connection to successfully established.
 
 No root certificate or fingerprint required.
 
