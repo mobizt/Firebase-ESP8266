@@ -55,102 +55,168 @@ typedef struct FirebaseESP8266::FirebaseMethod {
 FirebaseESP8266::FirebaseESP8266() {}
 FirebaseESP8266::~FirebaseESP8266() {}
 
+
 void FirebaseESP8266::begin(const String host, const String auth) {
-  firebaseBegin(host.c_str(), auth.c_str(), FIEBASE_PORT);
+  begin(host.c_str(), auth.c_str());
 }
 
-
+void FirebaseESP8266::begin(const char* host, const char* auth) {
+  firebaseBegin(host, auth, FIEBASE_PORT);
+}
 
 void FirebaseESP8266::reconnectWiFi(bool reconnect) {
   _reconnectWiFi = reconnect;
 }
 
 bool FirebaseESP8266::pathExist(FirebaseData &dataObj, const String path) {
-  if (sendRequest(dataObj, path.c_str(), FirebaseMethod::GET, FirebaseDataType::STRING, ""))
+   return pathExist(dataObj, path.c_str());
+}
+
+bool FirebaseESP8266::pathExist(FirebaseData &dataObj, const char* path){
+  if (sendRequest(dataObj, path, FirebaseMethod::GET, FirebaseDataType::STRING, ""))
     return !dataObj._pathNotExist;
   else
     return false;
 }
 
 bool FirebaseESP8266::pushInt(FirebaseData &dataObj, const String path, int intValue) {
+   return pushInt(dataObj, path.c_str(), intValue);
+}
+
+bool FirebaseESP8266::pushInt(FirebaseData &dataObj, const char* path, int intValue){
   char buf[50];
   memset(buf, 0, sizeof buf);
   itoa(intValue, buf, 10);
-  return sendRequest(dataObj, path.c_str(), FirebaseMethod::POST, FirebaseDataType::INTEGER, buf);
+  return sendRequest(dataObj, path, FirebaseMethod::POST, FirebaseDataType::INTEGER, buf);	
 }
 
+
 bool FirebaseESP8266::pushFloat(FirebaseData &dataObj, const String path, float floatValue) {
+  return pushFloat(dataObj, path.c_str(), floatValue);
+}
+
+bool FirebaseESP8266::pushFloat(FirebaseData &dataObj, const char* path, float floatValue){
   char buf[50];
   memset(buf, 0, sizeof buf);
   dtostrf(floatValue, 7, 6, buf);
-  return sendRequest(dataObj, path.c_str(), FirebaseMethod::POST, FirebaseDataType::FLOAT, buf);
+  return sendRequest(dataObj, path, FirebaseMethod::POST, FirebaseDataType::FLOAT, buf);	
+}
+ 
+bool pushString(FirebaseData &dataObj, const String path, const String stringValue){
+  return pushString(dataObj, path.c_str(), stringValue.c_str());
 }
 
-bool FirebaseESP8266::pushString(FirebaseData &dataObj, const String path, const String stringValue) {
-  return sendRequest(dataObj, path.c_str(), FirebaseMethod::POST, FirebaseDataType::STRING, stringValue.c_str());
+bool FirebaseESP8266::pushString(FirebaseData &dataObj, const char* path, const char* stringValue) {
+  return sendRequest(dataObj, path, FirebaseMethod::POST, FirebaseDataType::STRING, stringValue);
 }
 
-bool FirebaseESP8266::pushJSON(FirebaseData &dataObj, const String path, const String jsonString) {
-  return sendRequest(dataObj, path.c_str(), FirebaseMethod::POST, FirebaseDataType::JSON, jsonString.c_str());
+
+bool FirebaseESP8266::pushJSON(FirebaseData &dataObj, const String path, const String jsonString){
+  return pushJSON(dataObj, path.c_str(), jsonString.c_str());
+}
+
+bool FirebaseESP8266::pushJSON(FirebaseData &dataObj, const char* path, const char* jsonString) {
+  return sendRequest(dataObj, path, FirebaseMethod::POST, FirebaseDataType::JSON, jsonString);
 }
 
 bool FirebaseESP8266::setInt(FirebaseData &dataObj, const String path, int intValue) {
+  return setInt(dataObj, path.c_str(), intValue);
+}
+
+bool FirebaseESP8266::setInt(FirebaseData &dataObj, const char* path, int intValue) {
   char buf[50];
   memset(buf, 0, sizeof buf);
   itoa(intValue, buf, 10);
-  return sendRequest(dataObj, path.c_str(), FirebaseMethod::PUT, FirebaseDataType::INTEGER, buf);
+  return sendRequest(dataObj, path, FirebaseMethod::PUT, FirebaseDataType::INTEGER, buf);
 }
 
 bool FirebaseESP8266::setFloat(FirebaseData &dataObj, const String path, float floatValue) {
+  return setFloat(dataObj, path.c_str(), floatValue);
+}
+
+bool FirebaseESP8266::setFloat(FirebaseData &dataObj, const char* path, float floatValue) {
   char buf[50];
   memset(buf, 0, sizeof buf);
   dtostrf(floatValue, 7, 6, buf);
-  return sendRequest(dataObj, path.c_str(), FirebaseMethod::PUT, FirebaseDataType::FLOAT, buf);
+  return sendRequest(dataObj, path, FirebaseMethod::PUT, FirebaseDataType::FLOAT, buf);
 }
 
 bool FirebaseESP8266::setString(FirebaseData &dataObj, const String path, const String stringValue) {
-  return sendRequest(dataObj, path.c_str(), FirebaseMethod::PUT, FirebaseDataType::STRING, stringValue.c_str());
+  return setString(dataObj, path.c_str(), stringValue.c_str());
+}
+
+bool FirebaseESP8266::setString(FirebaseData &dataObj, const char* path, const char* stringValue) {
+  return sendRequest(dataObj, path, FirebaseMethod::PUT, FirebaseDataType::STRING, stringValue);
 }
 
 bool FirebaseESP8266::setJSON(FirebaseData &dataObj, const String path, const String jsonString) {
-  return sendRequest(dataObj, path.c_str(), FirebaseMethod::PUT, FirebaseDataType::JSON, jsonString.c_str());
+  return setJSON(dataObj, path.c_str(), jsonString.c_str());
+}
+
+bool FirebaseESP8266::setJSON(FirebaseData &dataObj, const char* path, const char* jsonString) {
+  return sendRequest(dataObj, path, FirebaseMethod::PUT, FirebaseDataType::JSON, jsonString);
 }
 
 bool FirebaseESP8266::updateNode(FirebaseData &dataObj, const String path, const String jsonString) {
-  return sendRequest(dataObj, path.c_str(), FirebaseMethod::PATCH, FirebaseDataType::JSON, jsonString.c_str());
+  return updateNode(dataObj, path.c_str(), jsonString.c_str());
 }
 
-bool FirebaseESP8266::getInt(FirebaseData &dataObj, String path) {
+bool FirebaseESP8266::updateNode(FirebaseData &dataObj, const char* path, const char* jsonString) {
+  return sendRequest(dataObj, path, FirebaseMethod::PATCH, FirebaseDataType::JSON, jsonString);
+}
+
+bool FirebaseESP8266::getInt(FirebaseData &dataObj, const String path) {
+  return getInt(dataObj, path.c_str());
+}
+
+bool FirebaseESP8266::getInt(FirebaseData &dataObj, const char* path) {
   return getFloat(dataObj, path);
 }
 
-bool FirebaseESP8266::getFloat(FirebaseData &dataObj, String path) {
-  bool flag = sendRequest(dataObj, path.c_str(), FirebaseMethod::GET, FirebaseDataType::FLOAT, "");
+bool FirebaseESP8266::getFloat(FirebaseData &dataObj, const String path) {
+  return getFloat(dataObj, path.c_str());
+}
+
+bool FirebaseESP8266::getFloat(FirebaseData &dataObj, const char* path) {
+  bool flag = sendRequest(dataObj, path, FirebaseMethod::GET, FirebaseDataType::FLOAT, "");
   if (dataObj._dataType != FirebaseDataType::INTEGER && dataObj._dataType != FirebaseDataType::FLOAT) flag = false;
   return flag;
 }
 
+bool FirebaseESP8266::getString(FirebaseData &dataObj, const String path) {
+  return getString(dataObj, path.c_str());;
+}
 
-bool FirebaseESP8266::getString(FirebaseData &dataObj, String path) {
-  bool flag = sendRequest(dataObj, path.c_str(), FirebaseMethod::GET, FirebaseDataType::STRING, "");
+bool FirebaseESP8266::getString(FirebaseData &dataObj, const char* path) {
+  bool flag = sendRequest(dataObj, path, FirebaseMethod::GET, FirebaseDataType::STRING, "");
   if (dataObj._dataType != FirebaseDataType::STRING) flag = false;
   return flag;
 }
 
+bool FirebaseESP8266::getJSON(FirebaseData &dataObj, const String path) {
+  return getJSON(dataObj, path.c_str());
+}
 
-bool FirebaseESP8266::getJSON(FirebaseData &dataObj, String path) {
-  bool flag = sendRequest(dataObj, path.c_str(), FirebaseMethod::GET, FirebaseDataType::JSON, "");
+bool FirebaseESP8266::getJSON(FirebaseData &dataObj, const char* path) {
+  bool flag = sendRequest(dataObj, path, FirebaseMethod::GET, FirebaseDataType::JSON, "");
   if (dataObj._dataType != FirebaseDataType::JSON) flag = false;
   return flag;
 }
 
-
 bool FirebaseESP8266::deleteNode(FirebaseData &dataObj, const String path) {
-  return sendRequest(dataObj, path.c_str(), FirebaseMethod::DELETE, FirebaseDataType::STRING, "");
+  return deleteNode(dataObj, path.c_str());
+}
+
+bool FirebaseESP8266::deleteNode(FirebaseData &dataObj, const char* path) {
+  return sendRequest(dataObj, path, FirebaseMethod::DELETE, FirebaseDataType::STRING, "");
 }
 
 bool FirebaseESP8266::beginStream(FirebaseData &dataObj, const String path) {
-  return firebaseConnectStream(dataObj, path.c_str());
+  return beginStream(dataObj, path.c_str());
+}
+
+bool FirebaseESP8266::beginStream(FirebaseData &dataObj, const char* path) {
+  return firebaseConnectStream(dataObj, path);
 }
 
 bool FirebaseESP8266::readStream(FirebaseData &dataObj) {
@@ -186,8 +252,8 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const char* path, co
 
 
   if (strlen(path) == 0 || strlen(_host) == 0 || strlen(_auth) == 0) {
-    dataObj._httpCode = HTTP_CODE_BAD_REQUEST;
-    return HTTP_CODE_BAD_REQUEST;
+    dataObj._httpCode = _HTTP_CODE_BAD_REQUEST;
+    return _HTTP_CODE_BAD_REQUEST;
   }
   //build requested uri
   char payloadStr[strlen(payload) + 10];
@@ -233,13 +299,12 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const char* path, co
 
   //Prepare for string and JSON payloads
   if (strlen(payload) > 0) {
+	memset(payloadStr, 0, sizeof payloadStr);
     if (dataType == FirebaseDataType::STRING) strcpy(payloadStr, "\"");
-    if (dataType == FirebaseDataType::JSON)
-      strcat(payloadStr, replace_char((char*)payload, '\\', '\0'));
-    else
-      strcat(payloadStr, payload);
+    strcat(payloadStr, payload);  
     if (dataType == FirebaseDataType::STRING) strcat(payloadStr, "\"");
   }
+  
 
   //Prepare request header
   char header[FIREBASE_REQ_BUFFER_SIZE];
@@ -260,7 +325,7 @@ bool FirebaseESP8266::sendRequest(FirebaseData &dataObj, const char* path, const
   if (dataObj._pause) return true;
 
   if (strlen(path) == 0 || strlen(_host) == 0 || strlen(_auth) == 0) {
-    dataObj._httpCode = HTTP_CODE_BAD_REQUEST;
+    dataObj._httpCode = _HTTP_CODE_BAD_REQUEST;
     return false;
   }
 
@@ -415,13 +480,13 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj) {
                 strcpy(eventType, res);
                 hasEvent = true;
                 isStream = true;
-                dataObj._httpCode = HTTP_CODE_OK;
+                dataObj._httpCode = _HTTP_CODE_OK;
               } else if (strpos(response, "data:", 0) != -1) {
                 memset(response, 0, sizeof response);
                 strcpy (response, res);
                 hasEventData = true;
                 isStream = true;
-                dataObj._httpCode = HTTP_CODE_OK;
+                dataObj._httpCode = _HTTP_CODE_OK;
               }
             }
           }
@@ -435,7 +500,7 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj) {
     if (millis() - dataTime > dataObj._http.tcpTimeout)
       dataObj._httpCode = HTTPC_ERROR_READ_TIMEOUT;
 
-    if (dataObj._httpCode == HTTP_CODE_OK) {
+    if (dataObj._httpCode == _HTTP_CODE_OK) {
       //JSON stream data?
       if (isStream) {
         if (hasEventData && hasEvent) {
@@ -543,7 +608,7 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj) {
     dataObj._streamMillis =  millis();
 
     if ( dataObj._httpCode == HTTPC_ERROR_READ_TIMEOUT) return false;
-    return dataObj._httpCode == HTTP_CODE_OK;
+    return dataObj._httpCode == _HTTP_CODE_OK;
   }
   if (dataObj._httpCode == -1000) flag = true;
   dataObj._httpConnected =  false;
@@ -560,7 +625,7 @@ bool FirebaseESP8266::firebaseConnectStream(FirebaseData &dataObj, const char* p
   if (dataObj._isStream && strcmp(path, dataObj._streamPath) == 0) return true;
 
   if (strlen(path) == 0 || strlen(_host) == 0 || strlen(_auth) == 0) {
-    dataObj._httpCode = HTTP_CODE_BAD_REQUEST;
+    dataObj._httpCode = _HTTP_CODE_BAD_REQUEST;
     return false;
   }
 
@@ -759,88 +824,88 @@ void FirebaseESP8266::errorToString(int httpCode, char* buf) {
     case HTTPC_ERROR_NO_HTTP_SERVER:
       strcpy(buf, (char*)F("no HTTP server"));
       return;
-    case HTTP_CODE_BAD_REQUEST:
+    case _HTTP_CODE_BAD_REQUEST:
       strcpy(buf, (char*)F("bad request"));
       return;
-    case HTTP_CODE_NON_AUTHORITATIVE_INFORMATION:
+    case _HTTP_CODE_NON_AUTHORITATIVE_INFORMATION:
       strcpy(buf, (char*)F("non-authoriative information"));
       return;
-    case HTTP_CODE_NO_CONTENT:
+    case _HTTP_CODE_NO_CONTENT:
       strcpy(buf, (char*)F("no content"));
       return;
-    case HTTP_CODE_MOVED_PERMANENTLY:
+    case _HTTP_CODE_MOVED_PERMANENTLY:
       strcpy(buf, (char*)F("moved permanently"));
       return;
-    case HTTP_CODE_USE_PROXY:
+    case _HTTP_CODE_USE_PROXY:
       strcpy(buf, (char*)F("use proxy"));
       return;
-    case HTTP_CODE_TEMPORARY_REDIRECT:
+    case _HTTP_CODE_TEMPORARY_REDIRECT:
       strcpy(buf, (char*)F("temporary redirect"));
       return;
-    case HTTP_CODE_PERMANENT_REDIRECT:
+    case _HTTP_CODE_PERMANENT_REDIRECT:
       strcpy(buf, (char*)F("permanent redirect"));
       return;
-    case HTTP_CODE_UNAUTHORIZED:
+    case _HTTP_CODE_UNAUTHORIZED:
       strcpy(buf, (char*)F("unauthorized"));
       return;
-    case HTTP_CODE_FORBIDDEN:
+    case _HTTP_CODE_FORBIDDEN:
       strcpy(buf, (char*)F("forbidden"));
       return;
-    case HTTP_CODE_NOT_FOUND:
+    case _HTTP_CODE_NOT_FOUND:
       strcpy(buf, (char*)F("not found"));
       return;
-    case HTTP_CODE_METHOD_NOT_ALLOWED:
+    case _HTTP_CODE_METHOD_NOT_ALLOWED:
       strcpy(buf, (char*)F("method not allow"));
       return;
-    case HTTP_CODE_NOT_ACCEPTABLE:
+    case _HTTP_CODE_NOT_ACCEPTABLE:
       strcpy(buf, (char*)F("not acceptable"));
       return;
-    case HTTP_CODE_PROXY_AUTHENTICATION_REQUIRED:
+    case _HTTP_CODE_PROXY_AUTHENTICATION_REQUIRED:
       strcpy(buf, (char*)F("proxy authentication required"));
       return;
-    case HTTP_CODE_REQUEST_TIMEOUT:
+    case _HTTP_CODE_REQUEST_TIMEOUT:
       strcpy(buf, (char*)F("request timeout"));
       return;
-    case HTTP_CODE_LENGTH_REQUIRED:
+    case _HTTP_CODE_LENGTH_REQUIRED:
       strcpy(buf, (char*)F("length required"));
       return;
-    case HTTP_CODE_PAYLOAD_TOO_LARGE:
+    case _HTTP_CODE_PAYLOAD_TOO_LARGE:
       strcpy(buf, (char*)F("payload too large"));
       return;
-    case HTTP_CODE_MISDIRECTED_REQUEST:
+    case _HTTP_CODE_MISDIRECTED_REQUEST:
       strcpy(buf, (char*)F("mis-directed request"));
       return;
-    case HTTP_CODE_UNPROCESSABLE_ENTITY:
+    case _HTTP_CODE_UNPROCESSABLE_ENTITY:
       strcpy(buf, (char*)F("unprocessable entity"));
       return;
-    case HTTP_CODE_URI_TOO_LONG:
+    case _HTTP_CODE_URI_TOO_LONG:
       strcpy(buf, (char*)F("uri too long"));
       return;
-    case HTTP_CODE_TOO_MANY_REQUESTS:
+    case _HTTP_CODE_TOO_MANY_REQUESTS:
       strcpy(buf, (char*)F("too many requests"));
       return;
-    case HTTP_CODE_REQUEST_HEADER_FIELDS_TOO_LARGE:
+    case _HTTP_CODE_REQUEST_HEADER_FIELDS_TOO_LARGE:
       strcpy(buf, (char*)F("request header fields too larg"));
       return;
-    case HTTP_CODE_INTERNAL_SERVER_ERROR:
+    case _HTTP_CODE_INTERNAL_SERVER_ERROR:
       strcpy(buf, (char*)F("internal server error"));
       return;
-    case HTTP_CODE_BAD_GATEWAY:
+    case _HTTP_CODE_BAD_GATEWAY:
       strcpy(buf, (char*)F("bad gateway"));
       return;
-    case HTTP_CODE_SERVICE_UNAVAILABLE:
+    case _HTTP_CODE_SERVICE_UNAVAILABLE:
       strcpy(buf, (char*)F("service unavailable"));
       return;
-    case HTTP_CODE_GATEWAY_TIMEOUT:
+    case _HTTP_CODE_GATEWAY_TIMEOUT:
       strcpy(buf, (char*)F("gateway timeout"));
       return;
-    case HTTP_CODE_HTTP_VERSION_NOT_SUPPORTED:
+    case _HTTP_CODE_HTTP_VERSION_NOT_SUPPORTED:
       strcpy(buf, (char*)F("http version not support"));
       return;
-    case HTTP_CODE_NETWORK_AUTHENTICATION_REQUIRED:
+    case _HTTP_CODE_NETWORK_AUTHENTICATION_REQUIRED:
       strcpy(buf, (char*)F("network authentication required"));
       return;
-    case HTTP_CODE_LOOP_DETECTED:
+    case _HTTP_CODE_LOOP_DETECTED:
       strcpy(buf, (char*)F("loop detected"));
       return;
     case FIREBASE_ERROR_BUFFER_OVERFLOW:
@@ -901,14 +966,23 @@ next:;
   }
   return 0;
 }
-char* FirebaseESP8266::replace_char(char* str, char in, char out) {
-  char * p = str;
-  while (p != '\0') {
-    if (*p == in)
-      *p == out;
-    ++p;
+
+void FirebaseESP8266::replace_char(char* str, char in, char out) {
+  char buf[strlen(str)];
+  memset(buf,0, sizeof buf);
+  int k=0; 
+  if(out !='\0'){
+    for(int i=0;i<strlen(str);i++)
+      if(str[i]==in) str[i]=out;
+	}else{
+	  for(int i=0;i<strlen(str);i++)
+	  if(str[i]!=in) {
+        buf[k] = str[i];
+		k++;
+	  }
+	  memset(str,0, sizeof str);
+	  strcpy(str,buf);	  
   }
-  return str;
 }
 
 
@@ -951,12 +1025,26 @@ String FirebaseData::dataType() {
   return String();
 }
 
+uint8_t FirebaseData::dataTypeInt() {
+  return _dataType;
+}
+
 String FirebaseData::streamPath() {
   return String(_streamPath);
 }
 
+void FirebaseData::streamPathBuf(char* buf) {
+  memset(buf, 0, sizeof buf);
+  strcpy(buf, _streamPath);
+}
+
 String FirebaseData::dataPath() {
   return String(_path);
+}
+
+void FirebaseData::dataPathBuf(char* buf) {
+  memset(buf, 0, sizeof buf);
+  strcpy(buf, _path);
 }
 
 int FirebaseData::intData() {
@@ -971,15 +1059,29 @@ float FirebaseData::floatData() {
 
 String FirebaseData::stringData() {
   char buf[FIREBASE_DATA_SIZE];
-  memset(buf, 0, sizeof buf);
-  strcat(buf, Firebase.replace_char((char*)_data, '"', '\0'));
+  memset(buf, 0, sizeof buf);  
+  strcpy(buf, _data);
+  removeDQ(buf);
   if (strlen(_data) > 0  && _dataType == FirebaseESP8266::FirebaseDataType::STRING) return String(buf);
   else return String();
+}
+
+void FirebaseData::stringDataBuf(char* buf) {
+  memset(buf, 0, sizeof buf);  
+  if (strlen(_data) > 0  && _dataType == FirebaseESP8266::FirebaseDataType::STRING) {
+	  strcpy(buf, _data);
+	  removeDQ(buf);
+  }
 }
 
 String FirebaseData::jsonData() {
   if (strlen(_data) > 0  && _dataType == FirebaseESP8266::FirebaseDataType::JSON) return String(_data);
   else return String();
+}
+
+void FirebaseData::jsonDataBuf(char* buf) {
+  memset(buf, 0, sizeof buf);
+  if (strlen(_data) > 0  && _dataType == FirebaseESP8266::FirebaseDataType::JSON) strcpy(buf,_data);
 }
 
 String FirebaseData::pushName() {
@@ -988,6 +1090,11 @@ String FirebaseData::pushName() {
   strcpy(buf, _pushName);
   if (strlen(buf) > 0) return String(buf);
   else return String();
+}
+
+void FirebaseData::pushNameBuf(char* buf) {
+  memset(buf, 0, sizeof buf);  
+  if (strlen(buf) > 0) strcpy(buf, _pushName);
 }
 
 bool FirebaseData::isStream() {
@@ -1019,7 +1126,7 @@ bool FirebaseData::bufferOverflow() {
 String FirebaseData::errorReason() {
   char buf[50];
 
-  if (_httpCode == HTTP_CODE_OK) {
+  if (_httpCode == _HTTP_CODE_OK) {
     if (_bufferOverflow)
       _httpCode = FIREBASE_ERROR_BUFFER_OVERFLOW;
     if (_mismatchDataType)
@@ -1035,8 +1142,39 @@ String FirebaseData::errorReason() {
   return String(buf);
 }
 
+void FirebaseData::errorReasonBuf(char* buf) {
+	
+  memset(buf, 0, sizeof buf);
+  
+  if (_httpCode == _HTTP_CODE_OK) {
+    if (_bufferOverflow)
+      _httpCode = FIREBASE_ERROR_BUFFER_OVERFLOW;
+    if (_mismatchDataType)
+      _httpCode = FIREBASE_ERROR_DATA_TYPE_MISMATCH;
+    else if (_pathNotExist)
+      _httpCode = FIREBASE_ERROR_PATH_NOT_EXIST;
+  }
+
+  Firebase.errorToString(_httpCode, buf);
+
+  if (strlen(buf) == 0 && _httpCode > 0)itoa(_httpCode, buf, 10);
+
+}
+
 int FirebaseData::httpCode() {
   return _httpCode;
+}
+
+
+
+void FirebaseData::removeDQ(char* str) {
+  char buf[strlen(str)];
+  memset(buf,0, sizeof buf);
+  for(int i=1;i<strlen(str)-1;i++)
+	buf[i-1]=str[i];
+
+  memset(str,0, sizeof str);
+  strcpy(str,buf);
 }
 
 FirebaseESP8266 Firebase = FirebaseESP8266();
