@@ -298,8 +298,8 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const char* path, co
 
 
   //Prepare for string and JSON payloads
-  if (strlen(payload) > 0) {
-	memset(payloadStr, 0, sizeof payloadStr);
+  if (method != FirebaseMethod::GET && method != FirebaseMethod::STREAM && method != FirebaseMethod::DELETE) {
+    memset(payloadStr, 0, sizeof payloadStr);
     if (dataType == FirebaseDataType::STRING) strcpy(payloadStr, "\"");
     strcat(payloadStr, payload);  
     if (dataType == FirebaseDataType::STRING) strcat(payloadStr, "\"");
@@ -325,6 +325,11 @@ bool FirebaseESP8266::sendRequest(FirebaseData &dataObj, const char* path, const
   if (dataObj._pause) return true;
 
   if (strlen(path) == 0 || strlen(_host) == 0 || strlen(_auth) == 0) {
+    dataObj._httpCode = _HTTP_CODE_BAD_REQUEST;
+    return false;
+  }
+	
+  if ((method == FirebaseMethod::PUT || method == FirebaseMethod::POST || method == FirebaseMethod::PATCH) && strlen(payload)==0 && dataType!=FirebaseDataType::STRING) { 
     dataObj._httpCode = _HTTP_CODE_BAD_REQUEST;
     return false;
   }
