@@ -67,14 +67,7 @@ class FirebaseESP8266 {
    * \param auth - Your database secret.
    */
     void begin(const String host, const String auth);
-  
-   /**
-   * The Firebase's credentials initialization.
-   * \param host - Your Firebase database project host i.e. Your_ProjectID.firebaseio.com.
-   * \param auth - Your database secret.
-   * \param rootCA - Base64 encoded root certificate string.
-   */
-    void begin(const String host, const String auth, const char* rootCA);
+	void begin(const char* host, const char* auth);
   
    /**
    * Auto reconnect WiFi when connection lost during request.
@@ -88,6 +81,7 @@ class FirebaseESP8266 {
    * \param path - Node path to be checked.
    */
     bool pathExist(FirebaseData &dataObj, const String path);
+	bool pathExist(FirebaseData &dataObj, const char* path);
   
    /**
    * Post or append/create new child node integer data.
@@ -100,6 +94,7 @@ class FirebaseESP8266 {
    * To get actual data type, call FirebaseData.dataType().
    */
     bool pushInt(FirebaseData &dataObj, const String path, int intValue);
+	bool pushInt(FirebaseData &dataObj, const char* path, int intValue);
   
   /**
    * Post or append/create new child node float data.
@@ -112,6 +107,7 @@ class FirebaseESP8266 {
    * To get actual data type, call FirebaseData.dataType().
    */
     bool pushFloat(FirebaseData &dataObj, const String path, float floatValue);
+	bool pushFloat(FirebaseData &dataObj, const char* path, float floatValue);
   
   /**
    * Post or append/create new child node String data.
@@ -124,6 +120,7 @@ class FirebaseESP8266 {
    * To get actual data type, call FirebaseData.dataType().
    */
     bool pushString(FirebaseData &dataObj, const String path, const String stringValue);
+	bool pushString(FirebaseData &dataObj, const char* path, const char* stringValue);
   
   /**
    * Post or append/create new node JSON data.
@@ -136,6 +133,7 @@ class FirebaseESP8266 {
    * To get actual data type, call FirebaseData.dataType().
    */
     bool pushJSON(FirebaseData &dataObj, const String path, const String jsonString);
+	bool pushJSON(FirebaseData &dataObj, const char* path, const char* jsonString);
   
   /**
    * Put or set integer data to child node at the specified path.
@@ -148,6 +146,7 @@ class FirebaseESP8266 {
    * To get actual payload data from operation, call FirebaseData.intData().
    */
     bool setInt(FirebaseData &dataObj, const String path, int intValue);
+	bool setInt(FirebaseData &dataObj, const char* path, int intValue);
   
   /**
    * Put or set float data to node at the specified path.
@@ -160,6 +159,7 @@ class FirebaseESP8266 {
    * To get actual payload data from operation, call FirebaseData.floatData().
    */
     bool setFloat(FirebaseData &dataObj, const String path, float floatValue);
+	bool setFloat(FirebaseData &dataObj, const char* path, float floatValue);
   
   /**
    * Put or set String data to child node at the specified path.
@@ -172,6 +172,7 @@ class FirebaseESP8266 {
    * To get actual payload data from operation, call FirebaseData.stringData().
    */
     bool setString(FirebaseData &dataObj, const String path, const String stringValue);
+	bool setString(FirebaseData &dataObj, const char* path, const char* stringValue);
   
   /**
    * Put or set JSON data to child node at the specified path.
@@ -184,6 +185,7 @@ class FirebaseESP8266 {
    * To get actual payload data from operation, call FirebaseData.jsonData().
    */
     bool setJSON(FirebaseData &dataObj, const String path, const String jsonString);
+	bool setJSON(FirebaseData &dataObj, const char* path, const char* jsonString);
   
   /**
    * Patch or update JSON data to child node at the specified path.
@@ -196,6 +198,7 @@ class FirebaseESP8266 {
    * To get actual payload data from operation, call FirebaseData.jsonData().
    */
     bool updateNode(FirebaseData &dataObj, const String path, const String jsonString);
+	bool updateNode(FirebaseData &dataObj, const char* path, const char* jsonString);
   
   /**
    * Get the integer data from child node at the specified path.
@@ -208,7 +211,8 @@ class FirebaseESP8266 {
    * the return data will be rounded  and if the data at node path is other types than integer or float, 
    * the return integer data will be zero.
    */
-    bool getInt(FirebaseData &dataObj, String path);
+    bool getInt(FirebaseData &dataObj, const String path);
+	bool getInt(FirebaseData &dataObj, const char* path);
   
   /**
    * Get the float data from child node at the specified path.
@@ -220,7 +224,8 @@ class FirebaseESP8266 {
    * To get actual return float data, call FirebaseData.floatData(). If the data at node path is other types than float or integer, 
    * the return float data will be zero.
    */
-    bool getFloat(FirebaseData &dataObj, String path);
+    bool getFloat(FirebaseData &dataObj, const String path);
+	bool getFloat(FirebaseData &dataObj, const char* path);
   
   /**
    * Get the String data from child node at the specified path.
@@ -232,7 +237,8 @@ class FirebaseESP8266 {
    * To get actual return String data, call FirebaseData.stringData(). If the data at node path is other types than String, 
    * the return String data will be empty string.
    */
-    bool getString(FirebaseData &dataObj, String path);
+    bool getString(FirebaseData &dataObj, const String path);
+	bool getString(FirebaseData &dataObj, const char* path);
   
    /**
    * Get the raw JSON String data from child node at the specified path.
@@ -244,7 +250,8 @@ class FirebaseESP8266 {
    * To get actual return raw JSON String data, call FirebaseData.jsonData(). If the data at node path is other types than JSON, 
    * the return String data will be empty string.
    */
-    bool getJSON(FirebaseData &dataObj, String path);
+    bool getJSON(FirebaseData &dataObj, const String path);
+	bool getJSON(FirebaseData &dataObj, const char* path);
   
    /**
    * Delete the node at specified path. The entire children nodes also deleted.
@@ -254,6 +261,7 @@ class FirebaseESP8266 {
    * To get error reason, call FirebaseData.errorReason().
    */
     bool deleteNode(FirebaseData &dataObj, const String path);
+	bool deleteNode(FirebaseData &dataObj, const char* path);
   
    /**
    * Begin monitoring the change of data at node and its children at specified path.
@@ -263,6 +271,7 @@ class FirebaseESP8266 {
    * To get error reason, call FirebaseData.errorReason().
    */
     bool beginStream(FirebaseData &dataObj, const String path);
+	bool beginStream(FirebaseData &dataObj, const char* path);
   
    /**
    * Read the stream event data at specified path. Should be called in loop or loop tasks after begin stream called in setup().
@@ -283,7 +292,7 @@ class FirebaseESP8266 {
   /**
    * Use in FirebaseData class
    */
-    char* replace_char(char* str, char in, char out);
+	void replace_char(char* str, char in, char out);
     void errorToString(int httpCode, char* buf);
 
 
@@ -338,24 +347,45 @@ class FirebaseData {
    * \return The data type String (int, float, string and json).
    */
     String dataType();
+	
+	/**
+   * Return the actual data type that return as payload from get/set/push calls.
+   * \return The data type as FirebaseDataType struct (NULL_, INTEGER, FLOAT, STRING and JSON).
+   */
+	uint8_t dataTypeInt();
   
    /**
    * Return the current stream path.
    * \return The path String.
    */
     String streamPath();
+	
+   /**
+   * Get the stream path string.
+   */
+	void streamPathBuf(char* buf);
   
    /**
    * Return the current data path.
    * \return The current path String from get/set/push calls or current changed data path from stream call.
    */
     String dataPath();
+	
+   /**
+   * Get the current data path.
+   */
+	void dataPathBuf(char* buf);
   
    /**
    * Return the error reason String from current call.
    * \return The error String.
    */
     String errorReason();
+
+   /**
+   * Get the error reason string.
+   */	
+	void errorReasonBuf(char* buf);
   
    /**
    * Return the ineger data from current get/set/push and stream calls.
@@ -374,18 +404,33 @@ class FirebaseData {
    * \return The payload or returned String data.
    */
     String stringData();
+	
+   /**
+   * Get the string data from current get/set/push and stream calls.
+   */	
+	void stringDataBuf(char* buf);
   
    /**
    * Return the raw JSON String data from current get/set/push and stream calls.
    * \return The payload or returned raw JSON String data.
    */
     String jsonData();
+	
+   /**
+   * Get the raw JSON string data from current get/set/push and stream calls.
+   */	
+	void jsonDataBuf(char* buf);
   
    /**
    * Return the new created child node name (String) from push call.
    * \return The String of new append node name.
    */
     String pushName();
+	
+   /**
+   * Get the new created child node name from push call.
+   */	
+	void pushNameBuf(char* buf);
   
    /**
    * Check the current FirebaseData object is currently work with stream.
@@ -437,6 +482,8 @@ class FirebaseData {
    * #define FIREBASE_DATA_SIZE xxxx
    */
   bool bufferOverflow();
+  
+  
 
 
 
@@ -471,8 +518,13 @@ class FirebaseData {
     unsigned long _dataMillis;
     unsigned long _streamMillis;
     unsigned long _streamResetMillis;
+	
 
-    FirebaseHTTPClient _http;
+    FirebaseHTTPClient _http;	
+	
+	void removeDQ(char* str);
+	
+	
 
     friend FirebaseESP8266;
 
