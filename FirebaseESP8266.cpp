@@ -733,7 +733,7 @@ void FirebaseESP8266::buildFirebaseRequest(FirebaseData &dataObj, const char* ho
   strcat_P(request, (char*)F("Host: "));
   strcat(request, host);
   strcat(request, newline);
-  strcat_P(request, (char*)F("User-Agent: ESP32\r\n"));
+  strcat_P(request, (char*)F("User-Agent: ESP8266\r\n"));
   strcat_P(request, (char*)F("X-Firebase-Decoding: 1\r\n"));
 
   if (method == FirebaseMethod::STREAM) {
