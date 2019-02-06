@@ -509,7 +509,7 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj) {
       //JSON stream data?
       if (isStream) {
         if (hasEventData && hasEvent) {
-          if (strpos(eventType, "put", 0) != -1) {
+          if (strpos(eventType, "put", 0) != -1 || strpos(eventType, "patch", 0) != -1) {
 
             //Parses json response for path
             p1 = strpos(response, "\"path\":\"", 0);
