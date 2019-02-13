@@ -56,14 +56,14 @@ Able to pause all Firebase calls to perform other http connections or reuse the 
 	
    /**
    * Check for the existence of node path.
-   * \param dataObj - FirebaseData object that requred for internal works.
+   * \param dataObj - FirebaseData object that required for internal works.
    * \param path - Node path to be checked.
    */
     bool pathExist(FirebaseData &dataObj, const String path);
 	
    /**
    * Post or append/create new child node integer data.
-   * \param dataObj - FirebaseData object that requred for internal works.
+   * \param dataObj - FirebaseData object that required for internal works.
    * \param path - Parent node path to be append.
    * \param intValue - Integer value to be append.
    * \return The operating status. True for success operation and False for failed operation.
@@ -75,7 +75,7 @@ Able to pause all Firebase calls to perform other http connections or reuse the 
 	
    /**
    * Post or append/create new child node float data.
-   * \param dataObj - FirebaseData object that requred for internal works.
+   * \param dataObj - FirebaseData object that required for internal works.
    * \param path - Parent node path to be append.
    * \param floatValue - Float value to be append.
    * \return The operating status. TTrue for success operation and False for failed operation.
@@ -87,7 +87,7 @@ Able to pause all Firebase calls to perform other http connections or reuse the 
 	
    /**
    * Post or append/create new child node String data.
-   * \param dataObj - FirebaseData object that requred for internal works.
+   * \param dataObj - FirebaseData object that required for internal works.
    * \param path - Parent node path to be append.
    * \param StringValue - String value to be append.
    * \return The operating status. True for success operation and False for failed operation.
@@ -99,7 +99,7 @@ Able to pause all Firebase calls to perform other http connections or reuse the 
 	
    /**
    * Post or append/create new node JSON data.
-   * \param dataObj - FirebaseData object that requred for internal works.
+   * \param dataObj - FirebaseData object that required for internal works.
    * \param path - Parent node path to be append.
    * \param jsonString - Raw JSON String to be append (should be correct JSONformat).
    * \return The operating status. True for success operation and False for failed operation.
@@ -111,7 +111,7 @@ Able to pause all Firebase calls to perform other http connections or reuse the 
 	
    /**
    * Put or set integer data to child node at the specified path.
-   * \param dataObj - FirebaseData object that requred for internal works.
+   * \param dataObj - FirebaseData object that required for internal works.
    * \param path - Node path to be set value.
    * \param intValue - Integer value to be set.
    * \return The operating status. True for success operation and False for failed operation.
@@ -123,7 +123,7 @@ Able to pause all Firebase calls to perform other http connections or reuse the 
 	
    /**
    * Put or set float data to node at the specified path.
-   * \param dataObj - FirebaseData object that requred for internal works.
+   * \param dataObj - FirebaseData object that required for internal works.
    * \param path - Node path to be set value.
    * \param floatValue - Float value to be set.
    * \return The operating status. True for success operation and False for failed operation.
@@ -135,7 +135,7 @@ Able to pause all Firebase calls to perform other http connections or reuse the 
 	
    /**
    * Put or set String data to child node at the specified path.
-   * \param dataObj - FirebaseData object that requred for internal works.
+   * \param dataObj - FirebaseData object that required for internal works.
    * \param path - Node path to be set value.
    * \param stringValue - String value to be set.
    * \return The operating status. True for success operation and False for failed operation.
@@ -147,7 +147,7 @@ Able to pause all Firebase calls to perform other http connections or reuse the 
 	
    /**
    * Put or set JSON data to child node at the specified path.
-   * \param dataObj - FirebaseData object that requred for internal works.
+   * \param dataObj - FirebaseData object that required for internal works.
    * \param path - Node path to be set value.
    * \param jsonString - Raw JSON string to be set (should be correct JSONformat).
    * \return The operating status. True for success operation and False for failed operation.
@@ -159,7 +159,7 @@ Able to pause all Firebase calls to perform other http connections or reuse the 
 	
    /**
    * Patch or update JSON data to child node at the specified path.
-   * \param dataObj - FirebaseData object that requred for internal works.
+   * \param dataObj - FirebaseData object that required for internal works.
    * \param path - Node path to be update the value.
    * \param jsonString - Raw JSON string to be update (should be correct JSONformat contains key/value pairs).
    * \return The operating status. True for success operation and False for failed operation.
@@ -171,7 +171,7 @@ Able to pause all Firebase calls to perform other http connections or reuse the 
 	
    /**
    * Get the integer data from child node at the specified path.
-   * \param dataObj - FirebaseData object that requred for internal works.
+   * \param dataObj - FirebaseData object that required for internal works.
    * \param path - Node path to be read the value.
    * \return The operating status. True for success operation and False for failed operation.
    * To get error reason, call FirebaseData.errorReason().
@@ -184,7 +184,7 @@ Able to pause all Firebase calls to perform other http connections or reuse the 
 	
    /**
    * Get the float data from child node at the specified path.
-   * \param dataObj - FirebaseData object that requred for internal works.
+   * \param dataObj - FirebaseData object that required for internal works.
    * \param path - Node path to be read the value.
    * \return The operating status. True for success operation and False for failed operation.
    * To get error reason, call FirebaseData.errorReason().
@@ -196,7 +196,7 @@ Able to pause all Firebase calls to perform other http connections or reuse the 
 	
    /**
    * Get the String data from child node at the specified path.
-   * \param dataObj - FirebaseData object that requred for internal works.
+   * \param dataObj - FirebaseData object that required for internal works.
    * \param path - Node path to be read the value.
    * \return The operating status. True for success operation and False for failed operation.
    * To get error reason, call FirebaseData.errorReason().
@@ -208,7 +208,7 @@ Able to pause all Firebase calls to perform other http connections or reuse the 
 	
    /**
    * Get the raw JSON String data from child node at the specified path.
-   * \param dataObj - FirebaseData object that requred for internal works.
+   * \param dataObj - FirebaseData object that required for internal works.
    * \param path - Node path to be read the value.
    * \return The operating status. True for success operation and False for failed operation.
    * To get error reason, call FirebaseData.errorReason().
@@ -220,7 +220,7 @@ Able to pause all Firebase calls to perform other http connections or reuse the 
 	
    /**
    * Delete the node at specified path. The entire children nodes also deleted.
-   * \param dataObj - FirebaseData object that requred for internal works.
+   * \param dataObj - FirebaseData object that required for internal works.
    * \param path - Node path to be deleted.
    * \return The operating status. True for success operation and False for failed operation.
    * To get error reason, call FirebaseData.errorReason().
@@ -229,7 +229,7 @@ Able to pause all Firebase calls to perform other http connections or reuse the 
 	
    /**
    * Begin monitoring the change of data at node and its children at specified path.
-   * \param dataObj - FirebaseData object that requred for internal works.
+   * \param dataObj - FirebaseData object that required for internal works.
    * \param path - Parent node path to be monitor.
    * \return The operating status. True for success operation and False for failed operation.
    * To get error reason, call FirebaseData.errorReason().
@@ -239,7 +239,7 @@ Able to pause all Firebase calls to perform other http connections or reuse the 
    /**
    * Read the stream event data at specified path. Should be called in loop or loop tasks after begin
    * stream called in setup().
-   * \param dataObj - FirebaseData object that requred for internal works.
+   * \param dataObj - FirebaseData object that required for internal works.
    * \return The operating status. True for success operation and False for failed operation.
    * To get error reason, call FirebaseData.errorReason().
    */
@@ -247,7 +247,7 @@ Able to pause all Firebase calls to perform other http connections or reuse the 
 	
    /**
    * End the stream operation at specified path. Can be start stream again by call beginStream once.
-   * \param dataObj - FirebaseData object that requred for internal works.
+   * \param dataObj - FirebaseData object that required for internal works.
    * \return The operating status. True for success operation and False for failed operation.
    * To get error reason, call FirebaseData.errorReason().
    */
