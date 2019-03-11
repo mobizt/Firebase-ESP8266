@@ -397,6 +397,6 @@ See the examples folder for the usage sketch.
 
 ## To do
 
-Use dynmic memory instead of static memory.
+Use dynamic memory instead of static memory.
 
 Update to use BearSSL (required Certificate) or legacy AxTLS.
