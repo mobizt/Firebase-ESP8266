@@ -393,3 +393,10 @@ Go to menu Files -> Examples -> Firebase-ESP8266-master and choose one from exam
 Recommend to call updateNode instead of push which has more convenient when you need to assign your own parent node key/name yourself instead of Firebase generated random key/name from push call.
 Just assign the path parameter that never existed to updateNode call, Firebase will create child nodes under that assigned path automatically.
 See the examples folder for the usage sketch.
+
+
+## To do
+
+Use dynmic memory instead of static memory.
+
+Update to use BearSSL (required Certificate) or legacy AxTLS.
