@@ -1,6 +1,6 @@
 # Firebase Arduino Client Library for ESP8266
 
-# This library support ESP8266 Arduino Core Library version 2.4.0 (version 2.5.x is not compatible for now)
+# This library supports ESP8266 Arduino Core Library version 2.4.0 (version 2.5.x is not compatible for now)
 
 Google's Firebase real time database - ESP8266 library for Arduino V 1.0
 
