@@ -1,6 +1,14 @@
 # Firebase Realtime Database Arduino Client Library for ESP8266
 
+<<<<<<< HEAD
 Google's Firebase Realtime Database Arduino Library for ESP8266 v 1.0.1
+||||||| merged common ancestors
+Google's Firebase real time database - ESP8266 library for Arduino V 1.0
+=======
+# This library supports ESP8266 Arduino Core Library version 2.4.0 (version 2.5.x is not compatible for now)
+
+Google's Firebase real time database - ESP8266 library for Arduino V 1.0
+>>>>>>> ec1b762439206654eee8a4c0f44a75232c5454b2
 
 This client library provides the most reliable operations for read, store, update, delete, backup and restore the database data.
 
@@ -67,6 +75,7 @@ Go to menu **Files** -> **Examples** -> **Firebase-ESP8266-master** and choose o
 
 ## Usages
 
+<<<<<<< HEAD
 
 __Declaration and Initialization__
 
@@ -1429,3 +1438,19 @@ String payload();
 
 * Add support to Cloud messaging
 
+||||||| merged common ancestors
+Recommend to call updateNode instead of push which has more convenient when you need to assign your own parent node key/name yourself instead of Firebase generated random key/name from push call.
+Just assign the path parameter that never existed to updateNode call, Firebase will create child nodes under that assigned path automatically.
+See the examples folder for the usage sketch.
+=======
+Recommend to call updateNode instead of push which has more convenient when you need to assign your own parent node key/name yourself instead of Firebase generated random key/name from push call.
+Just assign the path parameter that never existed to updateNode call, Firebase will create child nodes under that assigned path automatically.
+See the examples folder for the usage sketch.
+
+
+## To do
+
+Use dynamic memory instead of static memory.
+
+Update to use BearSSL (required Certificate) or legacy AxTLS.
+>>>>>>> ec1b762439206654eee8a4c0f44a75232c5454b2
