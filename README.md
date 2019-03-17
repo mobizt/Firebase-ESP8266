@@ -1,393 +1,1431 @@
-# Firebase Arduino Client Library for ESP8266
+# Firebase Realtime Database Arduino Client Library for ESP8266
 
-Google's Firebase real time database - ESP8266 library for Arduino V 1.0
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 1.0.1
 
-This is not the official Firebase Arduino library from Google, unless this introduces some similar and extra features with 
-difference core functions.
+This client library provides the most reliable operations for read, store, update, delete, backup and restore the database data.
 
-This library provides ESP8266 to complete working with Google's Firebase database through the REST API. 
+In addition, the library allows you to read and store binary data from/to device's memory or external SD memory.
 
-The library was test and work well with ESP8266s based module.   For ESP32 please try my ESP32 Arduino library here https://github.com/mobizt/Firebase-ESP32
+This library comunicated with Google Firebase Realtime Database using the REST API. 
+
+The library supports all ESP32 MCU based modules. For ESP8266 please try [ESP32 Firebase Arduino library]( https://github.com/mobizt/Firebase-ESP32)
 
 Copyright (c) 2019 K. Suwatchai (Mobizt).
 
 ## Tested Devices
 
-This library works well in the following tested devices.
+This following devices were tested and work well.
 
  * Wemos D1 Mini
  * NodeMCU
  
 ## Features
 
-Performs Firebase's REST API requests.
+* **Read data** at the defined database path using get functions e.g. **getInt**, **getFloat**, **getString**, **getJSON**, **getBlob** and **getFile**.
 
-Introduces the FirebaseData object that keeps the information and http client to work and reused.
+* **Store data** at the defined database path using set functions e.g. **setInt**, **setFloat**, **setString**, **setJSON**, **setBlob** and **setFile**.
 
-Able to GET, PUT, POST, STREAM, PATCH, DELETE data using get, set, push, stream, update and delete functions.
+* **Append data** to the defined database path using push functions e.g. **pushInt**, **pushFloat**, **pushString**, **pushJSON**, **pushBlob** and **pushFile**.
 
-Supports integer, float, String and raw JSON String data types. Boolean data type was removed due to I implement the feature that can return the actual data type after Firebase calls. You can use int or float data type and use non-zero value for True and zero value for False instead.  For JSON string data type, you need to include the external JSON library like ArduinoJson to parse raw JSON string as the object.
+* **Update data** at the defined database path using **updateNode** and **updateNodeSilent** functions.
 
-Auto resume streaming when connection was timeout. Call FirebaseData.streamTimeout() to check the stream timeout status. 
+* **Delete data** at the defined database path (include all child nodes) using **deleteNode** function.
 
-Able to switch between get/set/push/update/delete calls and stream event monitoring in the same Loop function with no problems.  When doing get/set/push/update/delete calls, the stream will stop and can be resume anytime by call Firebase.readStream(firebaseData) again.
-Idle time for more than 2-3 seconds required after you switch from normal get/set/push/update/delete calls to stream event call which allows the new stream connection to successfully established.
+* **Read and write database rules** using **getRules** and **setRules** functions.
 
-No root certificate or fingerprint required.
+* Using **Firebase Data object** that holds all data and instances.
 
-Able to pause all Firebase calls to perform other http connections or reuse the SSL WiFi client.
+* Supports **Data Filtering** using the orderBy, limitToFirst, limitToLast, startAt, endAt, and equalTo query parameters.
 
+* Supports integer, float, string and JSON string data types. Boolean data is actually not supported by Firebase, unless using integer or float to determine its non-zero and zero values for boolean.  
 
-## Supported functions
+  For JSON string data type, parsing as an object required external JSON parser library e.g. [**ArduinoJson**](https://github.com/bblanchon/ArduinoJson).
 
-```c++
-   /**
-   * The Firebase's credentials initialization.
-   * \param host - Your Firebase database project host i.e. Your_ProjectID.firebaseio.com.
-   * \param auth - Your database secret.
-   */
-    void begin(const String host, const String auth);
-	
-   /**
-   * Auto reconnect WiFi when connection lost during request.
-   * \param reconnect - True for auto reconnect.
-   */
-    void reconnectWiFi(bool reconnect);
-	
-   /**
-   * Check for the existence of node path.
-   * \param dataObj - FirebaseData object that required for internal works.
-   * \param path - Node path to be checked.
-   */
-    bool pathExist(FirebaseData &dataObj, const String path);
-	
-   /**
-   * Post or append/create new child node integer data.
-   * \param dataObj - FirebaseData object that required for internal works.
-   * \param path - Parent node path to be append.
-   * \param intValue - Integer value to be append.
-   * \return The operating status. True for success operation and False for failed operation.
-   * To get new push node name, call FirebaseData.pushName().
-   * To get error reason, call FirebaseData.errorReason().
-   * To get actual data type, call FirebaseData.dataType().
-   */
-    bool pushInt(FirebaseData &dataObj, const String path, int intValue);
-	
-   /**
-   * Post or append/create new child node float data.
-   * \param dataObj - FirebaseData object that required for internal works.
-   * \param path - Parent node path to be append.
-   * \param floatValue - Float value to be append.
-   * \return The operating status. TTrue for success operation and False for failed operation.
-   * To get new push node name, call FirebaseData.pushName().
-   * To get error reason, call FirebaseData.errorReason().
-   * To get actual data type, call FirebaseData.dataType().
-   */
-    bool pushFloat(FirebaseData &dataObj, const String path, float floatValue);
-	
-   /**
-   * Post or append/create new child node String data.
-   * \param dataObj - FirebaseData object that required for internal works.
-   * \param path - Parent node path to be append.
-   * \param StringValue - String value to be append.
-   * \return The operating status. True for success operation and False for failed operation.
-   * To get new push node name, call FirebaseData.pushName().
-   * To get error reason, call FirebaseData.errorReason().
-   * To get actual data type, call FirebaseData.dataType().
-   */
-    bool pushString(FirebaseData &dataObj, const String path, const String stringValue);
-	
-   /**
-   * Post or append/create new node JSON data.
-   * \param dataObj - FirebaseData object that required for internal works.
-   * \param path - Parent node path to be append.
-   * \param jsonString - Raw JSON String to be append (should be correct JSONformat).
-   * \return The operating status. True for success operation and False for failed operation.
-   * To get new push node name, call FirebaseData.pushName().
-   * To get error reason, call FirebaseData.errorReason().
-   * To get actual data type, call FirebaseData.dataType().
-   */
-    bool pushJSON(FirebaseData &dataObj, const String path, const String jsonString);
-	
-   /**
-   * Put or set integer data to child node at the specified path.
-   * \param dataObj - FirebaseData object that required for internal works.
-   * \param path - Node path to be set value.
-   * \param intValue - Integer value to be set.
-   * \return The operating status. True for success operation and False for failed operation.
-   * To get error reason, call FirebaseData.errorReason().
-   * To get actual data type, call FirebaseData.dataType().
-   * To get actual payload data from operation, call FirebaseData.intData().
-   */
-    bool setInt(FirebaseData &dataObj, const String path, int intValue);
-	
-   /**
-   * Put or set float data to node at the specified path.
-   * \param dataObj - FirebaseData object that required for internal works.
-   * \param path - Node path to be set value.
-   * \param floatValue - Float value to be set.
-   * \return The operating status. True for success operation and False for failed operation.
-   * To get error reason, call FirebaseData.errorReason().
-   * To get actual data type, call FirebaseData.dataType().
-   * To get actual payload data from operation, call FirebaseData.floatData().
-   */
-    bool setFloat(FirebaseData &dataObj, const String path, float floatValue);
-	
-   /**
-   * Put or set String data to child node at the specified path.
-   * \param dataObj - FirebaseData object that required for internal works.
-   * \param path - Node path to be set value.
-   * \param stringValue - String value to be set.
-   * \return The operating status. True for success operation and False for failed operation.
-   * To get error reason, call FirebaseData.errorReason().
-   * To get actual data type, call FirebaseData.dataType().
-   * To get actual payload data from operation, call FirebaseData.stringData().
-   */
-    bool setString(FirebaseData &dataObj, const String path, const String stringValue);
-	
-   /**
-   * Put or set JSON data to child node at the specified path.
-   * \param dataObj - FirebaseData object that required for internal works.
-   * \param path - Node path to be set value.
-   * \param jsonString - Raw JSON string to be set (should be correct JSONformat).
-   * \return The operating status. True for success operation and False for failed operation.
-   * To get error reason, call FirebaseData.errorReason().
-   * To get actual data type, call FirebaseData.dataType().
-   * To get actual payload data from operation, call FirebaseData.jsonData().
-   */
-    bool setJSON(FirebaseData &dataObj, const String path, const String jsonString);
-	
-   /**
-   * Patch or update JSON data to child node at the specified path.
-   * \param dataObj - FirebaseData object that required for internal works.
-   * \param path - Node path to be update the value.
-   * \param jsonString - Raw JSON string to be update (should be correct JSONformat contains key/value pairs).
-   * \return The operating status. True for success operation and False for failed operation.
-   * To get error reason, call FirebaseData.errorReason().
-   * To get actual data type, call FirebaseData.dataType().
-   * To get actual payload data from operation, call FirebaseData.jsonData().
-   */
-    bool updateNode(FirebaseData &dataObj, const String path, const String jsonString);
-	
-   /**
-   * Get the integer data from child node at the specified path.
-   * \param dataObj - FirebaseData object that required for internal works.
-   * \param path - Node path to be read the value.
-   * \return The operating status. True for success operation and False for failed operation.
-   * To get error reason, call FirebaseData.errorReason().
-   * To get actual data type, call FirebaseData.dataType().
-   * To get actual return integer data, call FirebaseData.intData(). If the data at node path is float type, 
-   * the return data will be rounded  and if the data at node path is other types than integer or float, 
-   * the return integer data will be zero.
-   */
-    bool getInt(FirebaseData &dataObj, String path);
-	
-   /**
-   * Get the float data from child node at the specified path.
-   * \param dataObj - FirebaseData object that required for internal works.
-   * \param path - Node path to be read the value.
-   * \return The operating status. True for success operation and False for failed operation.
-   * To get error reason, call FirebaseData.errorReason().
-   * To get actual data type, call FirebaseData.dataType().
-   * To get actual return float data, call FirebaseData.floatData(). If the data at node path is other types 
-   * than float or integer, the return float data will be zero.
-   */
-    bool getFloat(FirebaseData &dataObj, String path);
-	
-   /**
-   * Get the String data from child node at the specified path.
-   * \param dataObj - FirebaseData object that required for internal works.
-   * \param path - Node path to be read the value.
-   * \return The operating status. True for success operation and False for failed operation.
-   * To get error reason, call FirebaseData.errorReason().
-   * To get actual data type, call FirebaseData.dataType().
-   * To get actual return String data, call FirebaseData.stringData(). If the data at node path is 
-   * other types than String, the return String data will be empty string.
-   */
-    bool getString(FirebaseData &dataObj, String path);
-	
-   /**
-   * Get the raw JSON String data from child node at the specified path.
-   * \param dataObj - FirebaseData object that required for internal works.
-   * \param path - Node path to be read the value.
-   * \return The operating status. True for success operation and False for failed operation.
-   * To get error reason, call FirebaseData.errorReason().
-   * To get actual data type, call FirebaseData.dataType().
-   * To get actual return raw JSON String data, call FirebaseData.jsonData(). If the data at node path is
-   * other types than JSON, the return String data will be empty string.
-   */
-    bool getJSON(FirebaseData &dataObj, String path);
-	
-   /**
-   * Delete the node at specified path. The entire children nodes also deleted.
-   * \param dataObj - FirebaseData object that required for internal works.
-   * \param path - Node path to be deleted.
-   * \return The operating status. True for success operation and False for failed operation.
-   * To get error reason, call FirebaseData.errorReason().
-   */
-    bool deleteNode(FirebaseData &dataObj, const String path);
-	
-   /**
-   * Begin monitoring the change of data at node and its children at specified path.
-   * \param dataObj - FirebaseData object that required for internal works.
-   * \param path - Parent node path to be monitor.
-   * \return The operating status. True for success operation and False for failed operation.
-   * To get error reason, call FirebaseData.errorReason().
-   */
-    bool beginStream(FirebaseData &dataObj, const String path);
-	
-   /**
-   * Read the stream event data at specified path. Should be called in loop or loop tasks after begin
-   * stream called in setup().
-   * \param dataObj - FirebaseData object that required for internal works.
-   * \return The operating status. True for success operation and False for failed operation.
-   * To get error reason, call FirebaseData.errorReason().
-   */
-    bool readStream(FirebaseData &dataObj);
-	
-   /**
-   * End the stream operation at specified path. Can be start stream again by call beginStream once.
-   * \param dataObj - FirebaseData object that required for internal works.
-   * \return The operating status. True for success operation and False for failed operation.
-   * To get error reason, call FirebaseData.errorReason().
-   */
-    bool endStream(FirebaseData &dataObj);
-	
+* Supports **automatic stream resuming** when the stream connection was timeout. 
+
+* Supports **Firebase pause**.
+
+* Supports data **backup and restore** that working with SD card. 
+
+* Supports **blob** or binary data from memory and **File stream** from SD card.
 
 
- For FirebaseData object call
+## Dependencies
 
-	
-   /**
-   * Get refence to shared SSL WiFi client.
-   */
-   WiFiClientSecure getWiFiClient();
-   
-   /**
-   * Pause/Unpause SSL WiFi client (WiFiClientSecure) from current Firebase call this allows you
-   * to use shared SSL WiFi client.
-   * \param pause True for pause and False for unpause
-   * \return The operating status. True for success operation and False for failed operation.
-   * Call FirebaseData.getWiFiClient to get shared WIFiClientSecure client.
-   */
-   bool pauseFirebase(bool pause);
-   
-   /**
-   * Return the actual data type that return as payload from get/set/push calls.
-   * \return The data type String (int, float, string and json).
-   */
-    String dataType();
-	
-   /**
-   * Return the current stream path.
-   * \return The path String.
-   */
-    String streamPath();
-	
-   /**
-   * Return the current data path.
-   * \return The current path String from get/set/push calls or current changed data path from stream call.
-   */
-    String dataPath();
-	
-   /**
-   * Return the error reason String from current call.
-   * \return The error String.
-   */
-    String errorReason();
-	
-   /**
-   * Return the ineger data from current get/set/push and stream calls.
-   * \return The payload or returned integer data.
-   */
-    int intData();
-	
-   /**
-   * Return the float data from current get/set/push and stream calls.
-   * \return The payload or returned float data.
-   */
-    float floatData();
-	
-   /**
-   * Return the String data from current get/set/push and stream calls.
-   * \return The payload or returned String data.
-   */
-    String stringData();
-	
-   /**
-   * Return the raw JSON String data from current get/set/push and stream calls.
-   * \return The payload or returned raw JSON String data.
-   */
-    String jsonData();
-	
-   /**
-   * Return the new created child node name (String) from push call.
-   * \return The String of new append node name.
-   */
-    String pushName();
-	
-   /**
-   * Check the current FirebaseData object is currently work with stream.
-   * \return The status. True for being stream.
-   */
-    bool isStream();
-	
-   /**
-   * Check the current FirebaseData object is currently connected to server.
-   * \return The connected status. True for connected.
-   */
-    bool httpConnected();
-	
-   /**
-   * Check the current stream connection of FirebaseData object is timeout from server (30 sec is default).
-   * Nothing to do when timeout, the stream is automatic resume.
-   * \return The timeout status. True for timeout occurred.
-   */
-    bool streamTimeout();
-	
-   /**
-   * Check the data is available from get/set/push calls.
-   * \return The data available status. True for data is available.
-   */
-    bool dataAvailable();
-	
-   /**
-   * Check the update/changes data is available from current stream  of FirebaseData object.
-   * \return The stream data available status. True for stream data is available.
-   */
-    bool streamAvailable();
-	
-   /**
-   * Check the matching between data type being call and the server return data type.
-   * \return The mismatch status. True for mismatch.
-   */
-    bool mismatchDataType();
-	
-   /**
-   * Check the http code return from all calls.
-   * \return The integer data of http response.
-   */
-    int httpCode();
-	
-   /**
-   * Check overflow of the return data buffer.
-   * \return The overflow status. True for overflow. If overflow change the defined value in FirebaseESP8266.h
-   * #define FIREBASE_RESPONSE_SIZE xxxx
-   * #define FIREBASE_DATA_SIZE xxxx
-   */
-   bool bufferOverflow();
+Required ESP8266 Arduino Core Library version 2.4.0 and above. 
 
-```
+
 ## Installing
 
-Click on Clone or download dropdown at the top of repository, select Download ZIP and save zip file to your computer.
 
-From Arduino IDE, goto menu Sketch -> Include Library -> Add .ZIP Library... and choose Firebase-ESP8266-master.zip from last download.
+Click on **Clone or download** dropdown at the top of repository, select **Download ZIP** and save file on your computer.
 
-Go to menu Files -> Examples -> Firebase-ESP8266-master and choose one from examples
+From Arduino IDE, goto menu **Sketch** -> **Include Library** -> **Add .ZIP Library...** and choose **Firebase-ESP8266-master.zip** that previously downloaded.
+
+Go to menu **Files** -> **Examples** -> **Firebase-ESP8266-master** and choose one from examples
+
 
 ## Usages
 
-Recommend to call updateNode instead of push which has more convenient when you need to assign your own parent node key/name yourself instead of Firebase generated random key/name from push call.
-Just assign the path parameter that never existed to updateNode call, Firebase will create child nodes under that assigned path automatically.
-See the examples folder for the usage sketch.
+
+__Declaration and Initialization__
+
+
+
+**The first thing to do to use this library.**
+
+```C++
+
+//1. Include Firebase ESP8266 library (this library)
+
+#include "FirebaseESP8266.h"
+
+//2. Include ESP8266WiFi.h and must be included after FirebaseESP8266.h
+
+#include <ESP8266WiFi.h>
+
+//3. Declare the Firebase Data object in global scope
+
+FirebaseData firebaseData;
+
+//4. Setup Firebase credential in setup()
+
+Firebase.begin("yout_project_id.firebaseio.com", "your_Firebase_database_secret");
+
+//5. Optional, set AP reconnection in setup()
+
+Firebase.reconnectWiFi(true);
+
+```
+
+___
+
+
+__Read, Store, Update, Delete, Backup and Restore Data__
+
+
+**To read the data, use `get<Data Type>` functions i.e. getInt, getFlot, getString, getJSON, getBlob and getFile.**
+
+
+
+The `get<Data Type>` function returned boolean value for success of operation. The success of operation determined from
+
+payload that Firebase server returned back to client. The http status and matching between data type request and response were determined to set the success status.
+
+To read the payload data, one of theses functions can be called i.e. intData, floatData, stringData, jsonData and blobData.
+
+The data you read from returned payload will tell actual data type stored or existed in database, not the modification version data type e.g. string "1.5" stored in database, can be read only from stringData as it returned from server.
+
+Any attempt to read integer from intData, float from floatData, and JSON from JsonData will return zero and empty string. 
+
+This allow you to know what exactly type of data stored in database and how to manage it instead of cast all data as string (int -> string or float -> string) or as number. 
+
+You can call getDataType to determine what type of data returned to be manipulated.
+
+BLOB and file stream daya types were only implemented by this library.
+
+Normally BLOB or any binary data type is not supported by Firebase, this library working with binary data by encoding the data into string before sending to server.
+
+Then getBlob and getFile functions will read the encoded string from database and decoded it back to binary data before return data to client.
+
+Encoding binary to string in this libraary is using base64 binary-to-text encoding schemes, the encoded string will be prefixed with some header string ("file,base64," and "blob,base64,") for data type manipulation. 
+
+The encoded string length will larger than the original binary data by 30%.
+
+The terms used in this document and library, Blob data is byte array in memory that encoded to string to store or decoded when read from database.
+
+While file stream is binary data that being write to SD card which obtained from decoded string that read from database or binary data that being read from SD card and encoded to string to store in database.
+
+Then getBlob function reads data in database and decoded it into byte array, while getFile reads data in database, then decoded and save it to SD card.
+
+Here is the example usage to read integer from defined database path "/test/int".
+
+
+```C++
+
+//Read integer value from database at "/test/int" 
+
+  int val = 0;
+
+  if (Firebase.getInt(firebaseData, "/test/int")) {
+
+    //Success, then read the payload value
+
+    //Make sure payload value returned from server is integer
+    //This prevent you to get garbage data
+    if (firebaseData.dataType() == "int")) {
+      val = firebaseData.intData();
+      Serial.println(val);
+    }
+
+  } else {
+    //Failed, then print out the error detail
+    Serial.println(firebaseData.errorReason()));
+  }
+
+```
+
+
+
+**To store the data, use `set<Data Type>` functions i.e. setInt, setFlot, setString, setJSON, setBlob and setFile.**
+
+
+
+The `set<Data Type>` function returned boolean value for success of operation. The success of operation determined from
+
+payload that Firebase server returned back to client. The http status and matching between data type request and response.
+
+Only setBlob and setFile functions that make a silent request to Firebase server, thus no payload response is returned. 
+
+The success operation for setBlob and setFile determined only from http status "No Content".
+
+
+Below is the example usage to store or set file data from SD card, "/test.txt" to defined database path "/test/file_data".
+
+
+```C++
+
+//Store file content "/test.txt" on SD card to database at "/test/file_data".
+//Due to SD library used, file name must be in 8.3 DOS format (max. 8 bytes file name and 3 bytes file extension).
+
+if (Firebase.setFile(firebaseData, "/test/file_data", "/test.txt")){
+
+  //Success, data was downloaded and saved then open the file.
+  //Print out all file content.
+
+  File file = SD.open("/test.txt", FILE_READ);
+
+  while (file.available())
+  {     
+    Serial.print(file.read(), HEX);     
+  }    
+  file.close();
+  Serial.println();
+
+} else {
+  //Failed, then print out the error detail for file transfer error.
+  //Use firebaseData.fileTransferError instead of firebaseData.errorReason() in case of working with file.
+  Serial.println(firebaseData.fileTransferError()));
+}
+
+```
+
+
+**To append new data to database, `push<Data Type>` should be called e.g. pushInt, pushFloat, pushString, pushJSON, pushBlob and pushFile.**
+
+
+With push operation, server will return payload (key or name of newly appended node) to client.
+
+Working with JSON data allow us to read or store multiple data at once because JSON data can store many key/value pairs, array of object and nested objects.
+
+Function setJSON will set/replace value at defined database path with value in JSON data, and also create child nodes.  
+
+While in function pushJSON, all key/value in JSON data  will be appended to the defined database path as new node.
+
+Below is the example for appending new data (using JSON) to the path "/test/append.
+
+
+```C++
+
+//Append many data (multiple keys included nest data) to the database at "/test/append"
+
+String jsonData = "{\"parent_001\":\"parent 001 text\", \"parent 002\":{\"child_of_002\":123.456}}";
+
+if (Firebase.pushJSON(firebaseData, "/test/append", jsonData)) {
+
+  //Success, then read the payload value
+
+  //Database path to be appended
+  Serial.println(firebaseData.dataPath()); //Should be "/test/append"
+
+  //New created key/name
+  Serial.println(firebaseData.pushName());
+
+  //Absolute path of new appended data
+    Serial.println(firebaseData.dataPath() + "/"+ firebaseData.pushName());
+
+
+} else {
+  //Failed, then print out the error detail
+  Serial.println(firebaseData.errorReason()));
+}
+
+```
+
+
+
+**To update database at defined path and its child nodes, updateNode or updateNodeSilent should be called.**
+
+JSON data is needed, and passed to these functions. The result from update operation, the database data at defined path will be partialy or completed update depending on the keys in JSON data. 
+
+If any key provided in JSON data was not existed in database at the path, new key will be created.
+
+Everytime you call updateNode, the payload that exactly the JSON data you sent will return back from server. 
+
+Update database with large JSON will consume as much as double network data. Function updateNodeSilent can reduce the network data usage in this case.
+
+Below is the example for database update at "/test" using JSON data.
+
+
+```C++
+
+//Append many data (multiple keys included nest data) to the database at "/test/update"
+
+String updateData = "{\"data1\":\"value1\", \"data2\":{\"_data2\":\"_value2\"}}";
+
+if (Firebase.updateNode(firebaseData, "/test/update", updateData)) {
+
+  //Success, then try to read the payload value
+
+  //Database path that updated
+  Serial.println(firebaseData.dataPath());
+
+  //Data type at updated database path
+  Serial.println(firebaseData.dataType()); //Should be "json"
+
+  //Print the JSON string payload that returned from server
+  Serial.println(firebaseData.jsonData()); //Should mathes the value in updateData variable
+
+  //Actual sent payload JSON data
+  Serial.println(updateData);
+
+} else {
+  //Failed, then print out the error detail
+  Serial.println(firebaseData.errorReason()));
+}
+
+```
+
+
+
+**To delete the data in database, just call deleteNode function.**
+
+Below example will delete data and its child nodes at "/test/append"
+
+```C++
+
+Firebase.deleteNode(firebaseData, "/test/append");
+
+```
+
+**Data Filtering via query parameters**
+
+The quey parameters that can set using the QueryFilter class.
+
+These parameters are `orderBy`, `limitToFirst`, `limitToLast`, `startAt`, `endAt`, and `equalTo`.
+
+To filter data, parameter `orderBy` should be assigned which you can assign "$key" for filtering all nodes under defined database path
+using their keys, assign "$value" for filtering all nodes under defined database path using their values. 
+
+Assign specific node key or name for filtering the specified child node under defined database path using their key, and assign "$priority" for filtering all nodes under defined database path using their "virtual child" named .priority.
+
+And using the follower query properties to limit the queries.
+
+`QueryFilter.limitToFirst` -  The total children (number) to filter from the first child.
+
+`QueryFilter.limitToLast` -   The total last children (number) to filter. 
+
+`QueryFilter.startAt` -       Starting value of range (number or string) of query upon orderBy param.
+
+`QueryFilter.endAt` -         Ending value of range (number or string) of query upon orderBy param.
+
+`QueryFilter.equalTo` -       Value (number or string) matches the orderBy param
+
+
+
+Below example show how to using queries parameter in QueryFilter class to filter the data at database path "/test/data"
+
+```C++
+
+//Assume that children that have key "sensor" are under "/test/data"
+
+//Instantiate the QueryFilter class
+QueryFilter query;
+
+//Build query using specified child node key "sensor" under "/test/data"
+query.orderBy("sensor");
+
+//Query any child that its value is begin with 2 (number), assumed that its data type is float or integer
+query.startAt(2);
+
+//Query any child that its value is end with 8 (number), assumed that its data type is float or integer
+query.endAt(8);
+
+//Limit the maximum query result to return only the last 5 nodes
+query.limitToLast(5);
+
+
+if (Firebase.getJSON(firebaseData, "/test/data", query))
+{
+  //Success, then try to read the JSON payload value
+  Serial.println(firebaseData.jsonData());
+}
+else
+{
+  //Failed to get JSON data at defined database path, print out the error reason
+  Serial.println(firebaseData.errorReason());
+}
+
+//Clear all query parameters
+query.clear();
+
+
+
+```
+
+
+
+___
+
+
+__Data changes monitoring (Stream)__
+
+
+
+**The Firebase Realtime Database update or change event was sent to client using the HTTP stream connection. The connection was keep alive as long as no network communication interruption.**
+
+The function to handle the update and change event monitoring are beginStream, readStream and streamAvailable.
+
+To subscribe, monitor or follow the data change on defined database path, the function beginStream must be called first.
+
+To handle the data that will be received when database at that path updates or changes, the function readStream and streamAvailable should be called in loop.
+
+To determine the stream data is available, function streamAvailable should be called immediately after readStream. 
+
+The function streamAvailable returned true when stream data was received in buffer. 
+
+Then stream data can be accessed directly by calling intData, floatData, stringData, jsonData and blobData.
+
+
+Here is the example use of stream to handle the changes or updates at "/test/data".
+
+```C++
+
+
+
+
+//In setup(), set the streaming path to "/test/data" and begin stream connection
+
+if (!Firebase.beginStream(firebaseData, "/test/data"))
+{
+  //Could not begin stream connection, then print out the error detail
+  Serial.println(firebaseData.errorReason());
+}
+
+//In loop()
+
+
+ if (!Firebase.readStream(firebaseData))
+  {
+    //If read stream was failed, print the error detail.
+    Serial.println(firebaseData.errorReason());
+  }
+
+  if (firebaseData.streamTimeout())
+  {
+     //If stream timeout, just notify
+    Serial.println("Stream timeout, resume streaming...");
+    Serial.println();
+  }
+
+  if (firebaseData.streamAvailable())
+  {
+   
+   //Print out value
+   //Stream data can be many types which can be determined from function dataType
+
+    if (firebaseData.dataType() == "int")
+      Serial.println(firebaseData.intData());
+    else if (firebaseData.dataType() == "float")
+      Serial.println(firebaseData.floatData());
+    else if (firebaseData.dataType() == "string")
+      Serial.println(firebaseData.stringData());
+    else if (firebaseData.dataType() == "json")
+      Serial.println(firebaseData.jsonData());
+    
+  }
+
+
+
+```
+
+___
+
+
+__Database Backup and Restore__
+
+
+**The backup and restore, specify the filename and the database path to backup or restore.**
+
+Due to SD library used, only 8.3 DOS format file name was support i.e. maximum 8 characters for file name and 3 characters for file extension.
+
+The database restoration returned completed status only when Firebase server completely update the data. 
+
+Any failed operation will not affected the database (no updates or changes).
+
+Here is the usage example to back up all database at root path "/" and restore it back to database.
+
+```C++
+
+ String backupFileName = "";
+
+ //Begin backup whole database and download to "/backup.txt" on SD card
+ if (!Firebase.backup(firebaseData, "/", "/backup.txt"))
+ {
+   //Error when backup database, then print out file transfer error detail
+   Serial.println(firebaseData.fileTransferError());
+ }
+ else
+ {
+   //Successfull backup, print out the file path and size
+   Serial.println(firebaseData.getBackupFilename());
+   Serial.println(String(firebaseData.getBackupFileSize()));
+
+   backupFileName = firebaseData.getBackupFilename();
+  }
+
+
+  //Begin restore backed dup data back to database
+
+  if (!Firebase.restore(firebaseData, "/", backupFileName))
+  {
+    //Database restoration failed, printout the error detail
+    Serial.println(firebaseData.fileTransferError());
+  }
+  else
+  {
+    //Database restoration success, printout the filename that used for restore
+    Serial.println(firebaseData.getBackupFilename());
+  }
+
+```
+
+
+
+See [full examples](https://github.com/mobizt/Firebase-ESP8266/tree/master/examples) for all features usages.
+
+
+
+## All Supported Functions
+
+
+**These are all functions available from the library and the descriptions.**
+
+
+__Global functions__
+
+
+**Store Firebase's authentication credentials.**
+
+param *`host`* - Your Firebase database project host without http:// or https:// protocol e.g. Your_ProjectID.firebaseio.com.
+
+param *`auth`* - Your database secret.
+
+```C++
+void begin(const String &host, const String &auth);
+```
+
+
+
+**Reconnect WiFi if lost connection.**
+
+param *`reconnect`* - The boolean to set/unset WiFi AP reconnection.
+
+```C++
+void reconnectWiFi(bool reconnect);
+```
+
+
+
+
+**Read the database rules.**
+
+param *`dataObj`* - Firebase Data Object to hold data and instances.
+
+return - *`Boolean`* type status indicates the success of operation.
+
+```C++
+bool getRules(FirebaseData &dataObj);
+```
+
+
+
+
+
+**Write the database rules.**
+
+param *`dataObj`* - Firebase Data Object to hold data and instances.
+
+param *`rules`* - Database rules in jSON String format.
+
+return - *`Boolean`* type status indicates the success of operation.
+
+```C++
+bool setRules(FirebaseData &dataObj, const String &rules);
+```
+
+
+
+
+
+**Append new integer value to the defined database path.**
+
+param *`dataObj`* - Firebase Data Object to hold data and instances.
+
+param *`path`* - Target database path which integer value will be appended.
+
+param *`intValue`* - The appended value.
+
+return *`Boolean`* type status indicates the success of operation.
+
+The new appended node's key will be stored in Firebase Data object, 
+which its value can be accessed via function [FirebaseData object].pushName().
+
+```C++
+bool pushInt(FirebaseData &dataObj, const String &path, int intValue);
+```
+
+
+
+**Append new float value to the defined database path.**
+
+param *`dataObj`* - Firebase Data Object to hold data and instances.
+
+param *`path`* - Target database path which float value will be appended.
+
+param *`floatValue`* - The appended value.
+
+return *`Boolean`* type status indicates the success of operation.
+
+The new appended node's key will be stored in Firebase Data object, 
+which its value can be accessed via function [FirebaseData object].pushName().
+
+```C++
+bool pushFloat(FirebaseData &dataObj, const String &path, float floatValue);
+```
+
+
+
+**Append new string (text) to the defined database path.**
+
+param *`dataObj`* - Firebase Data Object to hold data and instances.
+
+param *`path`* - Target database path which string will be appended.
+
+param *`stringValue`* - The appended value.
+
+return *`Boolean`* type status indicates the success of operation.
+
+The new appended node's key stored in Firebase Data object, 
+which can be accessed via function [FirebaseData object].pushName().
+
+```C++
+bool pushString(FirebaseData &dataObj, const String &path, const String &stringValue);
+```
+
+
+
+**Append new child nodes's key and value (using JSON data) to the defined database path.**
+
+param *`dataObj`* - Firebase Data Object to hold data and instances.
+
+param *`path`* - Target database path which key and value in JSON data will be appended.
+
+param *`jsonString`* - The appended JSON string (should be valid JSON data).
+
+return *`Boolean`* type status indicates the success of operation.
+
+The new appended node's key will be stored in Firebase Data object, 
+which its value can be accessed via function [FirebaseData object].pushName().
+
+```C++
+bool pushJSON(FirebaseData &dataObj, const String &path, const String &jsonString);
+```
+
+
+
+**Append new blob (binary data) to the defined database path.**
+
+param *`dataObj`* - Firebase Data Object to hold data and instances.
+
+param *`path`* - Target database path which binary data will be appended.
+
+param *`blob`* - Byte array of data.
+
+param *`size`* - Size of byte array.
+
+return *`Boolean`* type status indicates the success of operation.
+
+The new appended node's key will be stored in Firebase Data object, 
+which its value can be accessed via function [FirebaseData object].pushName().
+
+```C++
+bool pushBlob(FirebaseData &dataObj, const String &path, uint8_t *blob, size_t size);
+```
+
+
+
+
+**Append new binary data from file stores on SD card to the defined database path.**
+
+param *`dataObj`* - Firebase Data Object to hold data and instances.
+
+param *`path`* - Target database path which binary data from file will be appended.
+
+param *`fileName`* - File name (8.3 DOS format) in SD card.
+
+return *`Boolean`* type status indicates the success of operation.
+
+The new appended node's key will be stored in Firebase Data object, 
+which its value can be accessed via function [FirebaseData object].pushName().
+
+```C++
+bool pushFile(FirebaseData &dataObj, const String &path, const String &fileName);
+```
+
+
+
+
+**Set integer data at the defined database path.**
+
+param *`dataObj`* - Firebase Data Object to hold data and instances.
+
+param *`path`* - Target database path which integer data will be set.
+
+param *`intValue`* - Integer value to set.
+
+return *`Boolean`* type status indicates the success of operation.
+
+Call [FirebaseData object].dataType to determine what type of data that successfully
+stores in database. 
+    
+Call [FirebaseData object].intData will return the integer value of
+payload returned from server.
+
+```C++
+bool setInt(FirebaseData &dataObj, const String &path, int intValue);
+```
+
+
+
+**Set float data at the defined database path.**
+
+param *`dataObj`* - Firebase Data Object to hold data and instances.
+
+param *`path`* - Target database path which float data will be set.
+
+param *`floatValue`* - Float value to set.
+
+return *`Boolean`* type status indicates the success of operation.
+
+Call [FirebaseData object].dataType to determine what type of data that successfully
+stores in database. 
+
+Call [FirebaseData object].floatData will return the float value of
+payload returned from server.
+
+```C++
+bool setFloat(FirebaseData &dataObj, const String &path, float floatValue);
+```
+
+
+
+**Set string (text) at the defined database path.**
+
+param *`dataObj`* - Firebase Data Object to hold data and instances.
+
+param *`path`* - Target database path which string data will be set.
+
+param *`stringValue`* - String or text to set.
+
+return *`Boolean`* type status indicates the success of operation.
+
+Call [FirebaseData object].dataType to determine what type of data that successfully
+stores in database. 
+
+Call [FirebaseData object].stringData will return the string value of
+payload returned from server.
+
+```C++
+bool setString(FirebaseData &dataObj, const String &path, const String &stringValue);
+```
+
+
+
+**Set child nodes's key and value (using JSON data) to the defined database path.**
+
+This will replace any child nodes inside the defined path with node' s key
+and value defined in JSON data.
+
+param *`dataObj`* - Firebase Data Object to hold data and instances.
+
+param *`path`* - Target database path which key and value in JSON data will be replaced or set.
+
+param *`jsonString`* - The JSON string to set (should be valid JSON data).
+
+return *`Boolean`* type status indicates the success of operation.
+
+Call [FirebaseData object].dataType to determine what type of data that successfully
+stores in database. 
+ 
+Call [FirebaseData object].jsonData will return the JSON string value of
+payload returned from server.
+
+```C++
+bool setJSON(FirebaseData &dataObj, const String &path, const String &jsonString);
+```
+
+
+
+
+**Set blob (binary data) at the defined database path.**
+
+This will replace any child nodes inside the defined path with blob or binary data.
+
+param *`dataObj`* - Firebase Data Object to hold data and instances.
+
+param *`path`* - Target database path which binary data will be set.
+
+param *`blob`* - Byte array of data.
+
+param *`size`* - Size of byte array.
+
+return *`Boolean`* type status indicates the success of operation.
+
+No payload returned from server.
+
+```C++
+bool setBlob(FirebaseData &dataObj, const String &path, uint8_t *blob, size_t size);
+```
+
+
+
+**Set binary data from file stores on SD card to the defined database path.**
+
+param *`dataObj`* - Firebase Data Object to hold data and instances.
+
+param *`path`* - Target database path which binary data from file will be set.
+
+param *`fileName`* - File name in 8.3 DOS format (max. 8 bytes file name and 3 bytes file extension) stored in SD card.
+
+return *`Boolean`* type status indicates the success of operation.
+
+No payload returned from server.
+
+```C++
+bool setFile(FirebaseData &dataObj, const String &path, const String &fileName);
+```
+
+
+
+
+**Update child nodes's key or exising key's value (using JSON data) under the defined database path.**
+
+param *`dataObj`* - Firebase Data Object to hold data and instances.
+
+param *`path`* - Target database path which key and value in JSON data will be update.
+
+param *`jsonString`* - The JSON string use for update.
+
+return *`Boolean`* type status indicates the success of operation.
+
+Call [FirebaseData object].dataType to determine what type of data that successfully
+stores in database. 
+ 
+Call [FirebaseData object].jsonData will return the json string value of
+payload returned from server.
+
+To reduce the network data usage, use updateNodeSilent instead.
+
+```C++
+bool updateNode(FirebaseData &dataObj, const String &path, const String &jsonString);
+```
+
+
+
+**Update child nodes's key or exising key's value (using JSON data) under the defined database path.**
+
+param *`dataObj`* - Firebase Data Object to hold data and instances.
+
+param *`path`* - Target database path which key and value in JSON data will be update.
+
+param *`jsonString`* - The JSON string use for update.
+
+return *`Boolean`* type status indicates the success of operation.
+
+Owing to the objective of this function to reduce the netwok data usage, 
+no payload will be returned from server.
+
+```C++
+bool updateNodeSilent(FirebaseData &dataObj, const String &path, const String &jsonString);
+```
+
+
+
+
+**Read the integer value at the defined database path.**
+
+param *`dataObj`* - Firebase Data Object to hold data and instances.
+
+param *`path`* - Database path which the integer value is being read.
+
+return *`Boolean`* type status indicates the success of operation.
+
+Call [FirebaseData object].dataType to determine what type of data that successfully
+stores in database. 
+
+Call [FirebaseData object].intData will return the integer value of
+payload returned from server.
+
+If the payload returned from server is not integer or float type, 
+the function [FirebaseData object].intData will return zero (0).
+
+If the payload returned from server is float type, 
+the function [FirebaseData object].intData will return rounded integer value.
+
+```C++
+bool getInt(FirebaseData &dataObj, const String &path);
+```
+
+
+
+**Read the float value at the defined database path.**
+
+param *`dataObj`* - Firebase Data Object to hold data and instances.
+
+param *`path`* - Database path which the float value is being read.
+
+return *`Boolean`* type status indicates the success of operation.
+
+Call [FirebaseData object].dataType to determine what type of data that successfully
+stores in database. 
+
+Call [FirebaseData object].floatData will return the float value of
+payload returned from server.
+
+If the payload returned from server is not integer or float type, 
+the function [FirebaseData object].intData will return zero (0).
+
+```C++
+bool getFloat(FirebaseData &dataObj, const String &path);
+```
+
+
+
+**Read the string or text at the defined database path.**
+
+param *`dataObj`* - Firebase Data Object to hold data and instances.
+
+param *`path`* - Database path which the string value is being read.
+
+return *`Boolean`* type status indicates the success of operation.
+
+Call [FirebaseData object].dataType to determine what type of data that successfully
+stores in database. 
+
+Call [FirebaseData object].stringData will return the string value of
+payload returned from server.
+
+If the payload returned from server is not string type, 
+the function [FirebaseData object].stringData will return empty string (String object).
+
+```C++
+bool getString(FirebaseData &dataObj, const String &path);
+```
+
+
+
+**Read the JSON string at the defined database path.**
+
+The returned payload JSON string represents the child nodes and their value.
+
+param *`dataObj`* - Firebase Data Object to hold data and instances.
+
+param *`path`* - Database path which the string value is being read.
+
+return *`Boolean`* type status indicates the success of operation.
+
+Call [FirebaseData object].dataType to determine what type of data that successfully
+stores in database. 
+
+Call [FirebaseData object].jsonData will return the JSON string value of
+payload returned from server.
+
+If the payload returned from server is not json type, 
+the function [FirebaseData object].jsonData will return empty string (String object).
+
+```C++
+bool getJSON(FirebaseData &dataObj, const String &path);
+```
+
+
+
+
+
+**Read the JSON string with data filtering at the defined database path.**
+
+The returned payload JSON string represents the child nodes and their value.
+
+param *`dataObj`* - Firebase Data Object to hold data and instances.
+
+param *`path`* - Database path which the string value is being read.
+
+param *`query`* - QueryFilter class to set query parameters to filter data.
+
+return *`Boolean`* type status indicates the success of operation.
+
+Available query parameters for filtering the data are the following.
+
+*`QueryFilter.orderBy`* - Required parameter to specify which data used for data filtering included child key, key and value.
+
+Use "$key" for filtering data by keys of all nodes at the defined database path.
+
+Use "$value" for filtering data by value of all nodes at the defined database path.
+
+Use "$priority" for filtering data by "virtual child" named .priority of all nodes.
+
+Use any child key to filter by that key.
+
+
+*`QueryFilter.limitToFirst`* -  The total children (number) to filter from the first child.
+
+*`QueryFilter.limitToLast`* -   The total last children (number) to filter. 
+
+*`QueryFilter.startAt`* -       Starting value of range (number or string) of query upon orderBy param.
+
+*`QueryFilter.endAt`* -         Ending value of range (number or string) of query upon orderBy param.
+
+*`QueryFilter.equalTo`* -       Value (number or string) matches the orderBy param
+
+
+Call [FirebaseData object].dataType to determine what type of data that successfully
+stores in database. 
+
+Call [FirebaseData object].jsonData will return the JSON string value of
+payload returned from server.
+
+If the payload returned from server is not json type, 
+the function [FirebaseData object].jsonData will return empty string (String object).
+
+[FirebaseData object].jsonData will return null when the filtered data is empty.
+
+```C++
+bool getJSON(FirebaseData &dataObj, const String &path, QueryFilter &quer);
+```
+
+
+
+
+
+**Read the blob (binary data) at the defined database path.**
+
+param *`dataObj`* - Firebase Data Object to hold data and instances.
+
+param *`path`* - Database path which the binary data is being read.
+
+return *`Boolean`* type status indicates the success of operation.
+
+Call [FirebaseData object].dataType to determine what type of data that successfully
+stores in database. 
+    
+Call [FirebaseData object].blobData will return the dynamic array of unsigned 8-bit data (i.e. `std::vector<uint8_t>`) of
+payload returned from server.
+
+If the payload returned from server is not blob type, 
+the function [FirebaseData object].blobData will return empty array.
+
+```C++
+bool getBlob(FirebaseData &dataObj, const String &path);
+```
+
+
+
+**Download file data in database at defined database path and save to SD card.**
+
+The downloaded data will be decoded to binary and save to SD card, then
+
+please make sure that data at the defined database path is file type.
+
+param *`dataObj`* - Firebase Data Object to hold data and instances.
+
+param *`nodePath`* - Database path that file data will be downloaded.
+
+param *`fileName`* - File name in 8.3 DOS format (max. 8 bytes file name and 3 bytes file extension) to save in SD card.
+
+return *`Boolean`* type status indicates the success of operation.
+
+```C++
+bool getFile(FirebaseData &dataObj, const String &nodePath, const String &fileName);
+```
+
+
+
+
+**Delete all child nodes at the defined database path.**
+
+param *`dataObj`* - Firebase Data Object to hold data and instances.
+
+param *`path`* - Database path to be deleted.
+
+return *`Boolean`* type status indicates the success of operation.*
+
+```C++
+bool deleteNode(FirebaseData &dataObj, const String &path);
+```
+
+
+
+**Start monitoring the value changes at the defined path and its children.**
+
+param *`dataObj`* - Firebase Data Object to hold data and instances.
+
+param *`path`* - Database path being monitor.
+
+return *`Boolean`* type status indicates the success of operation.*
+
+```C++
+bool beginStream(FirebaseData &dataObj, const String &path);
+```
+
+
+
+**Read the stream event data at defined database path.**
+
+Once beginStream was called e.g. in setup(), the readStream function
+should call inside the loop function.
+
+param *`dataObj`* - Firebase Data Object to hold data and instances.
+
+return *`Boolean`* type status indicates the success of operation.
+
+Using the same Firebase Data object for stream read/monitoring associated 
+with read, store, update, delete will break or quit the current stream connection. 
+    
+The stream will be resumed or reconnected automatically when calling readStream.
+
+```C++
+bool readStream(FirebaseData &dataObj);
+```
+
+
+
+**End the stream connection at defined path.**
+
+Can be restart again by calling beginStream.
+
+param *`dataObj`* - Firebase Data Object to hold data and instances.
+
+return *`Boolean`* type status indicates the success of operation.
+ 
+```C++
+bool endStream(FirebaseData &dataObj);
+```
+
+
+
+
+
+**Backup (download) database at defined database path to SD card.**
+
+param *`dataObj`* - Firebase Data Object to hold data and instances.
+
+param *`nodePath`* - Database path to be backuped.
+
+param *`dirPath`* - Folder in SD card to save the downloaed file.
+
+return *`Boolean`* type status indicates the success of operation.
+
+The backup .json filename is constructed from the database path by replace slash (/) with dot (.).
+
+```C++
+bool backup(FirebaseData &dataObj, const String &nodePath, const String &dirPath);
+```
+
+
+
+**Restore database at defined path usin backup file saved on SD card.**
+
+param *`dataObj`* - Firebase Data Object to hold data and instances.
+
+param *`nodePath`* - Database path to  be restored.
+
+param *`dirPath`* - Path/Folder in SD card that the backup file was saved.
+
+return *`Boolean`* type status indicates the success of operation.
+
+```C++
+bool restore(FirebaseData &dataObj, const String &nodePath, const String &dirPath);
+```
+
+
+__Firebase Data object functions__
+
+**Get WiFi client instance.**
+
+
+return *`WiFi client instance`*.
+
+```C++
+WiFiClientSecure getWiFiClient();
+```
+
+
+
+
+**Pause/Unpause WiFiClient from all Firebase operations.**
+
+param *`pause`* True for pause and False for unpause.
+
+return *`Boolean`* type status indicates the success of operation.
+
+```C++
+bool pauseFirebase(bool pause);
+```
+
+
+
+**Determine the data type of payload returned from server.**
+
+return *The one of these data type e.g. integer, float, string, json and blob.*
+
+```C++
+String dataType();
+```
+
+
+
+**Determine the current stream path.**
+
+return *The database streaming path.*
+
+```C++
+String streamPath();
+```
+
+
+
+**Determine the current data path.**
+
+return *The database path which belong to server' s returned payload.*
+
+The database path returned from this function in case of stream, also changed up on the child or parent's stream
+value changes.
+
+```C++
+String dataPath();
+```
+
+
+
+**Determine the error reason String from process.**
+
+return *The error description string (String object).*
+
+```C++
+String errorReason();
+```
+
+
+
+**Return the ineger data of server returned payload.**
+
+return *Integer value.*
+
+```C++
+int intData();
+```
+
+
+
+**Return the float data of server returned payload.**
+
+return *Float value.*
+
+```C++
+float floatData();
+```
+
+
+
+**Return the String data of server returned payload.**
+
+return *String (String object).*
+
+```C++
+String stringData();
+```
+
+
+
+**Return the JSON String data of server returned payload.**
+
+return *String (String object).*
+
+```C++
+String jsonData();
+```
+
+
+
+
+**Return the blob data (uint8_t) array of server returned payload.**
+
+return *Dynamic array* of 8-bit unsigned integer i.e. `std::vector<uint8_t>`.
+
+```C++
+std::vector<uint8_t> blobData();
+```
+
+
+
+
+**Return the new appended node's name or key of server returned payload when calling pushXXX function.**
+
+return *`String`* (String object).
+
+```C++
+String pushName();
+```
+
+
+
+**Determine the stream connection status.**
+
+return *`Boolean`* type status indicates whether the Firebase Data object is working with stream or not.
+
+```C++
+bool isStream();
+```
+
+
+
+**Determine the server connection status.**
+
+return *`Boolean`* type status indicates whether the Firebase Data object is connected to server or not.
+
+```C++
+bool httpConnected();
+```
+
+
+
+**Determine the timeout event of server's stream (30 sec is default).**
+
+Nothing to do when stream connection timeout, the stream connection will be automatic resumed.
+
+return *`Boolean`* type status indicates whether the stream was timeout or not.
+
+```C++
+bool streamTimeout();
+```
+
+
+
+**Determine the availability of data or paylaod returned from server.**
+
+return *`Boolean`* type status indicates whether the server return back the new payload or not.
+
+```C++
+bool dataAvailable();
+```
+
+
+
+**Determine the availability of stream event-data paylaod returned from server.**
+
+return *`Boolean`* type status indicates whether the server return back the stream event-data 
+payload or not.
+
+```C++
+bool streamAvailable();
+```
+
+
+
+**Determine the matching between data type that intend to get from/store to database and the server's return payload data type.**
+
+return *`Boolean`* type status indicates whether the type of data being get from/store to database 
+and server's returned payload are matched or not.
+
+```C++
+bool mismatchDataType();
+```
+
+
+
+**Determine the http status code return from server.**
+
+return *`Integer`* number of HTTP status.
+
+```C++
+int httpCode();
+```
+
+
+**Check overflow of the returned payload data buffer.**
+
+return *`Boolean`* of the overflow status.
+
+
+Default buffer size is 400 bytes, assigned via FIREBASE_RESPONSE_SIZE macro in FirebaseESP8266.h
+
+
+```C++
+bool bufferOverflow();
+```
+
+
+**Determine the name (full path) of backup file in SD card.**
+
+return *`String`* (String object) of file name that store on SD card after backup operation.
+
+```C++
+String getBackupFilename();
+```
+
+
+
+**Determine the size of backup file.**
+
+return *`Number of byte`* of backup file in byte after backup operation.
+
+```C++
+size_t getBackupFileSize();
+```
+
+
+
+**Clear or empty data in Firebase Data object.**
+
+```C++
+void clear();
+```
+
+
+
+**Determine the error description for file transfering (pushFile, setFile, backup and restore).**
+
+return *Error description string* (String object).
+
+```C++
+String fileTransferError();
+```
+
+
+
+**Return the server's payload data.**
+
+return *Payload string* (String object).
+
+```C++
+String payload();
+```
+
+
+## To do
+
+
+* Add support to upload/download backup data to/from Google cloud storage (in the same Firebase projectID Bucket).
+
+* Add support to Cloud messaging
+

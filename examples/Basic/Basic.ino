@@ -1,6 +1,7 @@
-#include <ESP8266WiFi.h>
-#include "FirebaseESP8266.h"
 
+//FirebaseESP8266.h must be included before ESP8266WiFi.h
+#include "FirebaseESP8266.h"
+#include <ESP8266WiFi.h>
 
 #define FIREBASE_HOST "YOUR_FIREBASE_PROJECT.firebaseio.com"
 #define FIREBASE_AUTH "YOUR_FIREBASE_DATABASE_SECRET"
@@ -10,15 +11,15 @@
 //Define FirebaseESP8266 data object
 FirebaseData firebaseData;
 
-
-
-void setup() {
+void setup()
+{
 
   Serial.begin(115200);
 
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   Serial.print("Connecting to Wi-Fi");
-  while (WiFi.status() != WL_CONNECTED) {
+  while (WiFi.status() != WL_CONNECTED)
+  {
     Serial.print(".");
     delay(300);
   }
@@ -27,53 +28,44 @@ void setup() {
   Serial.println(WiFi.localIP());
   Serial.println();
 
-
   Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
   Firebase.reconnectWiFi(true);
 
   String path = "/ESP8266_Test";
   String jsonStr;
 
-  //Firebase.deleteNode(firebaseData, path);
-
-  Serial.println("-----------------------------------");
-  Serial.println("----------Path Exist Test----------");
-  Serial.println("-----------------------------------");
-
-
-  Serial.println();
-  if (Firebase.pathExist(firebaseData, path)) {
-    Serial.println("Path " + path + " exists");
-  } else {
-    Serial.println("Path " + path + " is not exist");
-  }
-  Serial.println();
-
   Serial.println("-----------------------------------");
   Serial.println("----------Begin Set Test-----------");
   Serial.println("-----------------------------------");
   Serial.println();
 
-  for (uint8_t i = 0; i < 10; i++) {
+  for (uint8_t i = 0; i < 10; i++)
+  {
 
-    if (Firebase.setInt(firebaseData, path + "/Int/Data" + (i + 1), (i + 1) * 10)) {
+    if (Firebase.setInt(firebaseData, path + "/Int/Data" + (i + 1), (i + 1) * 10))
+    {
       Serial.println("----------Set result-----------");
       Serial.println("PATH: " + firebaseData.dataPath());
       Serial.println("TYPE: " + firebaseData.dataType());
       Serial.print("VALUE: ");
-      if (firebaseData.dataType() == "int") Serial.println(firebaseData.intData());
-      else if (firebaseData.dataType() == "float") Serial.println(firebaseData.floatData());
-      else if (firebaseData.dataType() == "string") Serial.println(firebaseData.stringData());
-      else if (firebaseData.dataType() == "json") Serial.println(firebaseData.jsonData());
+      if (firebaseData.dataType() == "int")
+        Serial.println(firebaseData.intData());
+      else if (firebaseData.dataType() == "float")
+        Serial.println(firebaseData.floatData());
+      else if (firebaseData.dataType() == "string")
+        Serial.println(firebaseData.stringData());
+      else if (firebaseData.dataType() == "json")
+        Serial.println(firebaseData.jsonData());
       Serial.println("--------------------------------");
       Serial.println();
-    } else {
+    }
+    else
+    {
       Serial.println("----------Can't set data--------");
       Serial.println("REASON: " + firebaseData.errorReason());
       Serial.println("--------------------------------");
       Serial.println();
     }
-
   }
 
   Serial.println("-----------------------------------");
@@ -81,26 +73,33 @@ void setup() {
   Serial.println("-----------------------------------");
   Serial.println();
 
-  for (uint8_t i = 0; i < 10; i++) {
+  for (uint8_t i = 0; i < 10; i++)
+  {
 
-    if (Firebase.getInt(firebaseData, path + "/Int/Data" + (i + 1))) {
+    if (Firebase.getInt(firebaseData, path + "/Int/Data" + (i + 1)))
+    {
       Serial.println("----------Get result-----------");
       Serial.println("PATH: " + firebaseData.dataPath());
       Serial.println("TYPE: " + firebaseData.dataType());
       Serial.print("VALUE: ");
-      if (firebaseData.dataType() == "int") Serial.println(firebaseData.intData());
-      else if (firebaseData.dataType() == "float") Serial.println(firebaseData.floatData());
-      else if (firebaseData.dataType() == "string") Serial.println(firebaseData.stringData());
-      else if (firebaseData.dataType() == "json") Serial.println(firebaseData.jsonData());
+      if (firebaseData.dataType() == "int")
+        Serial.println(firebaseData.intData());
+      else if (firebaseData.dataType() == "float")
+        Serial.println(firebaseData.floatData());
+      else if (firebaseData.dataType() == "string")
+        Serial.println(firebaseData.stringData());
+      else if (firebaseData.dataType() == "json")
+        Serial.println(firebaseData.jsonData());
       Serial.println("--------------------------------");
       Serial.println();
-    } else {
+    }
+    else
+    {
       Serial.println("----------Can't get data--------");
       Serial.println("REASON: " + firebaseData.errorReason());
       Serial.println("--------------------------------");
       Serial.println();
     }
-
   }
 
   Serial.println("-----------------------------------");
@@ -108,80 +107,87 @@ void setup() {
   Serial.println("-----------------------------------");
   Serial.println();
 
-  for (uint8_t i = 0; i < 5; i++) {
+  for (uint8_t i = 0; i < 5; i++)
+  {
 
-    if (Firebase.pushInt(firebaseData, path + "/Push/Int", (i + 1))) {
+    if (Firebase.pushInt(firebaseData, path + "/Push/Int", (i + 1)))
+    {
       Serial.println("----------Push result-----------");
       Serial.println("PATH: " + firebaseData.dataPath());
       Serial.print("PUSH NAME: ");
       Serial.println(firebaseData.pushName());
       Serial.println("--------------------------------");
       Serial.println();
-    } else {
+    }
+    else
+    {
       Serial.println("----------Can't push data--------");
       Serial.println("REASON: " + firebaseData.errorReason());
       Serial.println("--------------------------------");
       Serial.println();
     }
-
   }
 
-  for (uint8_t i = 5; i < 10; i++) {
+  for (uint8_t i = 5; i < 10; i++)
+  {
 
-    jsonStr = "{\"Data" +  String(i + 1) + "\":" + String(i + 1) + "}";
+    jsonStr = "{\"Data" + String(i + 1) + "\":" + String(i + 1) + "}";
 
-    if (Firebase.pushJSON(firebaseData, path + "/Push/Int", jsonStr)) {
+    if (Firebase.pushJSON(firebaseData, path + "/Push/Int", jsonStr))
+    {
       Serial.println("----------Push result-----------");
       Serial.println("PATH: " + firebaseData.dataPath());
       Serial.print("PUSH NAME: ");
       Serial.println(firebaseData.pushName());
       Serial.println("--------------------------------");
       Serial.println();
-    } else {
+    }
+    else
+    {
       Serial.println("----------Can't push data--------");
       Serial.println("REASON: " + firebaseData.errorReason());
       Serial.println("--------------------------------");
       Serial.println();
     }
-
   }
-
 
   Serial.println("-----------------------------------");
   Serial.println("---------Begin Update Test----------");
   Serial.println("-----------------------------------");
   Serial.println();
 
-  for (uint8_t i = 0; i < 5; i++) {
+  for (uint8_t i = 0; i < 5; i++)
+  {
 
-    jsonStr = "{\"Data" +  String(i + 1) + "\":" + String(i + 5.5) + "}";
+    jsonStr = "{\"Data" + String(i + 1) + "\":" + String(i + 5.5) + "}";
 
-    if (Firebase.updateNode(firebaseData, path + "/Int" , jsonStr)) {
+    if (Firebase.updateNode(firebaseData, path + "/Int", jsonStr))
+    {
       Serial.println("----------Update result-----------");
       Serial.println("PATH: " + firebaseData.dataPath());
       Serial.println("TYPE: " + firebaseData.dataType());
       Serial.print("VALUE: ");
-      if (firebaseData.dataType() == "int") Serial.println(firebaseData.intData());
-      else if (firebaseData.dataType() == "float") Serial.println(firebaseData.floatData());
-      else if (firebaseData.dataType() == "string") Serial.println(firebaseData.stringData());
-      else if (firebaseData.dataType() == "json") Serial.println(firebaseData.jsonData());
+      if (firebaseData.dataType() == "int")
+        Serial.println(firebaseData.intData());
+      else if (firebaseData.dataType() == "float")
+        Serial.println(firebaseData.floatData());
+      else if (firebaseData.dataType() == "string")
+        Serial.println(firebaseData.stringData());
+      else if (firebaseData.dataType() == "json")
+        Serial.println(firebaseData.jsonData());
       Serial.println("--------------------------------");
       Serial.println();
-    } else {
+    }
+    else
+    {
       Serial.println("----------Can't Update data--------");
       Serial.println("REASON: " + firebaseData.errorReason());
       Serial.println("--------------------------------");
       Serial.println();
     }
-
   }
-
-
 }
 
-
-
-void loop() {
-
-
+void loop()
+{
 }
