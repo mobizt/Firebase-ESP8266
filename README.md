@@ -54,7 +54,7 @@ This following devices were tested and work well.
 
 ## Dependencies
 
-Required ESP8266 Arduino Core Library version 2.4.0 and above. 
+Required ESP8266 Arduino Core Library (ESP8266 Core SDK) version 2.4.0 and above which installable through Board Manager. Recommend Core SDK version 2.4.2 and above which offer more free memory.
 
 
 ## Installing
