@@ -1133,14 +1133,13 @@ param *`dataObj`* - Firebase Data Object to hold data and instances.
 
 param *`nodePath`* - Database path to be backuped.
 
-param *`dirPath`* - Folder in SD card to save the downloaed file.
+param *`fileName`* - File name in 8.3 DOS format (max. 8 bytes file name and 3 bytes file extension) to save in SD card.
 
 return *`Boolean`* type status indicates the success of operation.
 
-The backup .json filename is constructed from the database path by replace slash (/) with dot (.).
 
 ```C++
-bool backup(FirebaseData &dataObj, const String &nodePath, const String &dirPath);
+bool backup(FirebaseData &dataObj, const String &nodePath, const String &fileName);
 ```
 
 
@@ -1151,12 +1150,12 @@ param *`dataObj`* - Firebase Data Object to hold data and instances.
 
 param *`nodePath`* - Database path to  be restored.
 
-param *`dirPath`* - Path/Folder in SD card that the backup file was saved.
+param *`fileName`* - Backup file name in 8.3 DOS format (max. 8 bytes file name and 3 bytes file extension) stored in SD card.
 
 return *`Boolean`* type status indicates the success of operation.
 
 ```C++
-bool restore(FirebaseData &dataObj, const String &nodePath, const String &dirPath);
+bool restore(FirebaseData &dataObj, const String &nodePath, const String &fileName);
 ```
 
 
