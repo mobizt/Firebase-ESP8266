@@ -1,4 +1,4 @@
-# Firebase Realtime Database Arduino Client Library for ESP8266
+# Firebase Realtime Database Arduino Library for ESP8266
 
 Google's Firebase Realtime Database Arduino Library for ESP8266 v 1.0.1
 
