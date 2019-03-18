@@ -8,7 +8,7 @@ In addition, the library allows you to read and store binary data from/to device
 
 This library comunicated with Google Firebase Realtime Database using the REST API. 
 
-The library supports all ESP32 MCU based modules. For ESP8266 please try [ESP32 Firebase Arduino library]( https://github.com/mobizt/Firebase-ESP32)
+The library supports all ESP8266 MCU based modules. For ESP32 please try [ESP32 Firebase Arduino library]( https://github.com/mobizt/Firebase-ESP32)
 
 Copyright (c) 2019 K. Suwatchai (Mobizt).
 

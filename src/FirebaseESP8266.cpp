@@ -2210,6 +2210,7 @@ inline std::string FirebaseESP8266::trim(std::string &str)
     return str;
 }
 
+
 bool FirebaseESP8266::sdTest()
 {
     File file;
