@@ -1,3 +1,6 @@
+//Example showed how to pause Firebase and use shared WiFi Client to send Line message.
+
+//Required Line Notify Library for ESP8266 https://github.com/mobizt/Line-Notify-ESP8266
 
 //FirebaseESP8266.h must be included before ESP8266WiFi.h
 #include "FirebaseESP8266.h"
