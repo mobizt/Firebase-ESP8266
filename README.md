@@ -60,7 +60,7 @@ Required ESP8266 Arduino Core Library (ESP8266 Core SDK) version 2.4.0 and above
 ## Installing
 
 
-### Using Library Manager
+#### Using Library Manager
 
 
 At Arduino IDE goto menu **Sketch** -> **Include Library** -> **Manage Libraries...**
@@ -70,7 +70,7 @@ In Library Manager Window, search **"firebase"** in the search form then select 
 
 
 
-### Manual installing
+#### Manual installing
 
 
 Click on **Clone or download** dropdown at the top of repository, select **Download ZIP** and save file on your computer.
@@ -85,11 +85,11 @@ Go to menu **Files** -> **Examples** -> **Firebase-ESP8266-master** and choose o
 ## Usages
 
 
-__Declaration and Initialization__
+#### Declaration and Initialization
 
 
 
-**The first thing to do to use this library.**
+##### The first thing to do to use this library.
 
 ```C++
 
@@ -118,7 +118,7 @@ Firebase.reconnectWiFi(true);
 ___
 
 
-__Read, Store, Update, Delete, Backup and Restore Data__
+#### Read, Store, Update, Delete, Backup and Restore Data
 
 
 **To read the data, use `get<Data Type>` functions i.e. getInt, getFlot, getString, getJSON, getBlob and getFile.**
@@ -395,7 +395,7 @@ query.clear();
 ___
 
 
-__Data changes monitoring (Stream)__
+#### Data changes monitoring (Stream)
 
 
 
@@ -469,7 +469,7 @@ if (!Firebase.beginStream(firebaseData, "/test/data"))
 ___
 
 
-__Database Backup and Restore__
+#### Database Backup and Restore
 
 
 **The backup and restore, specify the filename and the database path to backup or restore.**
@@ -529,7 +529,7 @@ See [full examples](https://github.com/mobizt/Firebase-ESP8266/tree/master/examp
 **These are all functions available from the library and the descriptions.**
 
 
-__Global functions__
+#### Global functions
 
 
 **Store Firebase's authentication credentials.**
@@ -1174,7 +1174,7 @@ bool restore(FirebaseData &dataObj, const String &nodePath, const String &fileNa
 ```
 
 
-__Firebase Data object functions__
+#### Firebase Data object functions
 
 **Get WiFi client instance.**
 
