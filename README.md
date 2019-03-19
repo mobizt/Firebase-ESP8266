@@ -90,16 +90,33 @@ In Library Manager Window, search **"firebase"** in the search form then select 
 
 
 
+For PlatformIO IDE, using the following command.
+
+**pio lib install "Firebase ESP8266 Client""**
+
+
+Or at **PIO Home** -> **Library** -> **Registry** then search **Firebase ESP8266 Client**.
+
+
+[More on PlatformIO...](https://platformio.org/lib/show/6247/Firebase%20ESP8266%20Client)
+
+
 
 
 ### Manual installing
 
 
-Click on **Clone or download** dropdown at the top of repository, select **Download ZIP** and save file on your computer.
+For Arduino IDE, click on **Clone or download** dropdown at the top of repository, select **Download ZIP** and save file on your computer.
+
 
 From Arduino IDE, goto menu **Sketch** -> **Include Library** -> **Add .ZIP Library...** and choose **Firebase-ESP8266-master.zip** that previously downloaded.
 
-Go to menu **Files** -> **Examples** -> **Firebase-ESP8266-master** and choose one from examples
+
+Go to menu **Files** -> **Examples** -> **Firebase-ESP8266-master** and choose one from examples.
+
+
+For PlatformIO, create folder **"Firebase-ESP8266"** under your project root directory and store **[there four files](https://github.com/mobizt/Firebase-ESP8266/tree/master/src)** in it.
+
 
 
 
@@ -165,11 +182,11 @@ You can call getDataType to determine what type of data returned to be manipulat
 
 BLOB and file stream daya types were only implemented by this library.
 
-Normally BLOB or any binary data type is not supported by Firebase, this library working with binary data by encoding the data into string before sending to server.
+Normally BLOB or any binary data type is not supported by Firebase Realtime database, this library working with binary data by encoding the data into string before sending to server.
 
 Then getBlob and getFile functions will read the encoded string from database and decoded it back to binary data before return data to client.
 
-Encoding binary to string in this libraary is using base64 binary-to-text encoding schemes, the encoded string will be prefixed with some header string ("file,base64," and "blob,base64,") for data type manipulation. 
+Encoding binary to string in this library is using base64 binary-to-text encoding schemes, the encoded string will be prefixed with some header string ("file,base64," and "blob,base64,") for data type manipulation. 
 
 The encoded string length will larger than the original binary data by 30%.
 
