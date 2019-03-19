@@ -60,11 +60,26 @@ Required ESP8266 Arduino Core Library (ESP8266 Core SDK) version 2.4.0 and above
 ## Installing
 
 
+### Using Library Manager
+
+
+At Arduino IDE goto menu **Sketch** -> **Include Library** -> **Manage Libraries...**
+
+
+In Library Manager Window, search **"firebase"** in the search form then select **"Firebase ESP8266 Client"** and click **"Install"** button.
+
+
+
+### Manual installing
+
+
 Click on **Clone or download** dropdown at the top of repository, select **Download ZIP** and save file on your computer.
 
 From Arduino IDE, goto menu **Sketch** -> **Include Library** -> **Add .ZIP Library...** and choose **Firebase-ESP8266-master.zip** that previously downloaded.
 
 Go to menu **Files** -> **Examples** -> **Firebase-ESP8266-master** and choose one from examples
+
+
 
 
 ## Usages
