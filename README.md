@@ -11,6 +11,7 @@ This library comunicated with Google Firebase Realtime Database using the REST A
 
 The library supports all ESP8266 MCU based modules. For ESP32 please try [ESP32 Firebase Arduino library]( https://github.com/mobizt/Firebase-ESP32)
 
+
 Copyright (c) 2019 K. Suwatchai (Mobizt).
 
 
@@ -178,7 +179,7 @@ While file stream is binary data that being write to SD card which obtained from
 
 Then getBlob function reads data in database and decoded it into byte array, while getFile reads data in database, then decoded and save it to SD card.
 
-Here is the example usage to read integer from defined database path "/test/int".
+Here is the example usage to read integer value from defined database path "/test/int".
 
 
 ```C++
