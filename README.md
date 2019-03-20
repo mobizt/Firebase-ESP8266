@@ -115,7 +115,7 @@ From Arduino IDE, goto menu **Sketch** -> **Include Library** -> **Add .ZIP Libr
 Go to menu **Files** -> **Examples** -> **Firebase-ESP8266-master** and choose one from examples.
 
 
-For PlatformIO, create folder **"Firebase-ESP8266"** under your project root directory and store **[there four files](https://github.com/mobizt/Firebase-ESP8266/tree/master/src)** in it.
+For PlatformIO, create folder **"Firebase-ESP8266"** in folder **"lib"** and store **[these four files](https://github.com/mobizt/Firebase-ESP8266/tree/master/src)** in it.
 
 
 

@@ -764,6 +764,7 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
     }
 
     WiFiClientSecure client = dataObj._http.client;
+    
     if (!dataObj._http.http_connected() || dataObj._interruptRequest)
         return cancelCurrentResponse(dataObj);
     if (!handleTCPNotConnected(dataObj) || !dataObj._httpConnected)
