@@ -1,7 +1,7 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 1.0.1
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 1.0.2
  * 
- * March 17, 2019
+ * March 24, 2019
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
  * and delete calls. 
@@ -157,6 +157,10 @@ static const char ESP8266_FIREBASE_STR_101[] PROGMEM = "&equalTo=";
 static const char ESP8266_FIREBASE_STR_102[] PROGMEM = "\"error\" : ";
 static const char ESP8266_FIREBASE_STR_103[] PROGMEM = "/.settings/rules";
 static const char ESP8266_FIREBASE_STR_104[] PROGMEM = "{\"status\":\"ok\"}";
+static const char ESP8266_FIREBASE_STR_105[] PROGMEM = "boolean";
+static const char ESP8266_FIREBASE_STR_106[] PROGMEM = "bool,0";
+static const char ESP8266_FIREBASE_STR_107[] PROGMEM = "bool,1";
+static const char ESP8266_FIREBASE_STR_108[] PROGMEM = "\"bool,";
 
 static const unsigned char ESP8266_FIREBASE_base64_table[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -271,6 +275,21 @@ public:
   bool pushFloat(FirebaseData &dataObj, const String &path, float floatValue);
 
   /*
+    Append new Boolean value to the defined database path.
+
+    @param dataObj - Firebase Data Object to hold data and instances.
+    @param path - Target database path which Boolean value will be appended.
+    @param boolValue - The appended value.
+
+    @return - Boolean type status indicates the success of operation.
+
+    The new appended node's key will be stored in Firebase Data object,
+    which its value can be accessed via function [FirebaseData object].pushName().
+
+  */
+  bool pushBool(FirebaseData &dataObj, const String &path, bool boolValue);
+
+  /*
     Append new string (text) to the defined database path.
 
     @param dataObj - Firebase Data Object to hold data and instances.
@@ -366,6 +385,25 @@ public:
 
   */
   bool setFloat(FirebaseData &dataObj, const String &path, float floatValue);
+
+  /*
+    Set Boolean data at the defined database path.
+
+    @param dataObj - Firebase Data Object to hold data and instances.
+    @param path - Target database path which Boolean data will be set.
+    @param boolValue - Boolean value to set.
+
+    @return - Boolean type status indicates the success of operation.
+
+    Call [FirebaseData object].dataType to determine what type of data that successfully
+    stores in database.
+
+    Call [FirebaseData object].boolData will return the Boolean value of
+    payload returned from server.
+
+  */
+  bool setBool(FirebaseData &dataObj, const String &path, bool boolValue);
+
 
   /*
     Set string (text) at the defined database path.
@@ -490,27 +528,44 @@ public:
   bool getInt(FirebaseData &dataObj, const String &path);
 
   /*
-    Read the integer value at the defined database path.
+    Read the float value at the defined database path.
 
     @param dataObj - Firebase Data Object to hold data and instances.
-    @param path - Database path which the integer value is being read.
+    @param path - Database path which the float value is being read.
 
     @return - Boolean type status indicates the success of operation.
 
     Call [FirebaseData object].dataType to determine what type of data that successfully
-    stores in database.
-
-    Call [FirebaseData object].intData will return the integer value of
+    stores in database. 
+    
+    Call [FirebaseData object].floatData will return the float value of
     payload returned from server.
 
-    If the payload returned from server is not integer or float type,
+    If the payload returned from server is not integer or float type, 
     the function [FirebaseData object].intData will return zero (0).
 
-    If the payload returned from server is float type,
-    the function [FirebaseData object].intData will return rounded integer value.
-
-  */
+   */
   bool getFloat(FirebaseData &dataObj, const String &path);
+
+  /*
+    Read the Boolean value at the defined database path.
+
+    @param dataObj - Firebase Data Object to hold data and instances.
+    @param path - Database path which the Boolean value is being read.
+
+    @return - Boolean type status indicates the success of operation.
+
+    Call [FirebaseData object].dataType to determine what type of data that successfully
+    stores in database. 
+    
+    Call [FirebaseData object].boolData will return the Boolean value of
+    payload returned from server.
+
+    If the payload returned from server is not Boolean type, 
+    the function [FirebaseData object].boolData will return false.
+
+   */
+  bool getBool(FirebaseData &dataObj, const String &path);
 
   /*
     Read the string or text at the defined database path.
@@ -714,6 +769,7 @@ public:
 
 protected:
   bool sendRequest(FirebaseData &dataObj, const std::string &path, const uint8_t method, uint8_t dataType, const std::string &payload);
+  void sendFirebaseRequest(FirebaseData &dataObj, const char *host, uint8_t method, const char *path, const char *auth, size_t payloadLength);
   void endFileTransfer(FirebaseData &dataObj);
   bool firebaseConnectStream(FirebaseData &dataObj, const std::string &path);
   bool getServerStreamResponse(FirebaseData &dataObj);
@@ -721,7 +777,7 @@ protected:
   bool getDownloadResponse(FirebaseData &dataObj);
   bool getUploadResponse(FirebaseData &dataObj);
 
-  void buildFirebaseRequest(FirebaseData &dataObj, const char *host, uint8_t _method, const char *path, const char *auth, size_t payloadLength, char *request);
+  void sendHeader(FirebaseData &dataObj, const char *host, uint8_t _method, const char *path, const char *auth, size_t payloadLength);
   void resetFirebasedataFlag(FirebaseData &dataObj);
   bool handleTCPNotConnected(FirebaseData &dataObj);
   void forceEndHTTP(FirebaseData &dataObj);
@@ -835,6 +891,15 @@ public:
 
   */
   float floatData();
+
+  /*
+
+    Return the Boolean data of server returned payload.
+
+    @return Boolean value.
+
+  */
+  bool boolData();
 
   /*
 

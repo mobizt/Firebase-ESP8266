@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 1.0.1
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 1.0.2
 
 This client library provides the most reliable operations for read, store, update, delete, backup and restore the database data.
 
@@ -35,11 +35,11 @@ This following devices were tested and work well.
 
 * **Not required fingerprint** or **certificate data** to connect.
 
-* **Read data** at the defined database path using get functions e.g. **getInt**, **getFloat**, **getString**, **getJSON**, **getBlob** and **getFile**.
+* **Read data** at the defined database path using get functions e.g. **getInt**, **getFloat**, **getBool**, **getString**, **getJSON**, **getBlob** and **getFile**.
 
-* **Store data** at the defined database path using set functions e.g. **setInt**, **setFloat**, **setString**, **setJSON**, **setBlob** and **setFile**.
+* **Store data** at the defined database path using set functions e.g. **setInt**, **setFloat**, **setBool**, **setString**, **setJSON**, **setBlob** and **setFile**.
 
-* **Append data** to the defined database path using push functions e.g. **pushInt**, **pushFloat**, **pushString**, **pushJSON**, **pushBlob** and **pushFile**.
+* **Append data** to the defined database path using push functions e.g. **pushInt**, **pushFloat**, **pushBool**,  **pushString**, **pushJSON**, **pushBlob** and **pushFile**.
 
 * **Update data** at the defined database path using **updateNode** and **updateNodeSilent** functions.
 
@@ -51,7 +51,7 @@ This following devices were tested and work well.
 
 * Supports **Data Filtering** using the orderBy, limitToFirst, limitToLast, startAt, endAt, and equalTo query parameters.
 
-* Supports integer, float, string and JSON string data types. Boolean data is actually not supported by Firebase, unless using integer or float to determine its non-zero and zero values for boolean.  
+* Supports integer, float, boolean, string and JSON string data types.
 
   For JSON string data type, parsing as an object required external JSON parser library e.g. [**ArduinoJson**](https://github.com/bblanchon/ArduinoJson).
 
@@ -163,14 +163,14 @@ ___
 ### Read, Store, Update, Delete, Backup and Restore Data
 
 
-**To read the data, use `get<Data Type>` functions i.e. getInt, getFlot, getString, getJSON, getBlob and getFile.**
+**To read the data, use `get<Data Type>` functions i.e. getInt, getFlot, getBool, getString, getJSON, getBlob and getFile.**
 
 
 The `get<Data Type>` function returned boolean value for success of operation. The success of operation determined from
 
 payload that Firebase server returned back to client. The http status and matching between data type request and response were determined to set the success status.
 
-To read the payload data, one of theses functions can be called i.e. intData, floatData, stringData, jsonData and blobData.
+To read the payload data, one of theses functions can be called i.e. intData, floatData, boolData, stringData, jsonData and blobData.
 
 The data you read from returned payload will tell actual data type stored or existed in database, not the modification version data type e.g. string "1.5" stored in database, can be read only from stringData as it returned from server.
 
@@ -227,7 +227,7 @@ Here is the example usage to read integer value from defined database path "/tes
 
 
 
-**To store the data, use `set<Data Type>` functions i.e. setInt, setFlot, setString, setJSON, setBlob and setFile.**
+**To store the data, use `set<Data Type>` functions i.e. setInt, setFlot, setBool, setString, setJSON, setBlob and setFile.**
 
 
 The `set<Data Type>` function returned boolean value for success of operation. The success of operation determined from
@@ -273,7 +273,7 @@ if (Firebase.setFile(firebaseData, "/test/file_data", "/test.txt")){
 
 
 
-**To append new data to database, `push<Data Type>` should be called e.g. pushInt, pushFloat, pushString, pushJSON, pushBlob and pushFile.**
+**To append new data to database, `push<Data Type>` should be called e.g. pushInt, pushFloat, pushBool, pushString, pushJSON, pushBlob and pushFile.**
 
 
 With push operation, server will return payload (key or name of newly appended node) to client.
@@ -691,6 +691,26 @@ bool pushFloat(FirebaseData &dataObj, const String &path, float floatValue);
 
 
 
+**Append new Boolean value to the defined database path.**
+
+param *`dataObj`* - Firebase Data Object to hold data and instances.
+
+param *`path`* - Target database path which Boolean value will be appended.
+
+param *`boolValue`* - The appended value.
+
+return *`Boolean`* type status indicates the success of operation.
+
+The new appended node's key will be stored in Firebase Data object, 
+which its value can be accessed via function [FirebaseData object].pushName().
+
+```C++
+bool pushBool(FirebaseData &dataObj, const String &path, bool boolValue);
+```
+
+
+
+
 **Append new string (text) to the defined database path.**
 
 param *`dataObj`* - Firebase Data Object to hold data and instances.
@@ -820,6 +840,29 @@ payload returned from server.
 ```C++
 bool setFloat(FirebaseData &dataObj, const String &path, float floatValue);
 ```
+
+
+
+
+
+**Set Boolean data at the defined database path.**
+
+param *`dataObj`* - Firebase Data Object to hold data and instances.
+
+param *`path`* - Target database path which float data will be set.
+
+param *`boolValue`* - Boolean value to set.
+
+return *`Boolean`* type status indicates the success of operation.
+
+Call [FirebaseData object].dataType to determine what type of data that successfully
+stores in database. 
+
+Call [FirebaseData object].boolData will return the Boolean value of
+payload returned from server.
+
+```C++
+bool setBool(FirebaseData &dataObj, const String &path, bool boolValue);
 
 
 
@@ -1015,6 +1058,32 @@ the function [FirebaseData object].intData will return zero (0).
 ```C++
 bool getFloat(FirebaseData &dataObj, const String &path);
 ```
+
+
+
+
+
+**Read the Boolean value at the defined database path.**
+
+param *`dataObj`* - Firebase Data Object to hold data and instances.
+
+param *`path`* - Database path which the Boolean value is being read.
+
+return *`Boolean`* type status indicates the success of operation.
+
+Call [FirebaseData object].dataType to determine what type of data that successfully
+stores in database. 
+
+Call [FirebaseData object].boolData will return the Boolean value of
+payload returned from server.
+
+If the payload returned from server is not boolean type, 
+the function [FirebaseData object].boolData will return false.
+
+```C++
+bool getBool(FirebaseData &dataObj, const String &path);
+```
+
 
 
 
@@ -1381,6 +1450,20 @@ return *Float value.*
 ```C++
 float floatData();
 ```
+
+
+
+
+
+
+**Return the Boolean data of server returned payload.**
+
+return *Boolean value.*
+
+```C++
+float boolData();
+```
+
 
 
 
