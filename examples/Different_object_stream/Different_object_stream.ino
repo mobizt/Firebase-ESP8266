@@ -96,6 +96,25 @@ void loop()
       Serial.println(firebaseData2.stringData());
     else if (firebaseData2.dataType() == "json")
       Serial.println(firebaseData2.jsonData());
+    else if (firebaseData2.dataType() == "blob")
+    {
+      std::vector<uint8_t> blob = firebaseData2.blobData();
+
+      Serial.println();
+
+      for (int i = 0; i < blob.size(); i++)
+      {
+        if (i > 0 && i % 16 == 0)
+          Serial.println();
+
+        if (i < 16)
+          Serial.print("0");
+
+        Serial.print(blob[i], HEX);
+        Serial.print(" ");
+      }
+      Serial.println();
+    }
     Serial.println();
   }
 
@@ -104,26 +123,17 @@ void loop()
     sendDataPrevMillis1 = millis();
     count1++;
 
-    json = "{\"data1-1\":" + String(count1) + ",\"data1-2\":" + String(count1 + 1) + ",\"data1-3\":" + String(count1 + 2) + "}";
+    //Create demo data
+    uint8_t data[256];
+    for (int i = 0; i < 256; i++)
+      data[i] = i;
+    data[255] = rand();
 
     Serial.println("------------------------------------");
-    Serial.println("Update Data 1...");
-    if (Firebase.updateNode(firebaseData1, path + "/Stream/data1", json))
+    Serial.println("Set Blob Data 1...");
+    if (Firebase.setBlob(firebaseData1, path + "/Stream/data1", data, sizeof(data)))
     {
       Serial.println("PASSED");
-      Serial.println("PATH: " + firebaseData1.dataPath());
-      Serial.println("TYPE: " + firebaseData1.dataType());
-      Serial.print("VALUE: ");
-      if (firebaseData1.dataType() == "int")
-        Serial.println(firebaseData1.intData());
-      else if (firebaseData1.dataType() == "float")
-        Serial.println(firebaseData1.floatData());
-      else if (firebaseData1.dataType() == "boolean")
-        Serial.println(firebaseData1.boolData());
-      else if (firebaseData1.dataType() == "string")
-        Serial.println(firebaseData1.stringData());
-      else if (firebaseData1.dataType() == "json")
-        Serial.println(firebaseData1.jsonData());
       Serial.println("------------------------------------");
       Serial.println();
     }
