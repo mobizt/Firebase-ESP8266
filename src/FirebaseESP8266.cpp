@@ -1,7 +1,14 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 1.0.2
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 1.0.3
  * 
- * March 24, 2019
+ * March 30, 2019
+ * 
+ * Feature Added:
+ * - Update examples
+ * 
+ * Feature Fixed:
+ * - Missing blob data from stream
+ *  
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
  * and delete calls. 
@@ -1160,6 +1167,28 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
                             bool rootPath = strcmp(dataObj._path.c_str(), fstr) == 0;
                             bool emptyPath = dataObj._path2.length() == 0;
                             bool sameData = dataObj._data == dataObj._data2;
+
+                            if (dataObj._data.length() >= strlen(ESP8266_FIREBASE_STR_92) && !hasBlob)
+                            {
+                                memset(fstr, 0, 60);
+                                strcpy_P(fstr, ESP8266_FIREBASE_STR_92);
+                                if (strcmp(dataObj._data.substr(0, strlen(ESP8266_FIREBASE_STR_92)).c_str(), fstr) == 0)
+                                {
+                                    char *tmp = new char[dataObj._data.length() + 1];
+                                    memset(tmp, 0, dataObj._data.length() + 1);
+                                    strcpy(tmp, dataObj._data.c_str());
+                                    memset(lineBuf, 0, FIREBASE_RESPONSE_SIZE);
+                                    strncpy(lineBuf, tmp + strlen(ESP8266_FIREBASE_STR_92), dataObj._data.length() - strlen(ESP8266_FIREBASE_STR_92) - 1);
+                                    hasBlob = true;
+                                    std::vector<uint8_t>().swap(dataObj._blob);
+                                    dataObj._dataType = FirebaseDataType::BLOB;
+                                    base64_decode_string(lineBuf, dataObj._blob);
+                                    memset(lineBuf, 0, FIREBASE_RESPONSE_SIZE);
+                                    dataObj._data.clear();
+                                    dataObj._data2.clear();
+                                    delete[] tmp;
+                                }
+                            }
 
                             //Any stream update?
                             if ((!samePath && (!rootPath || emptyPath)) || (samePath && !sameData && !dataObj._streamPathChanged))

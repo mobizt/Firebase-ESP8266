@@ -1,7 +1,14 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 1.0.2
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 1.0.3
  * 
- * March 24, 2019
+ * March 30, 2019
+ * 
+ * Feature Added:
+ * - Update examples
+ * 
+ * Feature Fixed:
+ * - Missing blob data from stream
+ *  
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
  * and delete calls. 

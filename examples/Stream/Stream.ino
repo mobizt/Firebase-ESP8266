@@ -62,6 +62,8 @@ void loop()
         Serial.println(firebaseData.intData());
       else if (firebaseData.dataType() == "float")
         Serial.println(firebaseData.floatData());
+      else if (firebaseData.dataType() == "boolean")
+        Serial.println(firebaseData.boolData());
       else if (firebaseData.dataType() == "string")
         Serial.println(firebaseData.stringData());
       else if (firebaseData.dataType() == "json")
@@ -116,6 +118,8 @@ void loop()
       Serial.println(firebaseData.intData());
     else if (firebaseData.dataType() == "float")
       Serial.println(firebaseData.floatData());
+    else if (firebaseData.dataType() == "boolean")
+      Serial.println(firebaseData.boolData());
     else if (firebaseData.dataType() == "string")
       Serial.println(firebaseData.stringData());
     else if (firebaseData.dataType() == "json")
