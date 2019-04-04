@@ -1,13 +1,14 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 1.0.3
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 1.0.4
  * 
- * March 30, 2019
+  * April 4, 2019
  * 
  * Feature Added:
+ * - Add stream event type data
  * - Update examples
  * 
  * Feature Fixed:
- * - Missing blob data from stream
+ *  
  *  
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -75,13 +76,55 @@ FirebaseESP8266::~FirebaseESP8266() {}
 
 void FirebaseESP8266::begin(const String &host, const String &auth)
 {
+    int p1 = -1;
+    int p2 = 0;
+    char *tmp = new char[20];
+    char *h = new char[host.length() + 1];
+    memset(h, 0, host.length() + 1);
+    strcpy(h, host.c_str());
+    char *_h = new char[host.length() + 1];
+    memset(_h, 0, host.length() + 1);
+
     _host.clear();
     _auth.clear();
     _host.reserve(100);
     _auth.reserve(100);
-    _host = host.c_str();
+
+    memset(tmp, 0, 20);
+    strcpy_P(tmp, ESP8266_FIREBASE_STR_111);
+    p1 = strpos(h, tmp, 0);
+    if (p1 != -1)
+    {
+        if (h[strlen(h) - 1] == '/')
+            p2 = 1;
+
+        strncpy(_h, h + p1 + strlen(ESP8266_FIREBASE_STR_111), strlen(h) - p1 - p2 - strlen(ESP8266_FIREBASE_STR_111));
+        _host = _h;
+    }
+   
+   if(p1==-1)
+   {
+       memset(tmp, 0, 20);
+       strcpy_P(tmp, ESP8266_FIREBASE_STR_112);
+       p1 = strpos(h, tmp, 0);
+       if (p1 != -1)
+       {
+           if (h[strlen(h) - 1] == '/')
+               p2 = 1;
+
+           strncpy(_h, h + p1 + strlen(ESP8266_FIREBASE_STR_112), strlen(h) - p1 - p2 - strlen(ESP8266_FIREBASE_STR_112));
+           _host = _h;
+       }
+   }    
+
+    if (_host.length() == 0)
+        _host = h;
+
     _auth = auth.c_str();
     _port = FIEBASE_PORT;
+    delete[] h;
+    delete[] _h;
+    delete[] tmp;
 }
 
 void FirebaseESP8266::reconnectWiFi(bool reconnect)
@@ -424,6 +467,10 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const std::string &p
     resetFirebasedataFlag(dataObj);
     dataObj._path.clear();
 
+    char *slash = new char[10];
+    memset(slash, 0, 10);
+    strcpy_P(slash, ESP8266_FIREBASE_STR_1);
+
     if (method == FirebaseMethod::STREAM)
     {
         //stream path change? reset the current (keep alive) connection
@@ -436,7 +483,12 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const std::string &p
         }
 
         dataObj._streamPath.clear();
-        dataObj._streamPath = path;
+
+        if (path.length() > 0)
+            if (path[0] != '/')
+                dataObj._streamPath = slash;
+
+        dataObj._streamPath += path;
     }
     else
     {
@@ -444,9 +496,17 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const std::string &p
         if (dataObj._isStream)
             forceEndHTTP(dataObj);
         if (method != FirebaseMethod::BACKUP && method != FirebaseMethod::RESTORE)
-            dataObj._path = path;
+        {
+            if (path.length() > 0)
+                if (path[0] != '/')
+                    dataObj._path = slash;
+
+            dataObj._path += path;
+        }
+
         dataObj._isStreamTimeout = false;
     }
+    delete[] slash;
 
     httpConnected = dataObj._http.http_begin(_host, _port);
 
@@ -1129,6 +1189,7 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
 
                     if (m)
                     {
+                        dataObj._eventType = eventType;
 
                         //Parses json response for path
                         memset(fstr, 0, 60);
@@ -1222,6 +1283,24 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
 
                             //if (dataObj._timeoutCallback)
                             //  dataObj._timeoutCallback(false);
+                        }
+
+                        //Firebase cancel and auth_revoked events
+                        memset(fstr, 0, 60);
+                        strcpy_P(fstr, ESP8266_FIREBASE_STR_109);
+                        bool m2 = strcmp(eventType, fstr) == 0;
+                        memset(fstr, 0, 60);
+                        strcpy_P(fstr, ESP8266_FIREBASE_STR_110);
+                        m2 |= strcmp(eventType, fstr) == 0;
+
+                        if (m2)
+                        {
+                            dataObj._isStreamTimeout = false;
+                            dataObj._dataMillis = millis();
+                            dataObj._eventType = eventType;
+                            //make stream available status
+                            dataObj._streamDataChanged = true;
+                            dataObj._dataAvailable = true;
                         }
                     }
                 }
@@ -1920,6 +1999,16 @@ void FirebaseESP8266::sendFirebaseRequest(FirebaseData &dataObj, const char *hos
     }
 
     dataObj._http.http_sendRequest(request, "");
+
+    if (strlen(path) > 0)
+    {
+        if (path[0] != '/')
+        {
+            memset(request, 0, headerSize);
+            strcpy_P(request, ESP8266_FIREBASE_STR_1);
+            dataObj._http.http_sendRequest(request, "");
+        }
+    }
 
     dataObj._http.http_sendRequest(path, "");
 
@@ -2783,6 +2872,7 @@ void FirebaseData::clear()
     std::string().swap(_backupNodePath);
     std::string().swap(_backupDir);
     std::string().swap(_backupFilename);
+    std::string().swap(_eventType);
 }
 
 WiFiClientSecure FirebaseData::getWiFiClient()
@@ -2834,6 +2924,12 @@ String FirebaseData::dataType()
     if (_dataType == FirebaseESP8266::FirebaseDataType::NULL_)
         return FPSTR(ESP8266_FIREBASE_STR_78);
     return std::string().c_str();
+}
+
+String FirebaseData::eventType()
+{
+    std::string res = _eventType;
+    return res.c_str();
 }
 
 String FirebaseData::streamPath()
@@ -3044,12 +3140,18 @@ String StreamData::dataType()
     return _dataTypeStr.c_str();
 }
 
+String StreamData::eventType()
+{
+    return _eventTypeStr.c_str();
+}
+
 void StreamData::empty()
 {
     std::string().swap(_streamPath);
     std::string().swap(_path);
     std::string().swap(_data);
     std::string().swap(_dataTypeStr);
+    std::string().swap(_eventTypeStr);
 }
 
 QueryFilter::QueryFilter()

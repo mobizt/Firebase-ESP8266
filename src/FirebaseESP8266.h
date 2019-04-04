@@ -1,13 +1,14 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 1.0.3
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 1.0.4
  * 
- * March 30, 2019
+ * April 4, 2019
  * 
  * Feature Added:
+ * - Add stream event type data
  * - Update examples
  * 
  * Feature Fixed:
- * - Missing blob data from stream
+ *  
  *  
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -59,6 +60,7 @@
 #define DEF_ESP8266_FIREBASE_STR_92 "\"blob,base64,"
 #define DEF_ESP8266_FIREBASE_STR_93 "\"file,base64,"
 #define DEF_ESP8266_FIREBASE_STR_4 "."
+
 
 static const char ESP8266_FIREBASE_STR_1[] PROGMEM = "/";
 static const char ESP8266_FIREBASE_STR_2[] PROGMEM = ".json?auth=";
@@ -168,6 +170,10 @@ static const char ESP8266_FIREBASE_STR_105[] PROGMEM = "boolean";
 static const char ESP8266_FIREBASE_STR_106[] PROGMEM = "bool,0";
 static const char ESP8266_FIREBASE_STR_107[] PROGMEM = "bool,1";
 static const char ESP8266_FIREBASE_STR_108[] PROGMEM = "\"bool,";
+static const char ESP8266_FIREBASE_STR_109[] PROGMEM = "cancel";
+static const char ESP8266_FIREBASE_STR_110[] PROGMEM = "auth_revoked";
+static const char ESP8266_FIREBASE_STR_111[] PROGMEM = "http://";
+static const char ESP8266_FIREBASE_STR_112[] PROGMEM = "https://";
 
 static const unsigned char ESP8266_FIREBASE_base64_table[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -852,6 +858,23 @@ public:
   String dataType();
 
   /*
+    Determine the event type of stream.
+
+    @return The one of these event type e.g. put, patch, cancel, and auth_revoked.
+
+    The event type "put" indicated that data at event path relative to stream path was completely changed. Event path can be determined from dataPath().
+
+    The event type "patch" indicated that data at event path relative to stream path was updated. Event path can be determined from dataPath().
+
+    The event type "cancel" indeicated something wrong and cancel by server.
+
+    The event type "auth_revoked" indicated the provided Firebase Authentication Data (Database secret) is no longer valid.
+
+   */
+  String eventType();
+
+
+  /*
 
     Determine the current stream path.
 
@@ -1100,6 +1123,7 @@ protected:
   std::string _fileName = "";
   std::string _redirectURL = "";
   std::string _firebaseError = "";
+  std::string _eventType = "";
 
   std::vector<uint8_t> _blob = std::vector<uint8_t>();
 
@@ -1132,6 +1156,7 @@ public:
   String stringData();
   String jsonData();
   String dataType();
+  String eventType();
   void empty();
   friend FirebaseESP8266;
 
@@ -1140,6 +1165,7 @@ protected:
   std::string _path;
   std::string _data;
   std::string _dataTypeStr;
+  std::string _eventTypeStr;
   uint8_t _dataType;
 };
 

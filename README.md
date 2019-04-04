@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 1.0.3
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 1.0.4
 
 This client library provides the most reliable operations for read, store, update, delete, backup and restore the database data.
 
@@ -1387,6 +1387,28 @@ return *The one of these data type e.g. integer, float, string, json and blob.*
 ```C++
 String dataType();
 ```
+
+
+
+
+
+
+**Determine the event type of stream.**
+
+@return The one of these event type String e.g. put, patch, cancel, and auth_revoked.
+
+The event type "put" indicated that data at event path relative to stream path was completely changed. Event path can be determined from dataPath().
+
+The event type "patch" indicated that data at event path relative to stream path was updated. Event path can be determined from dataPath().
+
+The event type "cancel" indeicated something wrong and cancel by server.
+
+The event type "auth_revoked" indicated the provided Firebase Authentication Data (Database secret) is no longer valid.
+
+```C++
+String eventType();
+```
+
 
 
 

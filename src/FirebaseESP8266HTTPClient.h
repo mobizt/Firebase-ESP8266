@@ -57,6 +57,7 @@ using namespace axTLS;
 #define FIREBASE_ERROR_DATA_TYPE_MISMATCH (-14)
 #define FIREBASE_ERROR_PATH_NOT_EXIST (-15)
 
+
 /// HTTP codes see RFC7231
 
 #define _HTTP_CODE_OK 200
