@@ -218,7 +218,7 @@ Here is the example usage to read integer value from defined database path "/tes
 
   } else {
     //Failed, then print out the error detail
-    Serial.println(firebaseData.errorReason()));
+    Serial.println(firebaseData.errorReason());
   }
 
 ```
@@ -309,7 +309,7 @@ if (Firebase.pushJSON(firebaseData, "/test/append", jsonData)) {
 
 } else {
   //Failed, then print out the error detail
-  Serial.println(firebaseData.errorReason()));
+  Serial.println(firebaseData.errorReason());
 }
 
 ```
@@ -356,7 +356,7 @@ if (Firebase.updateNode(firebaseData, "/test/update", updateData)) {
 
 } else {
   //Failed, then print out the error detail
-  Serial.println(firebaseData.errorReason()));
+  Serial.println(firebaseData.errorReason());
 }
 
 ```
