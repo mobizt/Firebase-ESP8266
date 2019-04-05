@@ -863,6 +863,7 @@ payload returned from server.
 
 ```C++
 bool setBool(FirebaseData &dataObj, const String &path, bool boolValue);
+```
 
 
 
