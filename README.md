@@ -264,7 +264,7 @@ if (Firebase.setFile(firebaseData, "/test/file_data", "/test.txt")){
 } else {
   //Failed, then print out the error detail for file transfer error.
   //Use firebaseData.fileTransferError instead of firebaseData.errorReason() in case of working with file.
-  Serial.println(firebaseData.fileTransferError()));
+  Serial.println(firebaseData.fileTransferError());
 }
 
 ```
@@ -555,7 +555,7 @@ Here is the usage example to back up all database at root path "/" and restore i
  {
    //Successfull backup, print out the file path and size
    Serial.println(firebaseData.getBackupFilename());
-   Serial.println(String(firebaseData.getBackupFileSize()));
+   Serial.println(firebaseData.getBackupFileSize());
 
    backupFileName = firebaseData.getBackupFilename();
   }
