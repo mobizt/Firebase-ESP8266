@@ -1708,6 +1708,3 @@ String payload();
 * Add support to upload/download backup data to/from Google cloud storage (in the Firebase projectID Bucket).
 
 * Add support to Cloud messaging
-
-#   F i r e b a s e - A r d u i n o - W i F i N I N A  
- 
