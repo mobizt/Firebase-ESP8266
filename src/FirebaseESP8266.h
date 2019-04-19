@@ -1,7 +1,7 @@
 /*
  * Google's Firebase Realtime Database Arduino Library for ESP8266, version 1.0.4
  * 
- * April 4, 2019
+ * April 19, 2019
  * 
  * Feature Added:
  * - Add stream event type data
