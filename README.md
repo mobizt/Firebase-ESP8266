@@ -43,6 +43,8 @@ This following devices were tested and work well.
 
 * **Not required fingerprint** or **certificate data** to connect.
 
+* **Fast and no delay** for contiuous read and store data from/to database.
+
 * **Read data** at the defined database path using get functions e.g. **getInt**, **getFloat**, **getBool**, **getString**, **getJSON**, **getBlob** and **getFile**.
 
 * **Store data** at the defined database path using set functions e.g. **setInt**, **setFloat**, **setBool**, **setString**, **setJSON**, **setBlob** and **setFile**.
