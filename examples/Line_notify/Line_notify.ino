@@ -1,3 +1,15 @@
+/*
+ * Created by K. Suwatchai (Mobizt)
+ * 
+ * Email: k_suwatchai@hotmail.com
+ * 
+ * Github: https://github.com/mobizt
+ * 
+ * Copyright (c) 2019 mobizt
+ *
+*/
+
+
 //Example showed how to pause Firebase and use shared WiFi Client to send Line message.
 
 //Required Line Notify Library for ESP8266 https://github.com/mobizt/Line-Notify-ESP8266

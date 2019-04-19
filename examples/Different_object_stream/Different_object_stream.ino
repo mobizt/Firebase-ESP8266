@@ -1,3 +1,15 @@
+/*
+ * Created by K. Suwatchai (Mobizt)
+ * 
+ * Email: k_suwatchai@hotmail.com
+ * 
+ * Github: https://github.com/mobizt
+ * 
+ * Copyright (c) 2019 mobizt
+ *
+*/
+
+
 //This example shows how to use different Firebase Data objects to handle to streaming and other for store, read, update data.
 //Pros - No delay streaming
 //     - Always connected stream, no stream data missing or interrupt
