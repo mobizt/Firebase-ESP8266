@@ -42,9 +42,28 @@
 #define FirebaseESP8266_H
 
 #include <Arduino.h>
-#if ARDUINO_ESP8266_GIT_VER != 0xbb28d4a3 && ARDUINO_ESP8266_GIT_VER != 0x614f7c32 && ARDUINO_ESP8266_GIT_VER != 0x4ceabea9 //2.4.0, 2.4.1, 2.4.2
+
+//ARDUINO_ESP8266_GIT_VER
+//2.5.0 0x951aeffa
+//2.5.0-beta3 0x21db8fc9
+//2.5.0-beta2 0x0fd86a07
+//2.5.0-beta1 0x9c1e03a1
+//2.4.2 0x4ceabea9
+//2.4.1 0x614f7c32
+//2.4.0 0xbb28d4a3
+//2.4.0-rc2 0x0c897c37
+//2.4.0-rc1 0xf6d232f1
+
+#ifndef ARDUINO_ESP8266_GIT_VER
+#error Your ESP8266 Arduino Core SDK is outdated, please update. From Arduino IDE go to Boards Manager and search 'esp8266' then select version 2.4.0 or above.
+#endif
+
+#if ARDUINO_ESP8266_GIT_VER != 0xf6d232f1 && ARDUINO_ESP8266_GIT_VER != 0x0c897c37 && ARDUINO_ESP8266_GIT_VER != 0xbb28d4a3 && ARDUINO_ESP8266_GIT_VER != 0x614f7c32 && ARDUINO_ESP8266_GIT_VER != 0x4ceabea9
 #define USING_AXTLS
 #endif
+
+
+
 #include <ESP8266WiFi.h>
 #include "FirebaseESP8266HTTPClient.h"
 #include <SPI.h>

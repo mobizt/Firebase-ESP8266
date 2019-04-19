@@ -912,6 +912,8 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
 
     size_t lfCount = 0;
     size_t charPos = 0;
+    
+
 
     if (!dataObj._isStream)
         while (client.connected() && !client.available() && millis() - dataTime < dataObj._http.tcpTimeout)
