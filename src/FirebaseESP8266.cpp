@@ -1,13 +1,13 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 1.0.4
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 1.0.5
  * 
-  * April 4, 2019
+  * April 20, 2019
  * 
  * Feature Added:
- * - Add stream event type data
- * - Update examples
  * 
  * Feature Fixed:
+ * - Fixed Boolean data type misconception
+ * - Fixed ESP8266 Arduino Core SDK version check
  *  
  *  
  * 
@@ -521,10 +521,10 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const std::string &p
         method != FirebaseMethod::DELETE && method != FirebaseMethod::RESTORE)
     {
         memset(payloadStr, 0, payloadStrSize);
-        if (dataType == FirebaseDataType::STRING || dataType == FirebaseDataType::BOOLEAN)
+        if (dataType == FirebaseDataType::STRING)
             strcpy_P(payloadStr, ESP8266_FIREBASE_STR_3);
         strcat(payloadStr, payload.c_str());
-        if (dataType == FirebaseDataType::STRING || dataType == FirebaseDataType::BOOLEAN)
+        if (dataType == FirebaseDataType::STRING)
             strcat_P(payloadStr, ESP8266_FIREBASE_STR_3);
     }
 
@@ -2200,9 +2200,7 @@ void FirebaseESP8266::setDataType(FirebaseData &dataObj, const char *data)
 
         if (!typeSet)
         {
-            memset(temp, 0, len);
-            strncpy(temp, data, strlen(ESP8266_FIREBASE_STR_108));
-            if (strcmp(temp, ESP8266_FIREBASE_STR_108) == 0)
+            if (strcmp(data, ESP8266_FIREBASE_STR_106) == 0 || strcmp(data, ESP8266_FIREBASE_STR_107) == 0)
             {
                 typeSet = true;
                 dataObj._dataType = FirebaseDataType::BOOLEAN;
@@ -2965,9 +2963,7 @@ bool FirebaseData::boolData()
     bool res;
     char *str = new char[10];
     memset(str, 0, 10);
-    strcpy_P(str, ESP8266_FIREBASE_STR_3);
     strcat_P(str, ESP8266_FIREBASE_STR_107);
-    strcat_P(str, ESP8266_FIREBASE_STR_3);
 
     if (_data.length() > 0 && _dataType == FirebaseESP8266::FirebaseDataType::BOOLEAN)
         res = _data == str;
