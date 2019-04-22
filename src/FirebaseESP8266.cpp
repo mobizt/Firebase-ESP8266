@@ -780,8 +780,11 @@ bool FirebaseESP8266::sendRequest(FirebaseData &dataObj, const std::string &path
 
                     delay(20);
                     forceEndHTTP(dataObj);
-                    if (dataObj._http.http_connected())
+                    if (dataObj._http.http_connected()){
+                       if(!dataObj._isStream)
                         return false;
+                    }
+                        
                 }
                 dataObj._httpConnected = false;
             }
@@ -1952,7 +1955,8 @@ void FirebaseESP8266::forceEndHTTP(FirebaseData &dataObj)
 
 void FirebaseESP8266::sendFirebaseRequest(FirebaseData &dataObj, const char *host, uint8_t method, const char *path, const char *auth, size_t payloadLength)
 {
-
+    uint8_t retryCount = 0;
+    uint8_t maxRetry = 5;
     size_t headerSize = 400;
     char *request = new char[headerSize];
     memset(request, 0, headerSize);
@@ -2000,7 +2004,13 @@ void FirebaseESP8266::sendFirebaseRequest(FirebaseData &dataObj, const char *hos
         dataObj._isStream = false;
     }
 
-    dataObj._http.http_sendRequest(request, "");
+    retryCount=0;
+    while(dataObj._http.http_sendRequest(request, "") != 0)
+    {
+      retryCount++;
+      if (retryCount > maxRetry)
+        break;
+    }
 
     if (strlen(path) > 0)
     {
