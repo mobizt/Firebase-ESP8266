@@ -2210,7 +2210,7 @@ void FirebaseESP8266::setDataType(FirebaseData &dataObj, const char *data)
 
         if (!typeSet)
         {
-            if (strcmp(data, ESP8266_FIREBASE_STR_106) == 0 || strcmp(data, ESP8266_FIREBASE_STR_107) == 0)
+            if (strcmp(data, DEF_ESP8266_FIREBASE_STR_106) == 0 || strcmp(data, DEF_ESP8266_FIREBASE_STR_107) == 0)
             {
                 typeSet = true;
                 dataObj._dataType = FirebaseDataType::BOOLEAN;
