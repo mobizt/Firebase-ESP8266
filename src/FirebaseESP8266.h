@@ -42,15 +42,16 @@
 #define FirebaseESP8266_H
 
 #include <Arduino.h>
+#include <core_version.h>
 
 //ARDUINO_ESP8266_GIT_VER
 //2.5.0 0x951aeffa
 //2.5.0-beta3 0x21db8fc9
 //2.5.0-beta2 0x0fd86a07
 //2.5.0-beta1 0x9c1e03a1
-//2.4.2 0x4ceabea9
+//2.4.2 0xbb28d4a3
 //2.4.1 0x614f7c32
-//2.4.0 0xbb28d4a3
+//2.4.0 0x4ceabea9
 //2.4.0-rc2 0x0c897c37
 //2.4.0-rc1 0xf6d232f1
 
@@ -58,10 +59,9 @@
 #error Your ESP8266 Arduino Core SDK is outdated, please update. From Arduino IDE go to Boards Manager and search 'esp8266' then select version 2.4.0 or above.
 #endif
 
-#if ARDUINO_ESP8266_GIT_VER != 0xf6d232f1 && ARDUINO_ESP8266_GIT_VER != 0x0c897c37 && ARDUINO_ESP8266_GIT_VER != 0xbb28d4a3 && ARDUINO_ESP8266_GIT_VER != 0x614f7c32 && ARDUINO_ESP8266_GIT_VER != 0x4ceabea9
+#if ARDUINO_ESP8266_GIT_VER != 0xf6d232f1 && ARDUINO_ESP8266_GIT_VER != 0x0c897c37 && ARDUINO_ESP8266_GIT_VER != 0x4ceabea9 && ARDUINO_ESP8266_GIT_VER != 0x614f7c32 && ARDUINO_ESP8266_GIT_VER != 0xbb28d4a3
 #define USING_AXTLS
 #endif
-
 
 
 #include <ESP8266WiFi.h>
@@ -79,7 +79,8 @@
 #define DEF_ESP8266_FIREBASE_STR_92 "\"blob,base64,"
 #define DEF_ESP8266_FIREBASE_STR_93 "\"file,base64,"
 #define DEF_ESP8266_FIREBASE_STR_4 "."
-
+#define DEF_ESP8266_FIREBASE_STR_106 "false"
+#define DEF_ESP8266_FIREBASE_STR_107 "true"
 
 static const char ESP8266_FIREBASE_STR_1[] PROGMEM = "/";
 static const char ESP8266_FIREBASE_STR_2[] PROGMEM = ".json?auth=";
