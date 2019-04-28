@@ -1,13 +1,15 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 1.0.5
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.0.0
  * 
-  * April 20, 2019
+ * April 26, 2019
  * 
  * Feature Added:
+ * - Add retry operation
+ * - Add queue operation
+ * - Add double data type
+ * - Update examples
  * 
  * Feature Fixed:
- * - Fixed Boolean data type misconception
- * - Fixed ESP8266 Arduino Core SDK version check
  *  
  *  
  * 
@@ -48,11 +50,12 @@ struct FirebaseESP8266::FirebaseDataType
     static const uint8_t NULL_ = 1;
     static const uint8_t INTEGER = 2;
     static const uint8_t FLOAT = 3;
-    static const uint8_t BOOLEAN = 4;
-    static const uint8_t STRING = 5;
-    static const uint8_t JSON = 6;
-    static const uint8_t BLOB = 7;
-    static const uint8_t FILE = 8;
+    static const uint8_t DOUBLE = 4;
+    static const uint8_t BOOLEAN = 5;
+    static const uint8_t STRING = 6;
+    static const uint8_t JSON = 7;
+    static const uint8_t BLOB = 8;
+    static const uint8_t FILE = 9;
 };
 
 struct FirebaseESP8266::FirebaseMethod
@@ -101,21 +104,21 @@ void FirebaseESP8266::begin(const String &host, const String &auth)
         strncpy(_h, h + p1 + strlen(ESP8266_FIREBASE_STR_111), strlen(h) - p1 - p2 - strlen(ESP8266_FIREBASE_STR_111));
         _host = _h;
     }
-   
-   if(p1==-1)
-   {
-       memset(tmp, 0, 20);
-       strcpy_P(tmp, ESP8266_FIREBASE_STR_112);
-       p1 = strpos(h, tmp, 0);
-       if (p1 != -1)
-       {
-           if (h[strlen(h) - 1] == '/')
-               p2 = 1;
 
-           strncpy(_h, h + p1 + strlen(ESP8266_FIREBASE_STR_112), strlen(h) - p1 - p2 - strlen(ESP8266_FIREBASE_STR_112));
-           _host = _h;
-       }
-   }    
+    if (p1 == -1)
+    {
+        memset(tmp, 0, 20);
+        strcpy_P(tmp, ESP8266_FIREBASE_STR_112);
+        p1 = strpos(h, tmp, 0);
+        if (p1 != -1)
+        {
+            if (h[strlen(h) - 1] == '/')
+                p2 = 1;
+
+            strncpy(_h, h + p1 + strlen(ESP8266_FIREBASE_STR_112), strlen(h) - p1 - p2 - strlen(ESP8266_FIREBASE_STR_112));
+            _host = _h;
+        }
+    }
 
     if (_host.length() == 0)
         _host = h;
@@ -145,16 +148,126 @@ bool FirebaseESP8266::setRules(FirebaseData &dataObj, const String &rules)
     return sendRequest(dataObj, ESP8266_FIREBASE_STR_103, FirebaseMethod::SET_RULES, FirebaseDataType::JSON, rules.c_str());
 }
 
+bool FirebaseESP8266::buildRequest(FirebaseData &dataObj, uint8_t firebaseMethod, uint8_t firebaseDataType, const String &path, const char *buf, bool queue)
+{
+
+    bool flag;
+    dataObj.queryFilter.clear();
+
+    uint8_t errCount = 0;
+    uint8_t maxRetry = dataObj._maxRetry;
+    if (maxRetry == 0)
+        maxRetry = 1;
+
+    unsigned long lastTime = millis();
+
+    if (dataObj._streamCall)
+        while (dataObj._streamCall && millis() - lastTime < 1000)
+            delay(1);
+
+    if (dataObj._streamCall)
+    {
+        dataObj._httpCode = HTTPC_ERROR_CONNECTION_INUSED;
+        return false;
+    }
+
+    for (int i = 0; i < maxRetry; i++)
+    {
+        flag = sendRequest(dataObj, path.c_str(), firebaseMethod, firebaseDataType, buf);
+        if (flag)
+            break;
+
+        if (dataObj._httpCode == HTTPC_ERROR_CONNECTION_INUSED && dataObj._firebaseCall)
+        {
+            //Waiting for queue to finish
+            while (dataObj._firebaseCall && apConnected())
+                delay(1);
+        }
+        else
+        {
+
+            if (dataObj._maxRetry > 0)
+                if (!flag && commError(dataObj))
+                    errCount++;
+        }
+    }
+
+    if (!queue && !flag && errCount == maxRetry && dataObj._qMan._maxQueue > 0)
+
+        if (firebaseMethod == FirebaseMethod::PUT || firebaseMethod == FirebaseMethod::PUT_SILENT || firebaseMethod == FirebaseMethod::POST || firebaseMethod == FirebaseMethod::PATCH || firebaseMethod == FirebaseMethod::PATCH_SILENT)
+
+            dataObj.addQueue(firebaseMethod, firebaseDataType, path.c_str(), "", buf, false, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
+
+    if (flag)
+        dataObj._firebaseCall = false;
+    return flag;
+}
+
+bool FirebaseESP8266::buildRequestFile(FirebaseData &dataObj, uint8_t firebaseMethod, const String &path, const String &fileName, bool queue)
+{
+
+    dataObj.queryFilter.clear();
+    dataObj._fileName = fileName.c_str();
+
+    bool flag;
+
+    uint8_t errCount = 0;
+    uint8_t maxRetry = dataObj._maxRetry;
+    if (maxRetry == 0)
+        maxRetry = 1;
+
+    unsigned long lastTime = millis();
+
+    if (dataObj._streamCall)
+        while (dataObj._streamCall && millis() - lastTime < 1000)
+            delay(1);
+
+    if (dataObj._streamCall)
+    {
+        dataObj._httpCode = HTTPC_ERROR_CONNECTION_INUSED;
+        return false;
+    }
+
+    for (int i = 0; i < maxRetry; i++)
+    {
+
+        flag = sendRequest(dataObj, path.c_str(), firebaseMethod, FirebaseDataType::FILE, "");
+        if (flag)
+            break;
+
+        if (dataObj._httpCode == HTTPC_ERROR_CONNECTION_INUSED && dataObj._firebaseCall)
+        {
+            //Waiting for queue to finish
+            while (dataObj._firebaseCall && apConnected())
+                delay(1);
+        }
+        else
+        {
+
+            if (dataObj._maxRetry > 0)
+                if (!flag && commError(dataObj))
+                    errCount++;
+        }
+    }
+
+    if (!queue && !flag && errCount == maxRetry && dataObj._qMan._maxQueue > 0)
+        dataObj.addQueue(firebaseMethod, FirebaseDataType::FILE, path.c_str(), fileName.c_str(), "", false, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
+
+    if (flag)
+        dataObj._firebaseCall = false;
+
+    return flag;
+}
 bool FirebaseESP8266::pushInt(FirebaseData &dataObj, const String &path, int intValue)
 {
     size_t bufSize = 50;
     char *buf = new char[bufSize];
     memset(buf, 0, bufSize);
     itoa(intValue, buf, 10);
-    dataObj.queryFilter.clear();
-    bool res = sendRequest(dataObj, path.c_str(), FirebaseMethod::POST, FirebaseDataType::INTEGER, buf);
+
+    bool flag = buildRequest(dataObj, FirebaseMethod::POST, FirebaseDataType::INTEGER, path, buf, false);
     delete[] buf;
-    return res;
+    return flag;
 }
 
 bool FirebaseESP8266::pushFloat(FirebaseData &dataObj, const String &path, float floatValue)
@@ -163,10 +276,22 @@ bool FirebaseESP8266::pushFloat(FirebaseData &dataObj, const String &path, float
     char *buf = new char[bufSize];
     memset(buf, 0, bufSize);
     dtostrf(floatValue, 7, 6, buf);
-    dataObj.queryFilter.clear();
-    bool res = sendRequest(dataObj, path.c_str(), FirebaseMethod::POST, FirebaseDataType::FLOAT, buf);
+
+    bool flag = buildRequest(dataObj, FirebaseMethod::POST, FirebaseDataType::FLOAT, path, buf, false);
     delete[] buf;
-    return res;
+    return flag;
+}
+
+bool FirebaseESP8266::pushDouble(FirebaseData &dataObj, const String &path, double doubleValue)
+{
+    size_t bufSize = 50;
+    char *buf = new char[bufSize];
+    memset(buf, 0, bufSize);
+    dtostrf(doubleValue, 12, 9, buf);
+
+    bool flag = buildRequest(dataObj, FirebaseMethod::POST, FirebaseDataType::DOUBLE, path, buf, false);
+    delete[] buf;
+    return flag;
 }
 
 bool FirebaseESP8266::pushBool(FirebaseData &dataObj, const String &path, bool boolValue)
@@ -174,32 +299,31 @@ bool FirebaseESP8266::pushBool(FirebaseData &dataObj, const String &path, bool b
     size_t bufSize = 50;
     char *buf = new char[bufSize];
     memset(buf, 0, bufSize);
+
     if (boolValue)
         strcpy(buf, ESP8266_FIREBASE_STR_107);
     else
         strcpy(buf, ESP8266_FIREBASE_STR_106);
 
-    dataObj.queryFilter.clear();
-    bool res = sendRequest(dataObj, path.c_str(), FirebaseMethod::POST, FirebaseDataType::BOOLEAN, buf);
+    bool flag = buildRequest(dataObj, FirebaseMethod::POST, FirebaseDataType::BOOLEAN, path, buf, false);
     delete[] buf;
-    return res;
+    return flag;
 }
 
 bool FirebaseESP8266::pushString(FirebaseData &dataObj, const String &path, const String &stringValue)
 {
-    dataObj.queryFilter.clear();
-    return sendRequest(dataObj, path.c_str(), FirebaseMethod::POST, FirebaseDataType::STRING, stringValue.c_str());
+    bool flag = buildRequest(dataObj, FirebaseMethod::POST, FirebaseDataType::STRING, path, stringValue.c_str(), false);
+    return flag;
 }
 
 bool FirebaseESP8266::pushJSON(FirebaseData &dataObj, const String &path, const String &jsonString)
 {
-    dataObj.queryFilter.clear();
-    return sendRequest(dataObj, path.c_str(), FirebaseMethod::POST, FirebaseDataType::JSON, jsonString.c_str());
+    bool flag = buildRequest(dataObj, FirebaseMethod::POST, FirebaseDataType::JSON, path, jsonString.c_str(), false);
+    return flag;
 }
 
 bool FirebaseESP8266::pushBlob(FirebaseData &dataObj, const String &path, uint8_t *blob, size_t size)
 {
-    dataObj.queryFilter.clear();
     size_t tmpSize = strlen(ESP8266_FIREBASE_STR_92) + 1;
     char *tmp = new char[tmpSize];
     memset(tmp, 0, tmpSize);
@@ -211,17 +335,18 @@ bool FirebaseESP8266::pushBlob(FirebaseData &dataObj, const String &path, uint8_
     memset(tmp, 0, tmpSize);
     strcpy_P(tmp, ESP8266_FIREBASE_STR_3);
     blobStr += tmp;
-    bool res = sendRequest(dataObj, path.c_str(), FirebaseMethod::POST, FirebaseDataType::BLOB, blobStr.c_str());
+
+    bool flag = buildRequest(dataObj, FirebaseMethod::POST, FirebaseDataType::BLOB, path, blobStr.c_str(), false);
+
     std::string().swap(blobStr);
+
     delete[] tmp;
-    return res;
+    return flag;
 }
 
 bool FirebaseESP8266::pushFile(FirebaseData &dataObj, const String &path, const String &fileName)
 {
-    dataObj.queryFilter.clear();
-    dataObj._fileName = fileName.c_str();
-    return sendRequest(dataObj, path.c_str(), FirebaseMethod::POST, FirebaseDataType::FILE, "");
+    return buildRequestFile(dataObj, FirebaseMethod::POST, path, fileName, false);
 }
 
 bool FirebaseESP8266::setInt(FirebaseData &dataObj, const String &path, int intValue)
@@ -230,10 +355,11 @@ bool FirebaseESP8266::setInt(FirebaseData &dataObj, const String &path, int intV
     char *buf = new char[bufSize];
     memset(buf, 0, bufSize);
     itoa(intValue, buf, 10);
-    dataObj.queryFilter.clear();
-    bool res = sendRequest(dataObj, path.c_str(), FirebaseMethod::PUT, FirebaseDataType::INTEGER, buf);
+
+    bool flag = buildRequest(dataObj, FirebaseMethod::PUT, FirebaseDataType::INTEGER, path, buf, false);
+
     delete[] buf;
-    return res;
+    return flag;
 }
 
 bool FirebaseESP8266::setFloat(FirebaseData &dataObj, const String &path, float floatValue)
@@ -242,10 +368,24 @@ bool FirebaseESP8266::setFloat(FirebaseData &dataObj, const String &path, float 
     char *buf = new char[bufSize];
     memset(buf, 0, bufSize);
     dtostrf(floatValue, 7, 6, buf);
-    dataObj.queryFilter.clear();
-    bool res = sendRequest(dataObj, path.c_str(), FirebaseMethod::PUT, FirebaseDataType::FLOAT, buf);
+
+    bool flag = buildRequest(dataObj, FirebaseMethod::PUT, FirebaseDataType::FLOAT, path, buf, false);
+
     delete[] buf;
-    return res;
+    return flag;
+}
+
+bool FirebaseESP8266::setDouble(FirebaseData &dataObj, const String &path, double doubleValue)
+{
+    size_t bufSize = 50;
+    char *buf = new char[bufSize];
+    memset(buf, 0, bufSize);
+    dtostrf(doubleValue, 12, 9, buf);
+
+    bool flag = buildRequest(dataObj, FirebaseMethod::PUT, FirebaseDataType::DOUBLE, path, buf, false);
+
+    delete[] buf;
+    return flag;
 }
 
 bool FirebaseESP8266::setBool(FirebaseData &dataObj, const String &path, bool boolValue)
@@ -258,26 +398,26 @@ bool FirebaseESP8266::setBool(FirebaseData &dataObj, const String &path, bool bo
     else
         strcpy_P(buf, ESP8266_FIREBASE_STR_106);
 
-    dataObj.queryFilter.clear();
-    bool res = sendRequest(dataObj, path.c_str(), FirebaseMethod::PUT, FirebaseDataType::BOOLEAN, buf);
+    bool flag = buildRequest(dataObj, FirebaseMethod::PUT, FirebaseDataType::BOOLEAN, path, buf, false);
+
     delete[] buf;
-    return res;
+    return flag;
 }
 
 bool FirebaseESP8266::setString(FirebaseData &dataObj, const String &path, const String &stringValue)
 {
-    dataObj.queryFilter.clear();
-    return sendRequest(dataObj, path.c_str(), FirebaseMethod::PUT, FirebaseDataType::STRING, stringValue.c_str());
+    bool flag = buildRequest(dataObj, FirebaseMethod::PUT, FirebaseDataType::STRING, path, stringValue.c_str(), false);
+    return flag;
 }
 
 bool FirebaseESP8266::setJSON(FirebaseData &dataObj, const String &path, const String &jsonString)
 {
-    dataObj.queryFilter.clear();
-    return sendRequest(dataObj, path.c_str(), FirebaseMethod::PUT, FirebaseDataType::JSON, jsonString.c_str());
+    bool flag = buildRequest(dataObj, FirebaseMethod::PUT, FirebaseDataType::JSON, path, jsonString.c_str(), false);
+    return flag;
 }
+
 bool FirebaseESP8266::setBlob(FirebaseData &dataObj, const String &path, uint8_t *blob, size_t size)
 {
-    dataObj.queryFilter.clear();
     size_t tmpSize = strlen(ESP8266_FIREBASE_STR_92) + 1;
     char *tmp = new char[tmpSize];
     memset(tmp, 0, tmpSize);
@@ -289,44 +429,148 @@ bool FirebaseESP8266::setBlob(FirebaseData &dataObj, const String &path, uint8_t
     memset(tmp, 0, tmpSize);
     strcpy(tmp, ESP8266_FIREBASE_STR_3);
     blobStr += tmp;
-    bool res = sendRequest(dataObj, path.c_str(), FirebaseMethod::PUT_SILENT, FirebaseDataType::BLOB, blobStr.c_str());
-    std::string().swap(blobStr);
+
+    bool flag = buildRequest(dataObj, FirebaseMethod::PUT_SILENT, FirebaseDataType::BLOB, path, blobStr.c_str(), false);
+
     delete[] tmp;
-    return res;
+    std::string().swap(blobStr);
+
+    return flag;
 }
 
 bool FirebaseESP8266::setFile(FirebaseData &dataObj, const String &path, const String &fileName)
 {
-    dataObj.queryFilter.clear();
-    dataObj._fileName.clear();
-    dataObj._fileName = fileName.c_str();
-    return sendRequest(dataObj, path.c_str(), FirebaseMethod::PUT_SILENT, FirebaseDataType::FILE, "");
+    return buildRequestFile(dataObj, FirebaseMethod::PUT_SILENT, path, fileName, false);
 }
 
 bool FirebaseESP8266::updateNode(FirebaseData &dataObj, const String path, const String jsonString)
 {
-    dataObj.queryFilter.clear();
-    return sendRequest(dataObj, path.c_str(), FirebaseMethod::PATCH, FirebaseDataType::JSON, jsonString.c_str());
+    bool flag = buildRequest(dataObj, FirebaseMethod::PATCH, FirebaseDataType::JSON, path, jsonString.c_str(), false);
+    return flag;
 }
 
 bool FirebaseESP8266::updateNodeSilent(FirebaseData &dataObj, const String &path, const String &jsonString)
 {
-    dataObj.queryFilter.clear();
-    return sendRequest(dataObj, path.c_str(), FirebaseMethod::PATCH_SILENT, FirebaseDataType::JSON, jsonString.c_str());
+    bool flag = buildRequest(dataObj, FirebaseMethod::PATCH_SILENT, FirebaseDataType::JSON, path, jsonString.c_str(), false);
+    return flag;
 }
 
 bool FirebaseESP8266::getInt(FirebaseData &dataObj, const String &path)
 {
-    dataObj.queryFilter.clear();
     return getFloat(dataObj, path);
+}
+
+bool FirebaseESP8266::getInt(FirebaseData &dataObj, const String &path, int &target)
+{
+
+    bool flag;
+    dataObj.queryFilter.clear();
+
+    uint8_t errCount = 0;
+    uint8_t maxRetry = dataObj._maxRetry;
+    if (maxRetry == 0)
+        maxRetry = 1;
+
+    for (int i = 0; i < maxRetry; i++)
+    {
+        flag = sendRequest(dataObj, path.c_str(), FirebaseMethod::GET, FirebaseDataType::INTEGER, "");
+        target = dataObj.intData();
+        if (flag)
+            break;
+
+        if (dataObj._maxRetry > 0)
+            if (!flag && commError(dataObj))
+                errCount++;
+    }
+
+    if (!flag && errCount == maxRetry && dataObj._qMan._maxQueue > 0)
+        dataObj.addQueue(FirebaseMethod::GET, FirebaseDataType::INTEGER, path.c_str(), "", "", false, &target, nullptr, nullptr, nullptr, nullptr, nullptr);
+
+    if (flag && dataObj._dataType != FirebaseDataType::INTEGER && dataObj._dataType != FirebaseDataType::FLOAT && dataObj._dataType != FirebaseDataType::DOUBLE)
+        flag = false;
+
+    return flag;
 }
 
 bool FirebaseESP8266::getFloat(FirebaseData &dataObj, const String &path)
 {
     dataObj.queryFilter.clear();
     bool flag = sendRequest(dataObj, path.c_str(), FirebaseMethod::GET, FirebaseDataType::FLOAT, "");
-    if (dataObj._dataType != FirebaseDataType::INTEGER && dataObj._dataType != FirebaseDataType::FLOAT)
+    if (dataObj._dataType != FirebaseDataType::INTEGER && dataObj._dataType != FirebaseDataType::FLOAT && dataObj._dataType != FirebaseDataType::DOUBLE)
         flag = false;
+    return flag;
+}
+
+bool FirebaseESP8266::getFloat(FirebaseData &dataObj, const String &path, float &target)
+{
+
+    bool flag;
+    dataObj.queryFilter.clear();
+
+    uint8_t errCount = 0;
+    uint8_t maxRetry = dataObj._maxRetry;
+    if (maxRetry == 0)
+        maxRetry = 1;
+
+    for (int i = 0; i < maxRetry; i++)
+    {
+        flag = sendRequest(dataObj, path.c_str(), FirebaseMethod::GET, FirebaseDataType::FLOAT, "");
+        target = dataObj.floatData();
+        if (flag)
+            break;
+
+        if (dataObj._maxRetry > 0)
+            if (!flag && commError(dataObj))
+                errCount++;
+    }
+
+    if (!flag && errCount == maxRetry && dataObj._qMan._maxQueue > 0)
+        dataObj.addQueue(FirebaseMethod::GET, FirebaseDataType::FLOAT, path.c_str(), "", "", false, nullptr, &target, nullptr, nullptr, nullptr, nullptr);
+
+    if (flag && dataObj._dataType != FirebaseDataType::INTEGER && dataObj._dataType != FirebaseDataType::FLOAT && dataObj._dataType != FirebaseDataType::DOUBLE)
+        flag = false;
+
+    return flag;
+}
+
+bool FirebaseESP8266::getDouble(FirebaseData &dataObj, const String &path)
+{
+    dataObj.queryFilter.clear();
+    bool flag = sendRequest(dataObj, path.c_str(), FirebaseMethod::GET, FirebaseDataType::DOUBLE, "");
+    if (dataObj._dataType != FirebaseDataType::INTEGER && dataObj._dataType != FirebaseDataType::FLOAT && dataObj._dataType != FirebaseDataType::DOUBLE)
+        flag = false;
+    return flag;
+}
+
+bool FirebaseESP8266::getDouble(FirebaseData &dataObj, const String &path, double &target)
+{
+
+    bool flag;
+    dataObj.queryFilter.clear();
+
+    uint8_t errCount = 0;
+    uint8_t maxRetry = dataObj._maxRetry;
+    if (maxRetry == 0)
+        maxRetry = 1;
+
+    for (int i = 0; i < maxRetry; i++)
+    {
+        flag = sendRequest(dataObj, path.c_str(), FirebaseMethod::GET, FirebaseDataType::DOUBLE, "");
+        target = dataObj.floatData();
+        if (flag)
+            break;
+
+        if (dataObj._maxRetry > 0)
+            if (!flag && commError(dataObj))
+                errCount++;
+    }
+
+    if (!flag && errCount == maxRetry && dataObj._qMan._maxQueue > 0)
+        dataObj.addQueue(FirebaseMethod::GET, FirebaseDataType::DOUBLE, path.c_str(), "", "", false, nullptr, nullptr, &target, nullptr, nullptr, nullptr);
+
+    if (flag && dataObj._dataType != FirebaseDataType::INTEGER && dataObj._dataType != FirebaseDataType::FLOAT && dataObj._dataType != FirebaseDataType::DOUBLE)
+        flag = false;
+
     return flag;
 }
 
@@ -339,12 +583,76 @@ bool FirebaseESP8266::getBool(FirebaseData &dataObj, const String &path)
     return flag;
 }
 
+bool FirebaseESP8266::getBool(FirebaseData &dataObj, const String &path, bool &target)
+{
+
+    bool flag;
+    dataObj.queryFilter.clear();
+
+    uint8_t errCount = 0;
+    uint8_t maxRetry = dataObj._maxRetry;
+    if (maxRetry == 0)
+        maxRetry = 1;
+
+    for (int i = 0; i < maxRetry; i++)
+    {
+        flag = sendRequest(dataObj, path.c_str(), FirebaseMethod::GET, FirebaseDataType::BOOLEAN, "");
+        target = dataObj.boolData();
+        if (flag)
+            break;
+
+        if (dataObj._maxRetry > 0)
+            if (!flag && commError(dataObj))
+                errCount++;
+    }
+
+    if (!flag && errCount == maxRetry && dataObj._qMan._maxQueue > 0)
+        dataObj.addQueue(FirebaseMethod::GET, FirebaseDataType::BOOLEAN, path.c_str(), "", "", false, nullptr, nullptr, nullptr, &target, nullptr, nullptr);
+
+    if (flag && dataObj._dataType != FirebaseDataType::BOOLEAN)
+        flag = false;
+
+    return flag;
+}
+
 bool FirebaseESP8266::getString(FirebaseData &dataObj, const String &path)
 {
     dataObj.queryFilter.clear();
     bool flag = sendRequest(dataObj, path.c_str(), FirebaseMethod::GET, FirebaseDataType::STRING, "");
     if (dataObj._dataType != FirebaseDataType::STRING)
         flag = false;
+    return flag;
+}
+
+bool FirebaseESP8266::getString(FirebaseData &dataObj, const String &path, String &target)
+{
+
+    bool flag;
+    dataObj.queryFilter.clear();
+
+    uint8_t errCount = 0;
+    uint8_t maxRetry = dataObj._maxRetry;
+    if (maxRetry == 0)
+        maxRetry = 1;
+
+    for (int i = 0; i < maxRetry; i++)
+    {
+        flag = sendRequest(dataObj, path.c_str(), FirebaseMethod::GET, FirebaseDataType::STRING, "");
+        target = dataObj.stringData();
+        if (flag)
+            break;
+
+        if (dataObj._maxRetry > 0)
+            if (!flag && commError(dataObj))
+                errCount++;
+    }
+
+    if (!flag && errCount == maxRetry && dataObj._qMan._maxQueue > 0)
+        dataObj.addQueue(FirebaseMethod::GET, FirebaseDataType::STRING, path.c_str(), "", "", false, nullptr, nullptr, nullptr, nullptr, &target, nullptr);
+
+    if (flag && dataObj._dataType != FirebaseDataType::STRING)
+        flag = false;
+
     return flag;
 }
 
@@ -357,23 +665,81 @@ bool FirebaseESP8266::getJSON(FirebaseData &dataObj, const String &path)
     return flag;
 }
 
+bool FirebaseESP8266::getJSON(FirebaseData &dataObj, const String &path, String &target)
+{
+
+    bool flag;
+    dataObj.queryFilter.clear();
+
+    uint8_t errCount = 0;
+    uint8_t maxRetry = dataObj._maxRetry;
+    if (maxRetry == 0)
+        maxRetry = 1;
+
+    for (int i = 0; i < maxRetry; i++)
+    {
+        flag = sendRequest(dataObj, path.c_str(), FirebaseMethod::GET, FirebaseDataType::JSON, "");
+        target = dataObj.jsonData();
+        if (flag)
+            break;
+
+        if (dataObj._maxRetry > 0)
+            if (!flag && commError(dataObj))
+                errCount++;
+    }
+
+    if (!flag && errCount == maxRetry && dataObj._qMan._maxQueue > 0)
+        dataObj.addQueue(FirebaseMethod::GET, FirebaseDataType::JSON, path.c_str(), "", "", false, nullptr, nullptr, nullptr, nullptr, &target, nullptr);
+
+    if (flag && dataObj._dataType != FirebaseDataType::JSON)
+        flag = false;
+
+    return flag;
+}
+
 bool FirebaseESP8266::getJSON(FirebaseData &dataObj, const String &path, QueryFilter &query)
 {
     dataObj.queryFilter.clear();
     if (query._orderBy != "")
-    {
-
-        dataObj.queryFilter._orderBy = query._orderBy;
-        dataObj.queryFilter._limitToFirst = query._limitToFirst;
-        dataObj.queryFilter._limitToLast = query._limitToLast;
-        dataObj.queryFilter._startAt = query._startAt;
-        dataObj.queryFilter._endAt = query._endAt;
-        dataObj.queryFilter._equalTo = query._equalTo;
-    }
+        dataObj.setQuery(query);
 
     bool flag = sendRequest(dataObj, path.c_str(), FirebaseMethod::GET, FirebaseDataType::JSON, "");
     if (dataObj._dataType != FirebaseDataType::JSON)
         flag = false;
+    return flag;
+}
+
+bool FirebaseESP8266::getJSON(FirebaseData &dataObj, const String &path, QueryFilter &query, String &target)
+{
+    dataObj.queryFilter.clear();
+    if (query._orderBy != "")
+        dataObj.setQuery(query);
+
+    bool flag;
+
+    uint8_t errCount = 0;
+    uint8_t maxRetry = dataObj._maxRetry;
+    if (maxRetry == 0)
+        maxRetry = 1;
+
+    for (int i = 0; i < maxRetry; i++)
+    {
+        flag = sendRequest(dataObj, path.c_str(), FirebaseMethod::GET, FirebaseDataType::JSON, "");
+        target = dataObj.jsonData();
+        if (flag)
+            break;
+
+        if (dataObj._maxRetry > 0)
+            if (!flag && commError(dataObj))
+                errCount++;
+    }
+
+    if (!flag && errCount == maxRetry && dataObj._qMan._maxQueue > 0)
+        dataObj.addQueue(FirebaseMethod::GET, FirebaseDataType::JSON, path.c_str(), "", "", true, nullptr, nullptr, nullptr, nullptr, &target, nullptr);
+
+    if (flag && dataObj._dataType != FirebaseDataType::JSON)
+        flag = false;
+
     return flag;
 }
 
@@ -386,12 +752,67 @@ bool FirebaseESP8266::getBlob(FirebaseData &dataObj, const String &path)
     return flag;
 }
 
+bool FirebaseESP8266::getBlob(FirebaseData &dataObj, const String &path, std::vector<uint8_t> &target)
+{
+
+    dataObj.queryFilter.clear();
+
+    bool flag;
+
+    uint8_t errCount = 0;
+    uint8_t maxRetry = dataObj._maxRetry;
+    if (maxRetry == 0)
+        maxRetry = 1;
+
+    for (int i = 0; i < maxRetry; i++)
+    {
+        flag = sendRequest(dataObj, path.c_str(), FirebaseMethod::GET, FirebaseDataType::BLOB, "");
+        target = dataObj.blobData();
+        if (flag)
+            break;
+
+        if (dataObj._maxRetry > 0)
+            if (!flag && commError(dataObj))
+                errCount++;
+    }
+
+    if (!flag && errCount == maxRetry && dataObj._qMan._maxQueue > 0)
+        dataObj.addQueue(FirebaseMethod::GET, FirebaseDataType::BLOB, path.c_str(), "", "", false, nullptr, nullptr, nullptr, nullptr, nullptr, &target);
+
+    if (flag && dataObj._dataType != FirebaseDataType::BLOB)
+        flag = false;
+
+    return flag;
+}
+
 bool FirebaseESP8266::getFile(FirebaseData &dataObj, const String &nodePath, const String &fileName)
 {
     dataObj.queryFilter.clear();
     dataObj._fileName.clear();
     dataObj._fileName = fileName.c_str();
-    return sendRequest(dataObj, nodePath.c_str(), FirebaseMethod::GET, FirebaseDataType::FILE, "");
+
+    bool flag;
+
+    uint8_t errCount = 0;
+    uint8_t maxRetry = dataObj._maxRetry;
+    if (maxRetry == 0)
+        maxRetry = 1;
+
+    for (int i = 0; i < maxRetry; i++)
+    {
+        flag = sendRequest(dataObj, nodePath.c_str(), FirebaseMethod::GET, FirebaseDataType::FILE, "");
+        if (flag)
+            break;
+
+        if (dataObj._maxRetry > 0)
+            if (!flag && (commError(dataObj) || dataObj._file_transfer_error.length() > 0))
+                errCount++;
+    }
+
+    if (!flag && errCount == maxRetry && dataObj._qMan._maxQueue > 0)
+        dataObj.addQueue(FirebaseMethod::GET, FirebaseDataType::FILE, nodePath.c_str(), fileName.c_str(), "", false, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
+
+    return flag;
 }
 
 bool FirebaseESP8266::deleteNode(FirebaseData &dataObj, const String path)
@@ -407,8 +828,15 @@ bool FirebaseESP8266::beginStream(FirebaseData &dataObj, const String path)
 
 bool FirebaseESP8266::readStream(FirebaseData &dataObj)
 {
-    if (dataObj._streamStop)
-        return true;
+    if (_reconnectWiFi && !apConnected())
+        WiFi.reconnect();
+
+    if (!apConnected())
+    {
+        dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+        return false;
+    }
+
     return getServerStreamResponse(dataObj);
 }
 
@@ -417,6 +845,14 @@ bool FirebaseESP8266::endStream(FirebaseData &dataObj)
     bool flag = false;
     dataObj._streamPath.clear();
     forceEndHTTP(dataObj);
+
+    if (!apConnected())
+    {
+        dataObj._isStream = false;
+        dataObj._streamStop = true;
+        return true;
+    }
+
     flag = dataObj._http.http_connected();
     if (!flag)
     {
@@ -434,10 +870,10 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const std::string &p
     if (dataObj._pause)
         return 0;
 
-    if (WiFi.status() != WL_CONNECTED)
+    if (!apConnected())
     {
         dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
-        return -1;
+        return HTTPC_ERROR_CONNECTION_LOST;
     }
 
     if (path.length() == 0 || _host.length() == 0 || _auth.length() == 0)
@@ -461,7 +897,7 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const std::string &p
     char *payloadStr = new char[payloadStrSize];
     memset(payloadStr, 0, payloadStrSize);
 
-    int httpCode = -1;
+    int httpCode = HTTPC_ERROR_CONNECTION_REFUSED;
 
     //init the firebase data
     resetFirebasedataFlag(dataObj);
@@ -531,6 +967,7 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const std::string &p
     //Prepare request header
     if (method != FirebaseMethod::BACKUP && method != FirebaseMethod::RESTORE && dataType != FirebaseDataType::FILE)
     {
+
         sendFirebaseRequest(dataObj, _host.c_str(), method, path.c_str(), _auth.c_str(), strlen(payloadStr));
     }
     else
@@ -656,6 +1093,12 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const std::string &p
 
     //Send request w/wo payload
 
+    if (!apConnected())
+    {
+        dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+        return HTTPC_ERROR_CONNECTION_LOST;
+    }
+
     httpCode = dataObj._http.http_sendRequest("", payloadStr);
 
     if (method == FirebaseMethod::RESTORE || (dataType == FirebaseDataType::FILE && (method == FirebaseMethod::PUT_SILENT || method == FirebaseMethod::POST)))
@@ -666,6 +1109,12 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const std::string &p
             memset(buf, 0, bufSize);
             strcpy_P(buf, ESP8266_FIREBASE_STR_93);
 
+            if (!apConnected())
+            {
+                dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+                return HTTPC_ERROR_CONNECTION_LOST;
+            }
+
             httpCode = dataObj._http.http_sendRequest("", buf);
 
             send_base64_encode_file(dataObj._http.client, dataObj._fileName);
@@ -673,6 +1122,13 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const std::string &p
             memset(buf, 0, bufSize);
             buf[0] = '"';
             buf[1] = '\0';
+
+            if (!apConnected())
+            {
+                dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+                return HTTPC_ERROR_CONNECTION_LOST;
+            }
+
             httpCode = dataObj._http.http_sendRequest("", buf);
         }
         else
@@ -687,6 +1143,13 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const std::string &p
                 memset(buf, 0, bufSize);
                 file.read((uint8_t *)buf, toRead);
                 buf[toRead] = '\0';
+
+                if (!apConnected())
+                {
+                    dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+                    return HTTPC_ERROR_CONNECTION_LOST;
+                }
+
                 httpCode = dataObj._http.http_sendRequest("", buf);
 
                 len -= toRead;
@@ -709,7 +1172,7 @@ EXIT_1:
     delete[] payloadStr;
     delete[] buf;
     delete[] temp;
-    return -1;
+    return HTTPC_ERROR_CONNECTION_REFUSED;
 }
 
 bool FirebaseESP8266::sendRequest(FirebaseData &dataObj, const std::string &path, const uint8_t method, uint8_t dataType, const std::string &payload)
@@ -734,11 +1197,11 @@ bool FirebaseESP8266::sendRequest(FirebaseData &dataObj, const std::string &path
     }
 
     //Try to reconnect WiFi if lost connection
-    if (_reconnectWiFi && WiFi.status() != WL_CONNECTED)
+    if (_reconnectWiFi && !apConnected())
     {
         uint8_t tryCount = 0;
         WiFi.reconnect();
-        while (WiFi.status() != WL_CONNECTED)
+        while (!apConnected())
         {
             tryCount++;
             delay(50);
@@ -748,11 +1211,20 @@ bool FirebaseESP8266::sendRequest(FirebaseData &dataObj, const std::string &path
     }
 
     //If WiFi is not connected, return false
-    if (WiFi.status() != WL_CONNECTED)
+    if (!apConnected())
     {
         dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
         return false;
     }
+
+    if (dataObj._firebaseCall)
+    {
+        dataObj._httpCode = HTTPC_ERROR_CONNECTION_INUSED;
+        return false;
+    }
+
+    dataObj._firebaseCall = true;
+    dataObj._qID = 0;
 
     //Get the current WiFi client from current firebase data
     //Check for connection status
@@ -766,6 +1238,7 @@ bool FirebaseESP8266::sendRequest(FirebaseData &dataObj, const std::string &path
         if (method == FirebaseMethod::STREAM)
         {
             dataObj._streamMillis = millis();
+            dataObj._firebaseCall = false;
             return false;
         }
         else
@@ -777,11 +1250,16 @@ bool FirebaseESP8266::sendRequest(FirebaseData &dataObj, const std::string &path
                 delay(20);
                 if (dataObj._http.http_connected())
                 {
-
                     delay(20);
                     forceEndHTTP(dataObj);
                     if (dataObj._http.http_connected())
-                        return false;
+                    {
+                        if (!dataObj._isStream)
+                        {
+                            dataObj._firebaseCall = false;
+                            return false;
+                        }
+                    }
                 }
                 dataObj._httpConnected = false;
             }
@@ -789,13 +1267,22 @@ bool FirebaseESP8266::sendRequest(FirebaseData &dataObj, const std::string &path
     }
 
     if (!dataObj._keepAlive && dataObj._httpConnected)
+    {
+        dataObj._firebaseCall = false;
         return false;
+    }
 
     dataObj._httpConnected = true;
     dataObj._interruptRequest = false;
     dataObj._redirectURL.clear();
     dataObj._r_method = method;
     dataObj._r_dataType = dataType;
+
+    if (!apConnected())
+    {
+        dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+        return false;
+    }
 
     int httpCode = firebaseConnect(dataObj, path, method, dataType, payload);
 
@@ -849,9 +1336,11 @@ bool FirebaseESP8266::sendRequest(FirebaseData &dataObj, const std::string &path
         dataObj._httpCode = httpCode;
         dataObj._httpConnected = false;
         delay(100);
+        dataObj._firebaseCall = false;
         return false;
     }
 
+    dataObj._firebaseCall = false;
     return flag;
 }
 
@@ -861,7 +1350,7 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
     if (dataObj._pause)
         return true;
 
-    if (WiFi.status() != WL_CONNECTED)
+    if (!apConnected())
     {
         dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
         return false;
@@ -912,12 +1401,17 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
 
     size_t lfCount = 0;
     size_t charPos = 0;
-    
-
 
     if (!dataObj._isStream)
         while (client.connected() && !client.available() && millis() - dataTime < dataObj._http.tcpTimeout)
+        {
+            if (!apConnected())
+            {
+                dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+                return false;
+            }
             delay(1);
+        }
 
     dataTime = millis();
     if (client.connected() && client.available())
@@ -929,6 +1423,12 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
 
             if (dataObj._interruptRequest)
                 return cancelCurrentResponse(dataObj);
+
+            if (!apConnected())
+            {
+                dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+                return false;
+            }
 
             c = client.read();
 
@@ -1139,7 +1639,6 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
 
             if (millis() - dataTime > dataObj._http.tcpTimeout)
             {
-                //cancelCurrentResponse(dataObj);
                 dataObj._httpCode = HTTPC_ERROR_READ_TIMEOUT;
                 break;
             }
@@ -1275,16 +1774,13 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
                     }
                     else
                     {
-                        //Firebase keep alive data
+                        //Firebase keep alive event
                         memset(fstr, 0, 60);
                         strcpy_P(fstr, ESP8266_FIREBASE_STR_11);
                         if (strcmp(eventType, fstr) == 0)
                         {
                             dataObj._isStreamTimeout = false;
                             dataObj._dataMillis = millis();
-
-                            //if (dataObj._timeoutCallback)
-                            //  dataObj._timeoutCallback(false);
                         }
 
                         //Firebase cancel and auth_revoked events
@@ -1375,8 +1871,8 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
         else
         {
             dataObj._pathNotExist = false;
-            bool _n1 = dataObj._dataType == FirebaseDataType::FLOAT || dataObj._dataType == FirebaseDataType::INTEGER;
-            bool _n2 = dataObj._dataType2 == FirebaseDataType::FLOAT || dataObj._dataType2 == FirebaseDataType::INTEGER;
+            bool _n1 = dataObj._dataType == FirebaseDataType::DOUBLE || dataObj._dataType == FirebaseDataType::FLOAT || dataObj._dataType == FirebaseDataType::INTEGER;
+            bool _n2 = dataObj._dataType2 == FirebaseDataType::DOUBLE || dataObj._dataType2 == FirebaseDataType::FLOAT || dataObj._dataType2 == FirebaseDataType::INTEGER;
 
             if (dataObj._dataType2 == dataObj._dataType || (_n1 && _n2))
                 dataObj._mismatchDataType = false;
@@ -1447,7 +1943,7 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
         return true;
     }
 
-    if (WiFi.status() != WL_CONNECTED)
+    if (!apConnected())
     {
         dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
         endFileTransfer(dataObj);
@@ -1495,7 +1991,14 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
     unsigned long dataTime = millis();
 
     while (tcp.connected() && !tcp.available() && millis() - dataTime < tmo)
+    {
+        if (!apConnected())
+        {
+            dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+            return false;
+        }
         delay(1);
+    }
 
     dataTime = millis();
     if (tcp.connected() && tcp.available())
@@ -1505,6 +2008,12 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
         {
             if (dataObj._interruptRequest)
                 return cancelCurrentResponse(dataObj);
+
+            if (!apConnected())
+            {
+                dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+                return false;
+            }
 
             if (!beginPayload)
             {
@@ -1705,7 +2214,7 @@ bool FirebaseESP8266::getUploadResponse(FirebaseData &dataObj)
     if (dataObj._pause)
         return true;
 
-    if (WiFi.status() != WL_CONNECTED)
+    if (!apConnected())
     {
         dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
         return false;
@@ -1735,7 +2244,14 @@ bool FirebaseESP8266::getUploadResponse(FirebaseData &dataObj)
 
     if (!dataObj._isStream)
         while (tcp.connected() && !tcp.available() && millis() - dataTime < tmo)
+        {
+            if (!apConnected())
+            {
+                dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+                return false;
+            }
             delay(1);
+        }
 
     dataTime = millis();
 
@@ -1746,6 +2262,12 @@ bool FirebaseESP8266::getUploadResponse(FirebaseData &dataObj)
         {
             if (dataObj._interruptRequest)
                 return cancelCurrentResponse(dataObj);
+
+            if (!apConnected())
+            {
+                dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+                return false;
+            }
 
             c = tcp.read();
 
@@ -1842,6 +2364,12 @@ bool FirebaseESP8266::firebaseConnectStream(FirebaseData &dataObj, const std::st
         return false;
     }
 
+    if (!apConnected())
+    {
+        dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+        return false;
+    }
+
     if (millis() - dataObj._streamResetMillis > 50)
         delay(50);
 
@@ -1854,6 +2382,7 @@ bool FirebaseESP8266::firebaseConnectStream(FirebaseData &dataObj, const std::st
 
 bool FirebaseESP8266::getServerStreamResponse(FirebaseData &dataObj)
 {
+    bool res = false;
 
     if (dataObj._pause)
         return true;
@@ -1895,11 +2424,11 @@ bool FirebaseESP8266::getServerStreamResponse(FirebaseData &dataObj)
             dataObj._isStreamTimeout = true;
             path = dataObj._streamPath;
 
-            if (_reconnectWiFi && WiFi.status() != WL_CONNECTED)
+            if (_reconnectWiFi && !apConnected())
             {
                 uint8_t tryCount = 0;
                 WiFi.reconnect();
-                while (WiFi.status() != WL_CONNECTED)
+                while (!apConnected())
                 {
                     tryCount++;
                     delay(50);
@@ -1908,8 +2437,26 @@ bool FirebaseESP8266::getServerStreamResponse(FirebaseData &dataObj)
                 }
             }
 
+            if (!apConnected())
+            {
+                dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+                return false;
+            }
+
+            while (dataObj._firebaseCall)
+                delay(1);
+
+            dataObj._streamCall = true;
+
             firebaseConnectStream(dataObj, path.c_str());
-            return getServerResponse(dataObj);
+
+            res = false;
+
+            res = getServerResponse(dataObj);
+
+            dataObj._streamCall = false;
+
+            return res;
         }
 
         //last connection was not close
@@ -1918,6 +2465,17 @@ bool FirebaseESP8266::getServerStreamResponse(FirebaseData &dataObj)
 
         dataObj._httpConnected = true;
         resetFirebasedataFlag(dataObj);
+
+        if (!apConnected())
+        {
+            dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+            return false;
+        }
+
+        while (dataObj._firebaseCall)
+            delay(1);
+
+        dataObj._streamCall = true;
 
         WiFiClientSecure tcp = dataObj._http.client;
 
@@ -1931,14 +2489,31 @@ bool FirebaseESP8266::getServerStreamResponse(FirebaseData &dataObj)
 
         std::string().swap(path);
 
-        return getServerResponse(dataObj);
+        res = false;
+
+        res = getServerResponse(dataObj);
+
+        dataObj._streamCall = false;
+
+        return res;
     }
 
     return true;
 }
 
+bool FirebaseESP8266::apConnected()
+{
+    return WiFi.status() == WL_CONNECTED;
+}
+
 void FirebaseESP8266::forceEndHTTP(FirebaseData &dataObj)
 {
+    if (!apConnected())
+    {
+        dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+        return;
+    }
+
     WiFiClientSecure client = dataObj._http.client;
 
     if (client.available() > 0)
@@ -1950,8 +2525,198 @@ void FirebaseESP8266::forceEndHTTP(FirebaseData &dataObj)
     delay(50);
 }
 
+void FirebaseESP8266::processErrorQueue(FirebaseData &dataObj)
+{
+    if (dataObj._firebaseCall)
+        return;
+
+    if (!apConnected())
+    {
+        dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+        return;
+    }
+
+    if (dataObj._qMan._queueCollection.size() > 0)
+    {
+
+        for (uint8_t i = 0; i < dataObj._qMan._queueCollection.size(); i++)
+        {
+            QueueItem item = dataObj._qMan._queueCollection[i];
+
+            if (item.firebaseMethod == FirebaseMethod::GET)
+            {
+                switch (item.firebaseDataType)
+                {
+
+                case FirebaseDataType::INTEGER:
+                    if (Firebase.getInt(dataObj, item.path.c_str()))
+                    {
+
+                        if (item.intPtr)
+                            *item.intPtr = dataObj.intData();
+
+                        dataObj.clearQueueItem(item);
+                        dataObj._qMan.remove(i);
+                    }
+
+                    break;
+
+                case FirebaseDataType::FLOAT:
+
+                    if (Firebase.getFloat(dataObj, item.path.c_str()))
+                    {
+
+                        if (item.floatPtr)
+                            *item.floatPtr = dataObj.floatData();
+
+                        dataObj.clearQueueItem(item);
+                        dataObj._qMan.remove(i);
+                    }
+
+                    break;
+
+                case FirebaseDataType::DOUBLE:
+
+                    if (Firebase.getDouble(dataObj, item.path.c_str()))
+                    {
+
+                        if (item.doublePtr)
+                            *item.doublePtr = dataObj.doubleData();
+
+                        dataObj.clearQueueItem(item);
+                        dataObj._qMan.remove(i);
+                    }
+
+                    break;
+
+                case FirebaseDataType::BOOLEAN:
+
+                    if (Firebase.getBool(dataObj, item.path.c_str()))
+                    {
+
+                        if (item.boolPtr)
+                            *item.boolPtr = dataObj.boolData();
+
+                        dataObj.clearQueueItem(item);
+                        dataObj._qMan.remove(i);
+                    }
+
+                    break;
+
+                case FirebaseDataType::STRING:
+
+                    if (Firebase.getString(dataObj, item.path.c_str()))
+                    {
+
+                        if (item.stringPtr)
+                            *item.stringPtr = dataObj.stringData();
+
+                        dataObj.clearQueueItem(item);
+                        dataObj._qMan.remove(i);
+                    }
+
+                    break;
+
+                case FirebaseDataType::JSON:
+
+                    if (item.queryFilter._orderBy.length() > 0)
+                    {
+                        if (Firebase.getJSON(dataObj, item.path.c_str(), item.queryFilter))
+                        {
+
+                            if (item.stringPtr)
+                                *item.stringPtr = dataObj.jsonData();
+
+                            dataObj.clearQueueItem(item);
+                            dataObj._qMan.remove(i);
+                        }
+                    }
+                    else
+                    {
+                        if (Firebase.getJSON(dataObj, item.path.c_str()))
+                        {
+
+                            if (item.stringPtr)
+                                *item.stringPtr = dataObj.jsonData();
+
+                            dataObj.clearQueueItem(item);
+                            dataObj._qMan.remove(i);
+                        }
+                    }
+
+                    break;
+
+                case FirebaseDataType::BLOB:
+
+                    if (Firebase.getBlob(dataObj, item.path.c_str()))
+                    {
+                        if (item.blobPtr)
+                            *item.blobPtr = dataObj.blobData();
+
+                        dataObj.clearQueueItem(item);
+                        dataObj._qMan.remove(i);
+                    }
+
+                    break;
+
+                case FirebaseDataType::FILE:
+
+                    if (Firebase.getFile(dataObj, item.path.c_str(), item.filename.c_str()))
+                    {
+                        dataObj.clearQueueItem(item);
+                        dataObj._qMan.remove(i);
+                    }
+
+                    break;
+
+                default:
+                    break;
+                }
+            }
+            else if (item.firebaseMethod == FirebaseMethod::POST || item.firebaseMethod == FirebaseMethod::PUT || item.firebaseMethod == FirebaseMethod::PUT_SILENT || item.firebaseMethod == FirebaseMethod::PATCH || item.firebaseMethod == FirebaseMethod::PATCH_SILENT)
+            {
+                if (item.firebaseDataType == FirebaseDataType::FILE)
+                {
+                    if (buildRequestFile(dataObj, item.firebaseMethod, item.path.c_str(), item.filename.c_str(), true))
+                    {
+                        dataObj.clearQueueItem(item);
+                        dataObj._qMan.remove(i);
+                    }
+                }
+                else
+                {
+                    if (buildRequest(dataObj, item.firebaseMethod, item.firebaseDataType, item.path.c_str(), item.payload.c_str(), true))
+                    {
+                        dataObj.clearQueueItem(item);
+                        dataObj._qMan.remove(i);
+                    }
+                }
+            }
+        }
+    }
+}
+
+uint32_t FirebaseESP8266::getErrorQueueID(FirebaseData &dataObj)
+{
+    return dataObj._qID;
+}
+
+bool FirebaseESP8266::isErrorQueueExisted(FirebaseData &dataObj, uint32_t errorQueueID)
+{
+
+    for (uint8_t i = 0; i < dataObj._qMan._queueCollection.size(); i++)
+    {
+        QueueItem q = dataObj._qMan._queueCollection[i];
+        if (q.qID == errorQueueID)
+            return true;
+    }
+    return false;
+}
+
 void FirebaseESP8266::sendFirebaseRequest(FirebaseData &dataObj, const char *host, uint8_t method, const char *path, const char *auth, size_t payloadLength)
 {
+    uint8_t retryCount = 0;
+    uint8_t maxRetry = 5;
 
     size_t headerSize = 400;
     char *request = new char[headerSize];
@@ -2000,7 +2765,19 @@ void FirebaseESP8266::sendFirebaseRequest(FirebaseData &dataObj, const char *hos
         dataObj._isStream = false;
     }
 
-    dataObj._http.http_sendRequest(request, "");
+    if (!apConnected())
+    {
+        dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+        return;
+    }
+
+    retryCount = 0;
+    while (dataObj._http.http_sendRequest(request, "") != 0)
+    {
+        retryCount++;
+        if (retryCount > maxRetry)
+            break;
+    }
 
     if (strlen(path) > 0)
     {
@@ -2200,7 +2977,7 @@ void FirebaseESP8266::setDataType(FirebaseData &dataObj, const char *data)
 
         if (!typeSet)
         {
-            if (strcmp(data, ESP8266_FIREBASE_STR_106) == 0 || strcmp(data, ESP8266_FIREBASE_STR_107) == 0)
+            if (strcmp(data, DEF_ESP8266_FIREBASE_STR_106) == 0 || strcmp(data, DEF_ESP8266_FIREBASE_STR_107) == 0)
             {
                 typeSet = true;
                 dataObj._dataType = FirebaseDataType::BOOLEAN;
@@ -2238,7 +3015,11 @@ void FirebaseESP8266::setDataType(FirebaseData &dataObj, const char *data)
         if (!typeSet && strpos(data, DEF_ESP8266_FIREBASE_STR_4, 0) != -1)
         {
             typeSet = true;
-            dataObj._dataType = FirebaseDataType::FLOAT;
+
+            if (strlen(data) <= 7)
+                dataObj._dataType = FirebaseDataType::FLOAT;
+            else
+                dataObj._dataType = FirebaseDataType::DOUBLE;
         }
 
         else if (!typeSet && strcmp(data, DEF_ESP8266_FIREBASE_STR_19) == 0)
@@ -2266,6 +3047,13 @@ void FirebaseESP8266::setDataType(FirebaseData &dataObj, const char *data)
     dataObj._dataTypeNum = dataObj._dataType;
 
     delete[] temp;
+}
+
+bool FirebaseESP8266::commError(FirebaseData &dataObj)
+{
+    return dataObj._httpCode == HTTPC_ERROR_CONNECTION_REFUSED || dataObj._httpCode == HTTPC_ERROR_CONNECTION_LOST ||
+           dataObj._httpCode == HTTPC_ERROR_SEND_PAYLOAD_FAILED || dataObj._httpCode == HTTPC_ERROR_SEND_HEADER_FAILED ||
+           dataObj._httpCode == HTTPC_ERROR_NOT_CONNECTED || dataObj._httpCode == HTTPC_ERROR_READ_TIMEOUT;
 }
 
 void FirebaseESP8266::resetFirebasedataFlag(FirebaseData &dataObj)
@@ -2404,6 +3192,15 @@ void FirebaseESP8266::errorToString(int httpCode, std::string &buf)
     }
 }
 
+void FirebaseESP8266::clearErrorQueue(FirebaseData &dataObj)
+{
+    for (uint8_t i = 0; i < dataObj._qMan._queueCollection.size(); i++)
+    {
+        QueueItem item = dataObj._qMan._queueCollection[i];
+        dataObj.clearQueueItem(item);
+    }
+}
+
 bool FirebaseESP8266::backup(FirebaseData &dataObj, const String &nodePath, const String &fileName)
 {
     dataObj._backupDir.clear();
@@ -2422,6 +3219,267 @@ bool FirebaseESP8266::restore(FirebaseData &dataObj, const String &nodePath, con
     dataObj._fileName.clear();
     bool flag = sendRequest(dataObj, nodePath.c_str(), FirebaseMethod::RESTORE, FirebaseDataType::JSON, "");
     return flag;
+}
+
+void FirebaseESP8266::setMaxRetry(FirebaseData &dataObj, uint8_t num)
+{
+    dataObj._maxRetry = num;
+}
+
+void FirebaseESP8266::setMaxErrorQueue(FirebaseData &dataObj, uint8_t num)
+{
+    dataObj._qMan._maxQueue = num;
+
+    if (dataObj._qMan._queueCollection.size() > num)
+    {
+        for (uint8_t i = dataObj._qMan._queueCollection.size() - 1; i >= num; i--)
+        {
+            QueueItem item = dataObj._qMan._queueCollection[i];
+            dataObj.clearQueueItem(item);
+        }
+    }
+}
+
+bool FirebaseESP8266::saveErrorQueue(FirebaseData &dataObj, const String &filename, uint8_t storageType)
+{
+    File file;
+    fs::File _file;
+
+    if (storageType == QueueStorageType::SD)
+    {
+
+        if (!sdTest())
+            return false;
+
+        file = SD.open(filename.c_str(), FILE_WRITE);
+    }
+    else
+    {
+
+        SPIFFS.begin();
+        _file = SPIFFS.open(filename.c_str(), "w");
+
+        if (!_file)
+            return false;
+    }
+
+    uint8_t idx = 0;
+    std::string buf = "";
+
+    size_t nbufSize = 10;
+    char *nbuf = new char[nbufSize];
+
+    for (uint8_t i = 0; i < dataObj._qMan._queueCollection.size(); i++)
+    {
+        QueueItem item = dataObj._qMan._queueCollection[i];
+
+        if (item.firebaseMethod != FirebaseESP8266::FirebaseMethod::GET)
+        {
+            if (idx > 0)
+                buf.append("\r");
+
+            memset(nbuf, 0, nbufSize);
+            itoa(item.firebaseDataType, nbuf, 10);
+            buf.append(nbuf);
+            buf.append("~");
+
+            memset(nbuf, 0, nbufSize);
+            itoa(item.firebaseMethod, nbuf, 10);
+            buf.append(nbuf);
+            buf.append("~");
+
+            buf += item.path.c_str();
+            buf.append("~");
+
+            buf += item.payload.c_str();
+            buf.append("~");
+
+            for (size_t j = 0; j < item.blob.size(); j++)
+            {
+                memset(nbuf, 0, nbufSize);
+                itoa(item.blob[j], nbuf, 10);
+            }
+            buf.append("~");
+
+            buf += item.filename.c_str();
+
+            idx++;
+        }
+    }
+
+    if (storageType == QueueStorageType::SD)
+    {
+        file.print(buf.c_str());
+        file.close();
+    }
+    else
+    {
+        _file.print(buf.c_str());
+        _file.close();
+    }
+    delete[] nbuf;
+    std::string().swap(buf);
+
+    return true;
+}
+
+bool FirebaseESP8266::restoreErrorQueue(FirebaseData &dataObj, const String &filename, uint8_t storageType)
+{
+    return openErrorQueue(dataObj, filename, storageType, 1) != 0;
+}
+
+uint8_t FirebaseESP8266::errorQueueCount(FirebaseData &dataObj, const String &filename, uint8_t storageType)
+{
+    return openErrorQueue(dataObj, filename, storageType, 0);
+}
+
+bool FirebaseESP8266::deleteStorageFile(const String &filename, uint8_t storageType)
+{
+
+    if (storageType == QueueStorageType::SD)
+    {
+        if (!sdTest())
+            return false;
+        return SD.remove(filename.c_str());
+    }
+    else
+    {
+        SPIFFS.begin();
+        return SPIFFS.remove(filename.c_str());
+    }
+}
+
+uint8_t FirebaseESP8266::openErrorQueue(FirebaseData &dataObj, const String &filename, uint8_t storageType, uint8_t mode)
+{
+
+    uint8_t count = 0;
+
+    File file;
+    fs::File _file;
+
+    if (storageType == QueueStorageType::SD)
+    {
+
+        if (!sdTest())
+            return 0;
+
+        file = SD.open(filename.c_str(), FILE_READ);
+    }
+    else
+    {
+
+        SPIFFS.begin();
+
+        _file = SPIFFS.open(filename.c_str(), "r");
+
+        if (!_file)
+            return 0;
+    }
+
+    std::string t = "";
+
+    uint8_t c = 0;
+
+    if (storageType == QueueStorageType::SD)
+    {
+
+        while (file.available())
+        {
+            c = file.read();
+            t += (char)c;
+        }
+
+        file.close();
+    }
+    else
+    {
+        while (_file.available())
+        {
+            c = _file.read();
+            t += (char)c;
+        }
+
+        _file.close();
+    }
+
+    std::vector<std::string> p = splitString(dataObj._maxBlobSize, t.c_str(), '\r');
+
+    for (size_t i = 0; i < p.size(); i++)
+    {
+
+        std::vector<std::string> q = splitString(dataObj._maxBlobSize, p[i].c_str(), '~');
+
+        if (q.size() == 6)
+        {
+            count++;
+
+            if (mode == 1)
+            {
+
+                //Restore Firebase Error Queues
+                QueueItem item;
+
+                item.firebaseDataType = atoi(q[0].c_str());
+                item.firebaseMethod = atoi(q[1].c_str());
+                item.path.append(q[2].c_str());
+                item.payload.append(q[3].c_str());
+
+                for (size_t j = 0; j < q[4].length(); j++)
+                    item.blob.push_back(atoi(q[4].c_str()));
+
+                item.filename.append(q[5].c_str());
+
+                dataObj._qMan._queueCollection.push_back(item);
+            }
+        }
+    }
+    std::string().swap(t);
+
+    return count;
+}
+
+bool FirebaseESP8266::isErrorQueueFull(FirebaseData &dataObj)
+{
+    if (dataObj._qMan._maxQueue > 0)
+        return dataObj._qMan._queueCollection.size() >= dataObj._qMan._maxQueue;
+    return false;
+}
+
+uint8_t FirebaseESP8266::errorQueueCount(FirebaseData &dataObj)
+{
+    return dataObj._qMan._queueCollection.size();
+}
+
+std::vector<std::string> FirebaseESP8266::splitString(int size, const char *str, const char delim)
+{
+    uint16_t index = 0;
+    uint16_t len = strlen(str);
+    int buffSize = (int)(size * 1.4f);
+    char *buf = new char[buffSize];
+    std::vector<std::string> out;
+
+    for (uint16_t i = 0; i < len; i++)
+    {
+        if (str[i] == delim)
+        {
+            memset(buf, 0, buffSize);
+            strncpy(buf, (char *)str + index, i - index);
+            buf[i - index] = '\0';
+            index = i + 1;
+            out.push_back(buf);
+        }
+    }
+    if (index < len + 1)
+    {
+        memset(buf, 0, buffSize);
+        strncpy(buf, (char *)str + index, len - index);
+        buf[len - index] = '\0';
+        out.push_back(buf);
+    }
+
+    delete[] buf;
+
+    return out;
 }
 
 void FirebaseESP8266::p_memCopy(std::string &buf, const char *p, bool empty)
@@ -2522,7 +3580,7 @@ std::string FirebaseESP8266::base64_encode_string(const unsigned char *src, size
     olen = 4 * ((len + 2) / 3); /* 3-byte blocks to 4-byte */
 
     if (olen < len)
-        return std::string(); /* integer overflow */
+        return std::string();
 
     std::string outStr;
     outStr.resize(olen);
@@ -2873,6 +3931,79 @@ void FirebaseData::clear()
     std::string().swap(_backupDir);
     std::string().swap(_backupFilename);
     std::string().swap(_eventType);
+
+    for (uint8_t i = 0; i < _qMan._queueCollection.size(); i++)
+    {
+        QueueItem item = _qMan._queueCollection[i];
+        clearQueueItem(item);
+    }
+}
+
+void FirebaseData::addQueue(uint8_t FirebaseMethod,
+                            uint8_t FirebaseDataType,
+                            const std::string path,
+                            const std::string filename,
+                            const std::string payload,
+                            bool isQuery,
+                            int *intTarget,
+                            float *floatTarget,
+                            double *doubleTarget,
+                            bool *boolTarget,
+                            String *stringTarget,
+                            std::vector<uint8_t> *blobTarget)
+{
+    if (_qMan._queueCollection.size() < _qMan._maxQueue && payload.length() <= _maxBlobSize)
+    {
+        QueueItem item;
+        item.firebaseMethod = FirebaseMethod;
+        item.firebaseDataType = FirebaseDataType;
+        item.path = path;
+        item.filename = filename;
+        item.payload = payload;
+
+        if (isQuery)
+            item.queryFilter = queryFilter;
+        else
+            item.queryFilter.clear();
+
+        item.stringPtr = stringTarget;
+        item.intPtr = intTarget;
+        item.floatPtr = floatTarget;
+        item.doublePtr = doubleTarget;
+        item.boolPtr = boolTarget;
+        item.blobPtr = blobTarget;
+        item.qID = random(100000, 200000);
+
+        if (_qMan.add(item))
+            _qID = item.qID;
+        else
+            _qID = 0;
+    }
+}
+
+void FirebaseData::clearQueueItem(QueueItem &item)
+{
+    std::string().swap(item.path);
+    std::string().swap(item.filename);
+    std::string().swap(item.payload);
+
+    item.stringPtr = nullptr;
+    item.intPtr = nullptr;
+    item.floatPtr = nullptr;
+    item.doublePtr = nullptr;
+    item.boolPtr = nullptr;
+    item.blobPtr = nullptr;
+    item.queryFilter.clear();
+}
+
+void FirebaseData::setQuery(QueryFilter &query)
+{
+    queryFilter._orderBy = query._orderBy;
+    queryFilter._limitToFirst = query._limitToFirst;
+    queryFilter._limitToLast = query._limitToLast;
+    queryFilter._startAt = query._startAt;
+    queryFilter._endAt = query._endAt;
+    queryFilter._equalTo = query._equalTo;
 }
 
 WiFiClientSecure FirebaseData::getWiFiClient()
@@ -2915,6 +4046,8 @@ String FirebaseData::dataType()
         return FPSTR(ESP8266_FIREBASE_STR_75);
     if (_dataType == FirebaseESP8266::FirebaseDataType::FLOAT)
         return FPSTR(ESP8266_FIREBASE_STR_76);
+    if (_dataType == FirebaseESP8266::FirebaseDataType::DOUBLE)
+        return FPSTR(ESP8266_FIREBASE_STR_108);
     if (_dataType == FirebaseESP8266::FirebaseDataType::BOOLEAN)
         return FPSTR(ESP8266_FIREBASE_STR_105);
     if (_dataType == FirebaseESP8266::FirebaseDataType::INTEGER)
@@ -2944,7 +4077,7 @@ String FirebaseData::dataPath()
 
 int FirebaseData::intData()
 {
-    if (_data.length() > 0 && (_dataType == FirebaseESP8266::FirebaseDataType::INTEGER || _dataType == FirebaseESP8266::FirebaseDataType::FLOAT))
+    if (_data.length() > 0 && (_dataType == FirebaseESP8266::FirebaseDataType::INTEGER || _dataType == FirebaseESP8266::FirebaseDataType::FLOAT || _dataType == FirebaseESP8266::FirebaseDataType::DOUBLE))
         return atoi(_data.c_str());
     else
         return 0;
@@ -2952,7 +4085,15 @@ int FirebaseData::intData()
 
 float FirebaseData::floatData()
 {
-    if (_data.length() > 0 && (_dataType == FirebaseESP8266::FirebaseDataType::INTEGER || _dataType == FirebaseESP8266::FirebaseDataType::FLOAT))
+    if (_data.length() > 0 && (_dataType == FirebaseESP8266::FirebaseDataType::INTEGER || _dataType == FirebaseESP8266::FirebaseDataType::FLOAT || _dataType == FirebaseESP8266::FirebaseDataType::DOUBLE))
+        return atof(_data.c_str());
+    else
+        return 0.0;
+}
+
+double FirebaseData::doubleData()
+{
+    if (_data.length() > 0 && (_dataType == FirebaseESP8266::FirebaseDataType::INTEGER || _dataType == FirebaseESP8266::FirebaseDataType::FLOAT || _dataType == FirebaseESP8266::FirebaseDataType::DOUBLE))
         return atof(_data.c_str());
     else
         return 0.0;
@@ -2960,7 +4101,7 @@ float FirebaseData::floatData()
 
 bool FirebaseData::boolData()
 {
-    bool res;
+    bool res = false;
     char *str = new char[10];
     memset(str, 0, 10);
     strcat_P(str, ESP8266_FIREBASE_STR_107);
@@ -3056,6 +4197,11 @@ String FirebaseData::fileTransferError()
     return _file_transfer_error.c_str();
 }
 
+String FirebaseData::payload()
+{
+    return _data.c_str();
+}
+
 String FirebaseData::errorReason()
 {
     std::string buf = "";
@@ -3103,7 +4249,7 @@ String StreamData::streamPath()
 
 int StreamData::intData()
 {
-    if (_dataType == FirebaseESP8266::FirebaseDataType::FLOAT || _dataType == FirebaseESP8266::FirebaseDataType::INTEGER)
+    if (_data.length() > 0 && (_dataType == FirebaseESP8266::FirebaseDataType::INTEGER || _dataType == FirebaseESP8266::FirebaseDataType::FLOAT || _dataType == FirebaseESP8266::FirebaseDataType::DOUBLE))
         return atoi(_data.c_str());
     else
         return 0;
@@ -3111,10 +4257,34 @@ int StreamData::intData()
 
 float StreamData::floatData()
 {
-    if (_dataType == FirebaseESP8266::FirebaseDataType::FLOAT || _dataType == FirebaseESP8266::FirebaseDataType::INTEGER)
+    if (_data.length() > 0 && (_dataType == FirebaseESP8266::FirebaseDataType::INTEGER || _dataType == FirebaseESP8266::FirebaseDataType::FLOAT || _dataType == FirebaseESP8266::FirebaseDataType::DOUBLE))
         return atof(_data.c_str());
     else
         return 0;
+}
+
+double StreamData::doubleData()
+{
+
+    if (_data.length() > 0 && (_dataType == FirebaseESP8266::FirebaseDataType::INTEGER || _dataType == FirebaseESP8266::FirebaseDataType::FLOAT || _dataType == FirebaseESP8266::FirebaseDataType::DOUBLE))
+        return atof(_data.c_str());
+    else
+        return 0.0;
+}
+
+bool StreamData::boolData()
+{
+    bool res = false;
+    char *str = new char[10];
+    memset(str, 0, 10);
+    strcat_P(str, ESP8266_FIREBASE_STR_107);
+
+    if (_data.length() > 0 && _dataType == FirebaseESP8266::FirebaseDataType::BOOLEAN)
+        res = _data == str;
+
+    delete[] str;
+
+    return res;
 }
 
 String StreamData::stringData()
@@ -3248,6 +4418,51 @@ void QueryFilter::equalTo(const String &val)
     strcat(tmp, ESP8266_FIREBASE_STR_3);
     _equalTo = tmp;
     delete[] tmp;
+}
+
+QueueManager::QueueManager()
+{
+}
+QueueManager::~QueueManager()
+{
+    clear();
+}
+
+void QueueManager::clear()
+{
+    for (uint8_t i = 0; i < _queueCollection.size(); i++)
+    {
+        QueueItem item = _queueCollection[i];
+
+        std::string().swap(item.path);
+        std::string().swap(item.filename);
+        std::string().swap(item.payload);
+
+        item.stringPtr = nullptr;
+        item.intPtr = nullptr;
+        item.floatPtr = nullptr;
+        item.doublePtr = nullptr;
+        item.boolPtr = nullptr;
+        item.blobPtr = nullptr;
+        item.queryFilter.clear();
+    }
+}
+
+bool QueueManager::add(QueueItem q)
+{
+
+    if (_queueCollection.size() < _maxQueue)
+    {
+        _queueCollection.push_back(q);
+        return true;
+    }
+
+    return false;
+}
+
+void QueueManager::remove(uint8_t index)
+{
+    _queueCollection.erase(_queueCollection.begin() + index);
 }
 
 FirebaseESP8266 Firebase = FirebaseESP8266();
