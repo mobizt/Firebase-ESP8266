@@ -61,8 +61,6 @@ This following devices were tested and work well.
 
 * **Supports Error Retry and Error Queue to resume all Firebase read/store Error oerations** up to 255 queues. Firebase Error queues can be tracked its status and saved as file for further restore. Data can be resumed from queue operation (get) when global variable is provided. 
 
-* **Quit and release all resources** which belong to Firbase data using **end** function.
-
 * Supports **Data Filtering** using the orderBy, limitToFirst, limitToLast, startAt, endAt, and equalTo query parameters.
 
 * Supports integer, float, double, boolean, string and JSON string data types.   
