@@ -50,44 +50,53 @@ void setup()
 
   if (!Firebase.beginStream(firebaseData, path))
   {
-    Serial.println("------Can't begin stream connection------");
+    Serial.println("------------------------------------");
+    Serial.println("Can't begin stream connection...");
     Serial.println("REASON: " + firebaseData.errorReason());
+    Serial.println("------------------------------------");
     Serial.println();
   }
 }
 
 void loop()
 {
+  //This example uses the same Firebase Data object to read/store data (get, set, update, push and delete) and stream.
+  //This causes some delay (for start new SSL connection) for swiching between read/store and stream operation.
+  //For no delay, see Different_objects_stream.ino example which uses different Firebase Data object for read/store and stream data.
 
   if (millis() - sendDataPrevMillis > 15000)
   {
     sendDataPrevMillis = millis();
     count++;
 
+    Serial.println("------------------------------------");
+    Serial.println("Set string...");
     if (Firebase.setString(firebaseData, path + "/String", "Hello World! " + String(count)))
     {
-      Serial.println("----------Set result-----------");
+      Serial.println("PASSED");
       Serial.println("PATH: " + firebaseData.dataPath());
       Serial.println("TYPE: " + firebaseData.dataType());
       Serial.print("VALUE: ");
       if (firebaseData.dataType() == "int")
         Serial.println(firebaseData.intData());
       else if (firebaseData.dataType() == "float")
-        Serial.println(firebaseData.floatData());
+        Serial.println(firebaseData.floatData(), 5);
+      else if (firebaseData.dataType() == "double")
+        Serial.println(firebaseData.doubleData(), 9);
       else if (firebaseData.dataType() == "boolean")
         Serial.println(firebaseData.boolData() == 1 ? "true" : "false");
       else if (firebaseData.dataType() == "string")
         Serial.println(firebaseData.stringData());
       else if (firebaseData.dataType() == "json")
         Serial.println(firebaseData.jsonData());
-      Serial.println("--------------------------------");
+      Serial.println("------------------------------------");
       Serial.println();
     }
     else
     {
-      Serial.println("----------Can't set data--------");
+      Serial.println("FAILED");
       Serial.println("REASON: " + firebaseData.errorReason());
-      Serial.println("--------------------------------");
+      Serial.println("------------------------------------");
       Serial.println();
     }
 
@@ -100,7 +109,10 @@ void loop()
     }
     else
     {
-      Serial.println("----------Can't pause the WiFi client--------");
+      Serial.println("------------------------------------");
+      Serial.println("Can't pause the WiFi client...");
+      Serial.println("------------------------------------");
+      Serial.println();
     }
     //Unpause WiFi client from Firebase task
     firebaseData.pauseFirebase(false);
@@ -108,8 +120,10 @@ void loop()
 
   if (!Firebase.readStream(firebaseData))
   {
-    Serial.println("Can't read stream data");
+    Serial.println("------------------------------------");
+    Serial.println("Can't read stream data...");
     Serial.println("REASON: " + firebaseData.errorReason());
+    Serial.println("------------------------------------");
     Serial.println();
   }
 
@@ -121,7 +135,8 @@ void loop()
 
   if (firebaseData.streamAvailable())
   {
-    Serial.println("-------Stream Data available-------");
+    Serial.println("------------------------------------");
+    Serial.println("Stream Data available...");
     Serial.println("STREAM PATH: " + firebaseData.streamPath());
     Serial.println("EVENT PATH: " + firebaseData.dataPath());
     Serial.println("DATA TYPE: " + firebaseData.dataType());
@@ -137,6 +152,7 @@ void loop()
       Serial.println(firebaseData.stringData());
     else if (firebaseData.dataType() == "json")
       Serial.println(firebaseData.jsonData());
+    Serial.println("------------------------------------");
     Serial.println();
   }
 }

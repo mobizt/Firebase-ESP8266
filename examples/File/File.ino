@@ -68,7 +68,7 @@ void setup()
   if (SD.exists("/file3.txt"))
     SD.remove("/file3.txt");
 
-  Serial.println("-----------------------------------");
+  Serial.println("------------------------------------");
   Serial.println("Set file data test...");
 
   //Write demo data to file
@@ -90,11 +90,11 @@ void setup()
   {
     Serial.println("FAILED");
     Serial.println("REASON: " + firebaseData.fileTransferError());
-    Serial.println("-------------------------------------");
+    Serial.println("------------------------------------");
     Serial.println();
   }
 
-  Serial.println("-----------------------------------");
+  Serial.println("------------------------------------");
   Serial.println("Get file data test...");
 
   //Get file (download file to SD card)
@@ -122,7 +122,7 @@ void setup()
       i++;
     }
     Serial.println();
-    Serial.println("-------------------------------------");
+    Serial.println("------------------------------------");
     Serial.println();
     file.close();
   }
@@ -131,11 +131,11 @@ void setup()
 
     Serial.println("FAILED");
     Serial.println("REASON: " + firebaseData.fileTransferError());
-    Serial.println("--------------------------------");
+    Serial.println("------------------------------------");
     Serial.println();
   }
 
-  Serial.println("-----------------------------------");
+  Serial.println("------------------------------------");
   Serial.println("Append file data test...");
 
   if (SD.exists("/file1.txt"))
@@ -155,11 +155,11 @@ void setup()
     Serial.println("PASSED");
     Serial.println("PATH: " + firebaseData.dataPath());
     Serial.println("PUSH NAME: " + firebaseData.pushName());
-    Serial.println("-------------------------------------");
+    Serial.println("------------------------------------");
 
     Serial.println();
 
-    Serial.println("-----------------------------------");
+    Serial.println("------------------------------------");
     Serial.println("Get appended file data test...");
 
     //Get the recently appended file (download file to SD card)
@@ -186,7 +186,7 @@ void setup()
           Serial.println();
       }
       Serial.println();
-      Serial.println("-------------------------------------");
+      Serial.println("------------------------------------");
       Serial.println();
       file.close();
     }
@@ -195,7 +195,7 @@ void setup()
 
       Serial.println("FAILED");
       Serial.println("REASON: " + firebaseData.fileTransferError());
-      Serial.println("--------------------------------");
+      Serial.println("------------------------------------");
       Serial.println();
     }
   }
@@ -203,7 +203,7 @@ void setup()
   {
     Serial.println("FAILED");
     Serial.println("REASON: " + firebaseData.fileTransferError());
-    Serial.println("--------------------------------");
+    Serial.println("------------------------------------");
     Serial.println();
   }
 }

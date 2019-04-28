@@ -100,21 +100,23 @@ void loop()
       if (firebaseData.dataType() == "int")
         Serial.println(firebaseData.intData());
       else if (firebaseData.dataType() == "float")
-        Serial.println(firebaseData.floatData());
+        Serial.println(firebaseData.floatData(), 5);
+      else if (firebaseData.dataType() == "double")
+        Serial.println(firebaseData.doubleData(), 9);
       else if (firebaseData.dataType() == "boolean")
         Serial.println(firebaseData.boolData() == 1 ? "true" : "false");
       else if (firebaseData.dataType() == "string")
         Serial.println(firebaseData.stringData());
       else if (firebaseData.dataType() == "json")
         Serial.println(firebaseData.jsonData());
-      Serial.println("--------------------------------");
+      Serial.println("------------------------------------");
       Serial.println();
     }
     else
     {
       Serial.println("FAILED");
       Serial.println("REASON: " + firebaseData.errorReason());
-      Serial.println("--------------------------------");
+      Serial.println("------------------------------------");
       Serial.println();
     }
 
@@ -187,11 +189,11 @@ void loop()
 
   if (!Firebase.readStream(firebaseData))
   {
-    Serial.println("--------------------------------");
+    Serial.println("------------------------------------");
     Serial.println("Read stream...");
     Serial.println("FAILED");
     Serial.println("REASON: " + firebaseData.errorReason());
-    Serial.println("--------------------------------");
+    Serial.println("------------------------------------");
     Serial.println();
   }
 
@@ -203,22 +205,26 @@ void loop()
 
   if (firebaseData.streamAvailable())
   {
+    Serial.println("------------------------------------");
     Serial.println("Stream Data available...");
     Serial.println("STREAM PATH: " + firebaseData.streamPath());
     Serial.println("EVENT PATH: " + firebaseData.dataPath());
     Serial.println("DATA TYPE: " + firebaseData.dataType());
-    Serial.println("EVENT TYPE: " + firebaseData.dataType());
+    Serial.println("EVENT TYPE: " + firebaseData.eventType());
     Serial.print("VALUE: ");
     if (firebaseData.dataType() == "int")
       Serial.println(firebaseData.intData());
     else if (firebaseData.dataType() == "float")
-      Serial.println(firebaseData.floatData());
+      Serial.println(firebaseData.floatData(), 5);
+    else if (firebaseData.dataType() == "double")
+      Serial.println(firebaseData.doubleData(), 9);
     else if (firebaseData.dataType() == "boolean")
       Serial.println(firebaseData.boolData() == 1 ? "true" : "false");
     else if (firebaseData.dataType() == "string")
       Serial.println(firebaseData.stringData());
     else if (firebaseData.dataType() == "json")
       Serial.println(firebaseData.jsonData());
+    Serial.println("------------------------------------");
     Serial.println();
   }
 }

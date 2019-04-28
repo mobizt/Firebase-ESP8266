@@ -93,7 +93,8 @@ void loop()
 
   if (firebaseData2.streamAvailable())
   {
-    Serial.println("-------Stream Data available-------");
+    Serial.println("------------------------------------");
+    Serial.println("Stream Data Available...");
     Serial.println("STREAM PATH: " + firebaseData2.streamPath());
     Serial.println("EVENT PATH: " + firebaseData2.dataPath());
     Serial.println("DATA TYPE: " + firebaseData2.dataType());
@@ -102,7 +103,9 @@ void loop()
     if (firebaseData2.dataType() == "int")
       Serial.println(firebaseData2.intData());
     else if (firebaseData2.dataType() == "float")
-      Serial.println(firebaseData2.floatData());
+      Serial.println(firebaseData2.floatData(), 5);
+    else if (firebaseData2.dataType() == "double")
+      Serial.println(firebaseData2.doubleData(), 9);
     else if (firebaseData2.dataType() == "boolean")
       Serial.println(firebaseData2.boolData() == 1 ? "true" : "false");
     else if (firebaseData2.dataType() == "string")
@@ -127,7 +130,9 @@ void loop()
         Serial.print(" ");
       }
       Serial.println();
+      
     }
+    Serial.println("------------------------------------");
     Serial.println();
   }
 
