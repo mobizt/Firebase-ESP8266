@@ -87,7 +87,7 @@ This following devices were tested and work well.
 ## Dependencies
 
 
-This library required ESP8266 Core SDK version 2.4.0 and above which can be installed through **Board Manager**. 
+This library required ESP8266 Core SDK version 2.4.0 and above which can be installed through **Boards Manager**. 
 
 Recommend to use Core SDK version 2.4.2 or 2.5.0 and above which offer more free memory.
 
