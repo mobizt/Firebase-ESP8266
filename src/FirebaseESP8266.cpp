@@ -1,13 +1,10 @@
 /*
  * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.0.0
  * 
- * April 28, 2019
+ * April 30, 2019
  * 
  * Feature Added:
- * - Add retry operation
- * - Add queue operation
- * - Add double data type
- * - Update examples
+ * - Add keywords
  * 
  * Feature Fixed:
  *  
