@@ -1357,7 +1357,7 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
 
     if (!dataObj._http.http_connected() || dataObj._interruptRequest)
         return cancelCurrentResponse(dataObj);
-    if (!handleTCPNotConnected(dataObj) || !dataObj._httpConnected)
+    if (!handleNetClientNotConnected(dataObj) || !dataObj._httpConnected)
         return false;
 
     bool flag = false;
@@ -1400,7 +1400,7 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
     size_t charPos = 0;
 
     if (!dataObj._isStream)
-        while (client.connected() && !client.available() && millis() - dataTime < dataObj._http.tcpTimeout)
+        while (client.connected() && !client.available() && millis() - dataTime < dataObj._http.netClientTimeout)
         {
             if (!apConnected())
             {
@@ -1634,7 +1634,7 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
                 charPos = 0;
             }
 
-            if (millis() - dataTime > dataObj._http.tcpTimeout)
+            if (millis() - dataTime > dataObj._http.netClientTimeout)
             {
                 dataObj._httpCode = HTTPC_ERROR_READ_TIMEOUT;
                 break;
@@ -1947,8 +1947,8 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
         return false;
     }
 
-    WiFiClientSecure tcp = dataObj._http.client;
-    if (!tcp)
+    WiFiClientSecure netClient = dataObj._http.client;
+    if (!netClient)
     {
         endFileTransfer(dataObj);
         return false;
@@ -1983,11 +1983,11 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
     size_t count = 0;
     size_t toRead = count;
     size_t cnt = 0;
-    size_t tmo = 30000 + dataObj._http.tcpTimeout;
+    size_t tmo = 30000 + dataObj._http.netClientTimeout;
 
     unsigned long dataTime = millis();
 
-    while (tcp.connected() && !tcp.available() && millis() - dataTime < tmo)
+    while (netClient.connected() && !netClient.available() && millis() - dataTime < tmo)
     {
         if (!apConnected())
         {
@@ -1998,10 +1998,10 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
     }
 
     dataTime = millis();
-    if (tcp.connected() && tcp.available())
+    if (netClient.connected() && netClient.available())
     {
 
-        while (tcp.available() || count > 0)
+        while (netClient.available() || count > 0)
         {
             if (dataObj._interruptRequest)
                 return cancelCurrentResponse(dataObj);
@@ -2014,7 +2014,7 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
 
             if (!beginPayload)
             {
-                c = tcp.read();
+                c = netClient.read();
                 if (c != '\r' && c != '\n')
                     strcat_c(lineBuf, c);
             }
@@ -2041,7 +2041,7 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
                     while (cnt < toRead)
                     {
 
-                        c = tcp.read();
+                        c = netClient.read();
                         if (c >= 0x20)
                         {
                             if (dataObj._fileName == "" && c < 0xff)
@@ -2156,14 +2156,14 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
                     if (dataObj._fileName != "")
                     {
                         for (size_t i = 0; i < strlen(ESP8266_FIREBASE_STR_93); i++)
-                            tcp.read();
+                            netClient.read();
                     }
                 }
 
                 memset(lineBuf, 0, FIREBASE_RESPONSE_SIZE);
             }
 
-            if (millis() - dataTime > dataObj._http.tcpTimeout)
+            if (millis() - dataTime > dataObj._http.netClientTimeout)
             {
                 dataObj._httpCode = HTTPC_ERROR_READ_TIMEOUT;
                 break;
@@ -2217,8 +2217,8 @@ bool FirebaseESP8266::getUploadResponse(FirebaseData &dataObj)
         return false;
     }
 
-    WiFiClientSecure tcp = dataObj._http.client;
-    if (!tcp)
+    WiFiClientSecure netClient = dataObj._http.client;
+    if (!netClient)
         return false;
 
     int _httpCode = -1000;
@@ -2234,13 +2234,13 @@ bool FirebaseESP8266::getUploadResponse(FirebaseData &dataObj)
     char *fstr = new char[60];
 
     int p1, p2;
-    size_t tmo = dataObj._http.tcpTimeout + 5000;
+    size_t tmo = dataObj._http.netClientTimeout + 5000;
     bool beginPayload = false;
 
     unsigned long dataTime = millis();
 
     if (!dataObj._isStream)
-        while (tcp.connected() && !tcp.available() && millis() - dataTime < tmo)
+        while (netClient.connected() && !netClient.available() && millis() - dataTime < tmo)
         {
             if (!apConnected())
             {
@@ -2252,10 +2252,10 @@ bool FirebaseESP8266::getUploadResponse(FirebaseData &dataObj)
 
     dataTime = millis();
 
-    if (tcp.connected() && tcp.available())
+    if (netClient.connected() && netClient.available())
     {
 
-        while (tcp.available())
+        while (netClient.available())
         {
             if (dataObj._interruptRequest)
                 return cancelCurrentResponse(dataObj);
@@ -2266,7 +2266,7 @@ bool FirebaseESP8266::getUploadResponse(FirebaseData &dataObj)
                 return false;
             }
 
-            c = tcp.read();
+            c = netClient.read();
 
             strcat_c(lineBuf, c);
 
@@ -2303,7 +2303,7 @@ bool FirebaseESP8266::getUploadResponse(FirebaseData &dataObj)
                 memset(lineBuf, 0, FIREBASE_RESPONSE_SIZE);
             }
 
-            if (millis() - dataTime > dataObj._http.tcpTimeout)
+            if (millis() - dataTime > dataObj._http.netClientTimeout)
             {
                 _httpCode = HTTPC_ERROR_READ_TIMEOUT;
                 dataObj._httpCode = HTTPC_ERROR_READ_TIMEOUT;
@@ -2474,11 +2474,11 @@ bool FirebaseESP8266::getServerStreamResponse(FirebaseData &dataObj)
 
         dataObj._streamCall = true;
 
-        WiFiClientSecure tcp = dataObj._http.client;
+        WiFiClientSecure netClient = dataObj._http.client;
 
-        if (tcp.connected() && !dataObj._isStream)
+        if (netClient.connected() && !dataObj._isStream)
             forceEndHTTP(dataObj);
-        if (!tcp.connected())
+        if (!netClient.connected())
         {
             path = dataObj._streamPath;
             firebaseConnectStream(dataObj, path.c_str());
@@ -3061,7 +3061,7 @@ void FirebaseESP8266::resetFirebasedataFlag(FirebaseData &dataObj)
     dataObj._dataAvailable = false;
     dataObj._pushName.clear();
 }
-bool FirebaseESP8266::handleTCPNotConnected(FirebaseData &dataObj)
+bool FirebaseESP8266::handleNetClientNotConnected(FirebaseData &dataObj)
 {
     if (!dataObj._http.http_connected())
     {
@@ -3616,7 +3616,7 @@ std::string FirebaseESP8266::base64_encode_string(const unsigned char *src, size
     return outStr;
 }
 
-void FirebaseESP8266::send_base64_encode_file(WiFiClientSecure &tcp, const std::string &filePath)
+void FirebaseESP8266::send_base64_encode_file(WiFiClientSecure &netClient, const std::string &filePath)
 {
 
     File file = SD.open(filePath.c_str(), FILE_READ);
@@ -3653,7 +3653,7 @@ void FirebaseESP8266::send_base64_encode_file(WiFiClientSecure &tcp, const std::
                 if (byteAdd >= chunkSize)
                 {
                     byteSent += byteAdd;
-                    tcp.write(buf, byteAdd);
+                    netClient.write(buf, byteAdd);
                     memset(buf, 0, chunkSize);
                     byteAdd = 0;
                 }
@@ -3682,7 +3682,7 @@ void FirebaseESP8266::send_base64_encode_file(WiFiClientSecure &tcp, const std::
     file.close();
 
     if (byteAdd > 0)
-        tcp.write(buf, byteAdd);
+        netClient.write(buf, byteAdd);
 
     if (len - fbufIndex > 0)
     {
@@ -3703,7 +3703,7 @@ void FirebaseESP8266::send_base64_encode_file(WiFiClientSecure &tcp, const std::
         }
         buf[byteAdd++] = '=';
 
-        tcp.write(buf, byteAdd);
+        netClient.write(buf, byteAdd);
     }
 
     delete[] buf;

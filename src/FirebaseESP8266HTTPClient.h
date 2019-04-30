@@ -99,7 +99,7 @@ public:
   bool http_connected(void);
   int http_sendRequest(const char *header, const char *payload);
   WiFiClientSecure client;
-  uint16_t tcpTimeout = 5000;
+  uint16_t netClientTimeout = 5000;
 
 protected:
   bool http_connect(void);

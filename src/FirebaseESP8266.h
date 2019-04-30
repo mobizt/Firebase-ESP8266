@@ -1170,7 +1170,7 @@ protected:
 
   void sendHeader(FirebaseData &dataObj, const char *host, uint8_t _method, const char *path, const char *auth, size_t payloadLength);
   void resetFirebasedataFlag(FirebaseData &dataObj);
-  bool handleTCPNotConnected(FirebaseData &dataObj);
+  bool handleNetClientNotConnected(FirebaseData &dataObj);
   void forceEndHTTP(FirebaseData &dataObj);
   bool apConnected();
   int firebaseConnect(FirebaseData &dataObj, const std::string &path, const uint8_t method, uint8_t dataType, const std::string &payload);
@@ -1186,7 +1186,7 @@ protected:
   void createDirs(std::string dirs);
   bool replace(std::string &str, const std::string &from, const std::string &to);
   std::string base64_encode_string(const unsigned char *src, size_t len);
-  void send_base64_encode_file(WiFiClientSecure &tcp, const std::string &filePath);
+  void send_base64_encode_file(WiFiClientSecure &netClient, const std::string &filePath);
   bool base64_decode_string(const std::string src, std::vector<uint8_t> &out);
   bool base64_decode_file(File &file, const char *src, size_t len);
 
