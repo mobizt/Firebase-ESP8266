@@ -1,15 +1,15 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.0.1
- * 
- * April 30, 2019
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.0.2
+* 
+ * May 1, 2019
  * 
  * Feature Added:
- * - Add keywords
+ * 
  * 
  * Feature Fixed:
+ * - readStream bugs
  *  
- *  
- *
+ * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
  * and delete calls. 
  * 
@@ -177,7 +177,7 @@ bool FirebaseESP8266::buildRequest(FirebaseData &dataObj, uint8_t firebaseMethod
         if (dataObj._httpCode == HTTPC_ERROR_CONNECTION_INUSED && dataObj._firebaseCall)
         {
             //Waiting for queue to finish
-            while (dataObj._firebaseCall && apConnected())
+            while (dataObj._firebaseCall && WiFi.status() != WL_CONNECTED)
                 delay(1);
         }
         else
@@ -188,6 +188,8 @@ bool FirebaseESP8266::buildRequest(FirebaseData &dataObj, uint8_t firebaseMethod
                     errCount++;
         }
     }
+
+    dataObj._qID = 0;
 
     if (!queue && !flag && errCount == maxRetry && dataObj._qMan._maxQueue > 0)
 
@@ -235,7 +237,7 @@ bool FirebaseESP8266::buildRequestFile(FirebaseData &dataObj, uint8_t firebaseMe
         if (dataObj._httpCode == HTTPC_ERROR_CONNECTION_INUSED && dataObj._firebaseCall)
         {
             //Waiting for queue to finish
-            while (dataObj._firebaseCall && apConnected())
+            while (dataObj._firebaseCall && WiFi.status() != WL_CONNECTED)
                 delay(1);
         }
         else
@@ -246,6 +248,8 @@ bool FirebaseESP8266::buildRequestFile(FirebaseData &dataObj, uint8_t firebaseMe
                     errCount++;
         }
     }
+
+    dataObj._qID = 0;
 
     if (!queue && !flag && errCount == maxRetry && dataObj._qMan._maxQueue > 0)
         dataObj.addQueue(firebaseMethod, FirebaseDataType::FILE, path.c_str(), fileName.c_str(), "", false, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
@@ -825,14 +829,8 @@ bool FirebaseESP8266::beginStream(FirebaseData &dataObj, const String path)
 
 bool FirebaseESP8266::readStream(FirebaseData &dataObj)
 {
-    if (_reconnectWiFi && !apConnected())
+    if (_reconnectWiFi && WiFi.status() != WL_CONNECTED)
         WiFi.reconnect();
-
-    if (!apConnected())
-    {
-        dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
-        return false;
-    }
 
     return getServerStreamResponse(dataObj);
 }
@@ -843,7 +841,7 @@ bool FirebaseESP8266::endStream(FirebaseData &dataObj)
     dataObj._streamPath.clear();
     forceEndHTTP(dataObj);
 
-    if (!apConnected())
+    if (!apConnected(dataObj))
     {
         dataObj._isStream = false;
         dataObj._streamStop = true;
@@ -867,11 +865,8 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const std::string &p
     if (dataObj._pause)
         return 0;
 
-    if (!apConnected())
-    {
-        dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+    if (!apConnected(dataObj))
         return HTTPC_ERROR_CONNECTION_LOST;
-    }
 
     if (path.length() == 0 || _host.length() == 0 || _auth.length() == 0)
     {
@@ -1090,11 +1085,8 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const std::string &p
 
     //Send request w/wo payload
 
-    if (!apConnected())
-    {
-        dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+    if (!apConnected(dataObj))
         return HTTPC_ERROR_CONNECTION_LOST;
-    }
 
     httpCode = dataObj._http.http_sendRequest("", payloadStr);
 
@@ -1106,11 +1098,8 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const std::string &p
             memset(buf, 0, bufSize);
             strcpy_P(buf, ESP8266_FIREBASE_STR_93);
 
-            if (!apConnected())
-            {
-                dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+            if (!apConnected(dataObj))
                 return HTTPC_ERROR_CONNECTION_LOST;
-            }
 
             httpCode = dataObj._http.http_sendRequest("", buf);
 
@@ -1120,11 +1109,8 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const std::string &p
             buf[0] = '"';
             buf[1] = '\0';
 
-            if (!apConnected())
-            {
-                dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+            if (!apConnected(dataObj))
                 return HTTPC_ERROR_CONNECTION_LOST;
-            }
 
             httpCode = dataObj._http.http_sendRequest("", buf);
         }
@@ -1141,11 +1127,8 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const std::string &p
                 file.read((uint8_t *)buf, toRead);
                 buf[toRead] = '\0';
 
-                if (!apConnected())
-                {
-                    dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+                if (!apConnected(dataObj))
                     return HTTPC_ERROR_CONNECTION_LOST;
-                }
 
                 httpCode = dataObj._http.http_sendRequest("", buf);
 
@@ -1194,11 +1177,11 @@ bool FirebaseESP8266::sendRequest(FirebaseData &dataObj, const std::string &path
     }
 
     //Try to reconnect WiFi if lost connection
-    if (_reconnectWiFi && !apConnected())
+    if (_reconnectWiFi && WiFi.status() != WL_CONNECTED)
     {
         uint8_t tryCount = 0;
         WiFi.reconnect();
-        while (!apConnected())
+        while (WiFi.status() != WL_CONNECTED)
         {
             tryCount++;
             delay(50);
@@ -1208,11 +1191,8 @@ bool FirebaseESP8266::sendRequest(FirebaseData &dataObj, const std::string &path
     }
 
     //If WiFi is not connected, return false
-    if (!apConnected())
-    {
-        dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+    if (!apConnected(dataObj))
         return false;
-    }
 
     if (dataObj._firebaseCall)
     {
@@ -1275,11 +1255,8 @@ bool FirebaseESP8266::sendRequest(FirebaseData &dataObj, const std::string &path
     dataObj._r_method = method;
     dataObj._r_dataType = dataType;
 
-    if (!apConnected())
-    {
-        dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+    if (!apConnected(dataObj))
         return false;
-    }
 
     int httpCode = firebaseConnect(dataObj, path, method, dataType, payload);
 
@@ -1347,11 +1324,8 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
     if (dataObj._pause)
         return true;
 
-    if (!apConnected())
-    {
-        dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+    if (!apConnected(dataObj))
         return false;
-    }
 
     WiFiClientSecure client = dataObj._http.client;
 
@@ -1402,11 +1376,8 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
     if (!dataObj._isStream)
         while (client.connected() && !client.available() && millis() - dataTime < dataObj._http.netClientTimeout)
         {
-            if (!apConnected())
-            {
-                dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+            if (!apConnected(dataObj))
                 return false;
-            }
             delay(1);
         }
 
@@ -1421,11 +1392,8 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
             if (dataObj._interruptRequest)
                 return cancelCurrentResponse(dataObj);
 
-            if (!apConnected())
-            {
-                dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+            if (!apConnected(dataObj))
                 return false;
-            }
 
             c = client.read();
 
@@ -1940,12 +1908,8 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
         return true;
     }
 
-    if (!apConnected())
-    {
-        dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
-        endFileTransfer(dataObj);
+    if (!apConnected(dataObj))
         return false;
-    }
 
     WiFiClientSecure netClient = dataObj._http.client;
     if (!netClient)
@@ -1989,11 +1953,8 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
 
     while (netClient.connected() && !netClient.available() && millis() - dataTime < tmo)
     {
-        if (!apConnected())
-        {
-            dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+        if (!apConnected(dataObj))
             return false;
-        }
         delay(1);
     }
 
@@ -2006,11 +1967,8 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
             if (dataObj._interruptRequest)
                 return cancelCurrentResponse(dataObj);
 
-            if (!apConnected())
-            {
-                dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+            if (!apConnected(dataObj))
                 return false;
-            }
 
             if (!beginPayload)
             {
@@ -2211,11 +2169,8 @@ bool FirebaseESP8266::getUploadResponse(FirebaseData &dataObj)
     if (dataObj._pause)
         return true;
 
-    if (!apConnected())
-    {
-        dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+    if (!apConnected(dataObj))
         return false;
-    }
 
     WiFiClientSecure netClient = dataObj._http.client;
     if (!netClient)
@@ -2242,11 +2197,8 @@ bool FirebaseESP8266::getUploadResponse(FirebaseData &dataObj)
     if (!dataObj._isStream)
         while (netClient.connected() && !netClient.available() && millis() - dataTime < tmo)
         {
-            if (!apConnected())
-            {
-                dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+            if (!apConnected(dataObj))
                 return false;
-            }
             delay(1);
         }
 
@@ -2260,11 +2212,8 @@ bool FirebaseESP8266::getUploadResponse(FirebaseData &dataObj)
             if (dataObj._interruptRequest)
                 return cancelCurrentResponse(dataObj);
 
-            if (!apConnected())
-            {
-                dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+            if (!apConnected(dataObj))
                 return false;
-            }
 
             c = netClient.read();
 
@@ -2361,11 +2310,8 @@ bool FirebaseESP8266::firebaseConnectStream(FirebaseData &dataObj, const std::st
         return false;
     }
 
-    if (!apConnected())
-    {
-        dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+    if (!apConnected(dataObj))
         return false;
-    }
 
     if (millis() - dataObj._streamResetMillis > 50)
         delay(50);
@@ -2421,11 +2367,11 @@ bool FirebaseESP8266::getServerStreamResponse(FirebaseData &dataObj)
             dataObj._isStreamTimeout = true;
             path = dataObj._streamPath;
 
-            if (_reconnectWiFi && !apConnected())
+            if (_reconnectWiFi && WiFi.status() != WL_CONNECTED)
             {
                 uint8_t tryCount = 0;
                 WiFi.reconnect();
-                while (!apConnected())
+                while (WiFi.status() != WL_CONNECTED)
                 {
                     tryCount++;
                     delay(50);
@@ -2434,11 +2380,8 @@ bool FirebaseESP8266::getServerStreamResponse(FirebaseData &dataObj)
                 }
             }
 
-            if (!apConnected())
-            {
-                dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+            if (!apConnected(dataObj))
                 return false;
-            }
 
             while (dataObj._firebaseCall)
                 delay(1);
@@ -2463,11 +2406,8 @@ bool FirebaseESP8266::getServerStreamResponse(FirebaseData &dataObj)
         dataObj._httpConnected = true;
         resetFirebasedataFlag(dataObj);
 
-        if (!apConnected())
-        {
-            dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+        if (!apConnected(dataObj))
             return false;
-        }
 
         while (dataObj._firebaseCall)
             delay(1);
@@ -2498,18 +2438,22 @@ bool FirebaseESP8266::getServerStreamResponse(FirebaseData &dataObj)
     return true;
 }
 
-bool FirebaseESP8266::apConnected()
+bool FirebaseESP8266::apConnected(FirebaseData &dataObj)
 {
-    return WiFi.status() == WL_CONNECTED;
+    if (WiFi.status() != WL_CONNECTED)
+    {
+        dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+        dataObj._firebaseCall = false;
+        dataObj._streamCall = false;
+        return false;
+    }
+    return true;
 }
 
 void FirebaseESP8266::forceEndHTTP(FirebaseData &dataObj)
 {
-    if (!apConnected())
-    {
-        dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+    if (!apConnected(dataObj))
         return;
-    }
 
     WiFiClientSecure client = dataObj._http.client;
 
@@ -2527,11 +2471,8 @@ void FirebaseESP8266::processErrorQueue(FirebaseData &dataObj)
     if (dataObj._firebaseCall)
         return;
 
-    if (!apConnected())
-    {
-        dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+    if (!apConnected(dataObj))
         return;
-    }
 
     if (dataObj._qMan._queueCollection.size() > 0)
     {
@@ -2762,11 +2703,8 @@ void FirebaseESP8266::sendFirebaseRequest(FirebaseData &dataObj, const char *hos
         dataObj._isStream = false;
     }
 
-    if (!apConnected())
-    {
-        dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+    if (!apConnected(dataObj))
         return;
-    }
 
     retryCount = 0;
     while (dataObj._http.http_sendRequest(request, "") != 0)
@@ -4010,6 +3948,8 @@ WiFiClientSecure FirebaseData::getWiFiClient()
 
 bool FirebaseData::pauseFirebase(bool pause)
 {
+    if (WiFi.status() != WL_CONNECTED)
+        return false;
 
     if (_http.http_connected() && pause != _pause)
     {

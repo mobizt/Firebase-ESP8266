@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.0.1
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.0.2
 
 This client library provides the most reliable operations for read, store, update, delete, backup and restore the database data.
 
