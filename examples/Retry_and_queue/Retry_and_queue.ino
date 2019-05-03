@@ -10,6 +10,8 @@
  *
 */
 
+//This example shows how error retry and queues work.
+
 //FirebaseESP8266.h must be included before ESP8266WiFi.h
 #include "FirebaseESP8266.h"
 #include <ESP8266WiFi.h>
