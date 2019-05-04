@@ -3136,16 +3136,16 @@ void FirebaseESP8266::errorToString(int httpCode, std::string &buf)
         p_memCopy(buf, ESP8266_FIREBASE_STR_68);
         return;
     case HTTPC_NO_FCM_TOPIC_PROVIDED:
-        buf = ESP8266_FIREBASE_STR_144;
+        p_memCopy(buf, ESP8266_FIREBASE_STR_144);
         return;
     case HTTPC_NO_FCM_DEVICE_TOKEN_PROVIDED:
-        buf = ESP8266_FIREBASE_STR_145;
+        p_memCopy(buf, ESP8266_FIREBASE_STR_145);
         return;
     case HTTPC_NO_FCM_SERVER_KEY_PROVIDED:
-        buf = ESP8266_FIREBASE_STR_146;
+        p_memCopy(buf, ESP8266_FIREBASE_STR_146);
         return;
     case HTTPC_NO_FCM_INDEX_NOT_FOUND_IN_DEVICE_TOKEN_PROVIDED:
-        buf = ESP8266_FIREBASE_STR_147;
+        p_memCopy(buf, ESP8266_FIREBASE_STR_147);
         return;
 
     default:
