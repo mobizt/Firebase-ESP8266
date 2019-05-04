@@ -3215,7 +3215,7 @@ bool FirebaseESP8266::sendFCMMessage(FirebaseData &dataObj, uint8_t messageType)
     if (dataObj._http.http_connected())
         forceEndHTTP(dataObj);
 
-    res = dataObj.fcm.fcm_connect(dataObj._http, _host, _port);
+    res = dataObj.fcm.fcm_connect(dataObj._http);
 
     if (!res)
     {
@@ -4623,9 +4623,14 @@ String FCMObject::getSendResult()
     return _sendResult.c_str();
 }
 
-bool FCMObject::fcm_connect(FirebaseHTTPClient &netClient, const std::string &host, uint16_t port)
+bool FCMObject::fcm_connect(FirebaseHTTPClient &netClient)
 {
-    int httpConnected = netClient.http_begin(ESP8266_FIREBASE_STR_120, port);
+    char *host = new char[100];
+    memset(host, 0, 100);
+    strcpy_P(host, ESP8266_FIREBASE_STR_120);
+    int httpConnected = netClient.http_begin(host, _port);
+
+    delete[] host;
 
     if (!httpConnected)
         return false;

@@ -364,7 +364,7 @@ public:
   friend FirebaseData;
 
 private:
-  bool fcm_connect(FirebaseHTTPClient &netClient, const std::string &host, uint16_t port);
+  bool fcm_connect(FirebaseHTTPClient &netClient);
 
   bool fcm_send(FirebaseHTTPClient &netClient, int &httpcode, uint8_t messageType);
 
@@ -391,6 +391,7 @@ private:
   std::string _sendResult = "";
   int _ttl = -1;
   uint16_t _index = 0;
+  uint16_t _port = 443;
   std::vector<std::string> _deviceToken;
 };
 
