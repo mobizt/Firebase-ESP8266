@@ -1,19 +1,18 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.0.2
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.0.3
 * 
- * May 1, 2019
+ * May 4, 2019
  * 
  * Feature Added:
- * - examples
+ * - Firebase Cloud Messaging
  * 
  * Feature Fixed:
- * - readStream bugs
- *  
  * 
+ *  
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
  * and delete calls. 
  * 
- * The library was test and work well with ESP32s based module and add support for multiple stream event path.
+ * The library was test and work well with ESP8266 based module and add support for multiple stream event path.
  * 
  * The MIT License (MIT)
  * Copyright (c) 2019 K. Suwatchai (Mobizt)
@@ -69,6 +68,13 @@ struct FirebaseESP8266::FirebaseMethod
     static const uint8_t RESTORE = 9;
     static const uint8_t GET_RULES = 10;
     static const uint8_t SET_RULES = 11;
+};
+
+struct FirebaseESP8266::FCMMessageType
+{
+    static const uint8_t SINGLE = 0;
+    static const uint8_t MULTICAST = 1;
+    static const uint8_t TOPIC = 2;
 };
 
 FirebaseESP8266::FirebaseESP8266() {}
@@ -158,11 +164,11 @@ bool FirebaseESP8266::buildRequest(FirebaseData &dataObj, uint8_t firebaseMethod
 
     unsigned long lastTime = millis();
 
-    if (dataObj._streamCall)
-        while (dataObj._streamCall && millis() - lastTime < 1000)
+    if (dataObj._streamCall || dataObj._cfmCall)
+        while ((dataObj._streamCall || dataObj._cfmCall) && millis() - lastTime < 1000)
             delay(1);
 
-    if (dataObj._streamCall)
+    if (dataObj._streamCall || dataObj._cfmCall)
     {
         dataObj._httpCode = HTTPC_ERROR_CONNECTION_INUSED;
         return false;
@@ -217,11 +223,11 @@ bool FirebaseESP8266::buildRequestFile(FirebaseData &dataObj, uint8_t firebaseMe
 
     unsigned long lastTime = millis();
 
-    if (dataObj._streamCall)
-        while (dataObj._streamCall && millis() - lastTime < 1000)
+    if (dataObj._streamCall || dataObj._cfmCall)
+        while ((dataObj._streamCall || dataObj._cfmCall) && millis() - lastTime < 1000)
             delay(1);
 
-    if (dataObj._streamCall)
+    if (dataObj._streamCall || dataObj._cfmCall)
     {
         dataObj._httpCode = HTTPC_ERROR_CONNECTION_INUSED;
         return false;
@@ -2383,7 +2389,7 @@ bool FirebaseESP8266::getServerStreamResponse(FirebaseData &dataObj)
             if (!apConnected(dataObj))
                 return false;
 
-            while (dataObj._firebaseCall)
+            while (dataObj._firebaseCall || dataObj._cfmCall)
                 delay(1);
 
             dataObj._streamCall = true;
@@ -2412,7 +2418,7 @@ bool FirebaseESP8266::getServerStreamResponse(FirebaseData &dataObj)
         if (!apConnected(dataObj))
             return false;
 
-        while (dataObj._firebaseCall)
+        while (dataObj._firebaseCall || dataObj._cfmCall)
             delay(1);
 
         dataObj._streamCall = true;
@@ -2451,6 +2457,7 @@ bool FirebaseESP8266::apConnected(FirebaseData &dataObj)
         dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
         dataObj._firebaseCall = false;
         dataObj._streamCall = false;
+        dataObj._cfmCall = false;
         return false;
     }
     return true;
@@ -3128,9 +3135,114 @@ void FirebaseESP8266::errorToString(int httpCode, std::string &buf)
     case FIREBASE_ERROR_BUFFER_OVERFLOW:
         p_memCopy(buf, ESP8266_FIREBASE_STR_68);
         return;
+    case HTTPC_NO_FCM_TOPIC_PROVIDED:
+        buf = ESP8266_FIREBASE_STR_144;
+        return;
+    case HTTPC_NO_FCM_DEVICE_TOKEN_PROVIDED:
+        buf = ESP8266_FIREBASE_STR_145;
+        return;
+    case HTTPC_NO_FCM_SERVER_KEY_PROVIDED:
+        buf = ESP8266_FIREBASE_STR_146;
+        return;
+    case HTTPC_NO_FCM_INDEX_NOT_FOUND_IN_DEVICE_TOKEN_PROVIDED:
+        buf = ESP8266_FIREBASE_STR_147;
+        return;
+
     default:
         return;
     }
+}
+
+bool FirebaseESP8266::sendFCMMessage(FirebaseData &dataObj, uint8_t messageType)
+{
+    if (dataObj.fcm._server_key.length() == 0)
+    {
+        dataObj._httpCode = HTTPC_NO_FCM_SERVER_KEY_PROVIDED;
+        return false;
+    }
+
+    if (dataObj.fcm._deviceToken.size() == 0)
+    {
+        dataObj._httpCode = HTTPC_NO_FCM_DEVICE_TOKEN_PROVIDED;
+        return false;
+    }
+
+    if (messageType == FirebaseESP8266::FCMMessageType::SINGLE && dataObj.fcm._deviceToken.size() > 0 && dataObj.fcm._index > dataObj.fcm._deviceToken.size() - 1)
+    {
+        dataObj._httpCode = HTTPC_NO_FCM_INDEX_NOT_FOUND_IN_DEVICE_TOKEN_PROVIDED;
+        return false;
+    }
+
+    if (messageType == FirebaseESP8266::FCMMessageType::TOPIC && dataObj.fcm._topic.length() == 0)
+    {
+        dataObj._httpCode = HTTPC_NO_FCM_TOPIC_PROVIDED;
+        return false;
+    }
+
+    //Try to reconnect WiFi if lost connection
+    if (_reconnectWiFi && WiFi.status() != WL_CONNECTED)
+    {
+        uint8_t tryCount = 0;
+        WiFi.reconnect();
+        while (WiFi.status() != WL_CONNECTED)
+        {
+            tryCount++;
+            delay(50);
+            if (tryCount > 60)
+                break;
+        }
+    }
+
+    //If WiFi is not connected, return false
+    if (!apConnected(dataObj))
+        return false;
+
+    bool res = false;
+    unsigned long lastTime = millis();
+
+    if (dataObj._streamCall || dataObj._firebaseCall || dataObj._cfmCall)
+        while ((dataObj._streamCall || dataObj._firebaseCall || dataObj._cfmCall) && millis() - lastTime < 1000)
+            delay(1);
+
+    if (dataObj._streamCall || dataObj._firebaseCall || dataObj._cfmCall)
+    {
+        dataObj._httpCode = HTTPC_ERROR_CONNECTION_INUSED;
+        return false;
+    }
+
+    dataObj._cfmCall = true;
+
+    if (dataObj._http.http_connected())
+        forceEndHTTP(dataObj);
+
+    res = dataObj.fcm.fcm_connect(dataObj._http, _host, _port);
+
+    if (!res)
+    {
+        dataObj._httpCode = HTTPC_ERROR_CONNECTION_REFUSED;
+        dataObj._cfmCall = false;
+        return false;
+    }
+
+    res = dataObj.fcm.fcm_send(dataObj._http, dataObj._httpCode, messageType);
+    dataObj._cfmCall = false;
+    return res;
+}
+
+bool FirebaseESP8266::sendMessage(FirebaseData &dataObj, uint16_t index)
+{
+    dataObj.fcm._index = index;
+    return sendFCMMessage(dataObj, FirebaseESP8266::FCMMessageType::SINGLE);
+}
+
+bool FirebaseESP8266::broadcastMessage(FirebaseData &dataObj)
+{
+    return sendFCMMessage(dataObj, FirebaseESP8266::FCMMessageType::MULTICAST);
+}
+
+bool FirebaseESP8266::sendTopic(FirebaseData &dataObj)
+{
+    return sendFCMMessage(dataObj, FirebaseESP8266::FCMMessageType::TOPIC);
 }
 
 void FirebaseESP8266::clearErrorQueue(FirebaseData &dataObj)
@@ -4406,6 +4518,461 @@ bool QueueManager::add(QueueItem q)
 void QueueManager::remove(uint8_t index)
 {
     _queueCollection.erase(_queueCollection.begin() + index);
+}
+
+FCMObject::FCMObject() {}
+FCMObject::~FCMObject()
+{
+    clear();
+}
+
+void FCMObject::begin(const String &serverKey)
+{
+    _server_key = serverKey.c_str();
+}
+
+void FCMObject::addDeviceToken(const String &deviceToken)
+{
+    _deviceToken.push_back(deviceToken.c_str());
+}
+void FCMObject::removeDeviceToken(uint16_t index)
+{
+    if (_deviceToken.size() > 0)
+    {
+        std::string().swap(_deviceToken[index]);
+        _deviceToken.erase(_deviceToken.begin() + index);
+    }
+}
+void FCMObject::clearDeviceToken()
+{
+    for (size_t i = 0; i < _deviceToken.size(); i++)
+    {
+        std::string().swap(_deviceToken[i]);
+        _deviceToken.erase(_deviceToken.begin() + i);
+    }
+}
+
+void FCMObject::setNotifyMessage(const String &title, const String &body)
+{
+    _notify_title = title.c_str();
+    _notify_body = body.c_str();
+    _notify_icon = "";
+    _notify_click_action = "";
+}
+
+void FCMObject::setNotifyMessage(const String &title, const String &body, const String &icon)
+{
+    _notify_title = title.c_str();
+    _notify_body = body.c_str();
+    _notify_icon = icon.c_str();
+    _notify_click_action = "";
+}
+
+void FCMObject::setNotifyMessage(const String &title, const String &body, const String &icon, const String &click_action)
+{
+    _notify_title = title.c_str();
+    _notify_body = body.c_str();
+    _notify_icon = icon.c_str();
+    _notify_click_action = click_action.c_str();
+}
+
+void FCMObject::clearNotifyMessage()
+{
+    _notify_title = "";
+    _notify_body = "";
+    _notify_icon = "";
+    _notify_click_action = "";
+}
+
+void FCMObject::setDataMessage(const String &jsonString)
+{
+    _data_msg = jsonString.c_str();
+}
+
+void FCMObject::clearDataMessage()
+{
+    _data_msg = "";
+}
+
+void FCMObject::setPriority(const String &priority)
+{
+    _priority = priority.c_str();
+}
+
+void FCMObject::setCollapseKey(const String &key)
+{
+    _collapse_key = key.c_str();
+}
+
+void FCMObject::setTimeToLive(uint32_t seconds)
+{
+    if (seconds <= 2419200)
+        _ttl = seconds;
+    else
+        _ttl = -1;
+}
+
+void FCMObject::setTopic(const String &topic)
+{
+    _topic = ESP8266_FIREBASE_STR_134;
+    _topic += topic.c_str();
+}
+
+String FCMObject::getSendResult()
+{
+    return _sendResult.c_str();
+}
+
+bool FCMObject::fcm_connect(FirebaseHTTPClient &netClient, const std::string &host, uint16_t port)
+{
+    int httpConnected = netClient.http_begin(ESP8266_FIREBASE_STR_120, port);
+
+    if (!httpConnected)
+        return false;
+
+    return true;
+}
+void FCMObject::fcm_buildHeader(char *header, size_t payloadSize)
+{
+    char *len = new char[20];
+    memset(len, 0, 20);
+
+    strcpy_P(header, ESP8266_FIREBASE_STR_24);
+    strcat_P(header, ESP8266_FIREBASE_STR_6);
+    strcat_P(header, ESP8266_FIREBASE_STR_121);
+    strcat_P(header, ESP8266_FIREBASE_STR_30);
+
+    strcat_P(header, ESP8266_FIREBASE_STR_31);
+    strcat_P(header, ESP8266_FIREBASE_STR_120);
+    strcat_P(header, ESP8266_FIREBASE_STR_21);
+
+    strcat_P(header, ESP8266_FIREBASE_STR_131);
+    strcat(header, _server_key.c_str());
+    strcat_P(header, ESP8266_FIREBASE_STR_21);
+
+    strcat_P(header, ESP8266_FIREBASE_STR_32);
+
+    strcat_P(header, ESP8266_FIREBASE_STR_8);
+    strcat_P(header, ESP8266_FIREBASE_STR_129);
+    strcat_P(header, ESP8266_FIREBASE_STR_21);
+
+    strcat_P(header, ESP8266_FIREBASE_STR_12);
+    itoa(payloadSize, len, 10);
+    strcat(header, len);
+    strcat_P(header, ESP8266_FIREBASE_STR_21);
+    strcat_P(header, ESP8266_FIREBASE_STR_34);
+    strcat_P(header, ESP8266_FIREBASE_STR_21);
+    delete[] len;
+}
+
+void FCMObject::fcm_buildPayload(char *msg, uint8_t messageType)
+{
+
+    if (_notify_title.length() > 0 || _notify_body.length() > 0)
+    {
+        strcat_P(msg, ESP8266_FIREBASE_STR_122);
+        strcat_P(msg, ESP8266_FIREBASE_STR_123);
+        strcat(msg, _notify_title.c_str());
+        strcat_P(msg, ESP8266_FIREBASE_STR_124);
+        strcat(msg, _notify_body.c_str());
+        strcat_P(msg, ESP8266_FIREBASE_STR_3);
+
+        if (_notify_icon.length() > 0)
+        {
+            strcat_P(msg, ESP8266_FIREBASE_STR_125);
+            strcat(msg, _notify_icon.c_str());
+            strcat_P(msg, ESP8266_FIREBASE_STR_3);
+        }
+
+        if (_notify_click_action.length() > 0)
+        {
+            strcat_P(msg, ESP8266_FIREBASE_STR_126);
+            strcat(msg, _notify_click_action.c_str());
+            strcat_P(msg, ESP8266_FIREBASE_STR_3);
+        }
+
+        strcat_P(msg, ESP8266_FIREBASE_STR_127);
+    }
+    if (messageType == FirebaseESP8266::FCMMessageType::SINGLE)
+    {
+        strcat_P(msg, ESP8266_FIREBASE_STR_128);
+
+        strcat(msg, _deviceToken[_index].c_str());
+
+        strcat_P(msg, ESP8266_FIREBASE_STR_3);
+    }
+    else if (messageType == FirebaseESP8266::FCMMessageType::MULTICAST)
+    {
+        strcat_P(msg, ESP8266_FIREBASE_STR_130);
+
+        for (uint16_t i = 0; i < _deviceToken.size(); i++)
+        {
+            if (i > 0)
+                strcat_P(msg, ESP8266_FIREBASE_STR_132);
+
+            strcat_P(msg, ESP8266_FIREBASE_STR_3);
+            strcat(msg, _deviceToken[i].c_str());
+            strcat_P(msg, ESP8266_FIREBASE_STR_3);
+        }
+
+        strcat_P(msg, ESP8266_FIREBASE_STR_133);
+    }
+    else if (messageType == FirebaseESP8266::FCMMessageType::TOPIC)
+    {
+        strcat_P(msg, ESP8266_FIREBASE_STR_128);
+
+        strcat(msg, _topic.c_str());
+
+        strcat_P(msg, ESP8266_FIREBASE_STR_3);
+    }
+
+    if (_data_msg.length() > 0)
+    {
+        strcat_P(msg, ESP8266_FIREBASE_STR_135);
+        strcat(msg, _data_msg.c_str());
+    }
+
+    if (_priority.length() > 0)
+    {
+        strcat_P(msg, ESP8266_FIREBASE_STR_136);
+        strcat(msg, _priority.c_str());
+        strcat_P(msg, ESP8266_FIREBASE_STR_3);
+    }
+
+    if (_ttl > -1)
+    {
+        char *ttl = new char[20];
+        memset(ttl, 0, 20);
+        strcat_P(msg, ESP8266_FIREBASE_STR_137);
+        itoa(_ttl, ttl, 10);
+        strcat(msg, ttl);
+        delete[] ttl;
+    }
+
+    if (_collapse_key.length() > 0)
+    {
+        strcat_P(msg, ESP8266_FIREBASE_STR_138);
+        strcat(msg, _collapse_key.c_str());
+        strcat_P(msg, ESP8266_FIREBASE_STR_3);
+    }
+
+    strcat_P(msg, ESP8266_FIREBASE_STR_127);
+}
+
+bool FCMObject::getFCMServerResponse(FirebaseHTTPClient &netClient, int &httpcode)
+{
+    if (WiFi.status() != WL_CONNECTED)
+    {
+        httpcode = HTTPC_ERROR_CONNECTION_LOST;
+        return false;
+    }
+
+    if (!netClient.client)
+    {
+        httpcode = HTTPC_ERROR_CONNECTION_LOST;
+        return false;
+    }
+
+    bool flag = false;
+    char *lineBuf = new char[FIREBASE_RESPONSE_SIZE];
+    memset(lineBuf, 0, FIREBASE_RESPONSE_SIZE);
+
+    uint16_t tempBufSize = FIREBASE_RESPONSE_SIZE;
+    char *tmp = new char[tempBufSize];
+    memset(tmp, 0, tempBufSize);
+
+    char *fstr = new char[60];
+    memset(fstr, 0, 60);
+
+    _sendResult = "";
+
+    char c;
+    int p1;
+    httpcode = -1000;
+
+    size_t lfCount = 0;
+    size_t charPos = 0;
+
+    bool payloadBegin = false;
+
+    unsigned long dataTime = millis();
+
+    while (netClient.client.connected() && !netClient.client.available() && millis() - dataTime < 5000)
+    {
+        if (WiFi.status() != WL_CONNECTED)
+        {
+            httpcode = HTTPC_ERROR_CONNECTION_LOST;
+            return false;
+        }
+        delay(1);
+    }
+
+    dataTime = millis();
+    if (netClient.client.connected() && netClient.client.available())
+    {
+
+        while (netClient.client.available())
+        {
+
+            if (WiFi.status() != WL_CONNECTED)
+            {
+                httpcode = HTTPC_ERROR_CONNECTION_LOST;
+                return false;
+            }
+
+            c = netClient.client.read();
+
+            if (c != '\r' && c != '\n')
+                strcat_c(lineBuf, c);
+
+            charPos++;
+
+            if (c == '\n')
+            {
+
+                dataTime = millis();
+
+                memset(fstr, 0, 60);
+                strcpy_P(fstr, ESP8266_FIREBASE_STR_5);
+
+                p1 = strpos(lineBuf, fstr, 0);
+                if (p1 != -1)
+                {
+
+                    memset(tmp, 0, tempBufSize);
+                    strncpy(tmp, lineBuf + p1 + 9, strlen(lineBuf) - p1 - 9);
+                    httpcode = atoi(tmp);
+                }
+
+                if (httpcode == _HTTP_CODE_OK && lfCount > 0 && strlen(lineBuf) == 0)
+                    payloadBegin = true;
+
+                if (!payloadBegin)
+                    memset(lineBuf, 0, FIREBASE_RESPONSE_SIZE);
+
+                lfCount++;
+                charPos = 0;
+            }
+
+            if (millis() - dataTime > 5000)
+            {
+                httpcode = HTTPC_ERROR_READ_TIMEOUT;
+                break;
+            }
+        }
+
+        _sendResult = lineBuf;
+
+        if (!httpcode)
+            httpcode = HTTPC_ERROR_NO_HTTP_SERVER;
+
+        goto EXIT_5;
+    }
+
+    delete[] lineBuf;
+    delete[] tmp;
+    delete[] fstr;
+
+    if (httpcode == -1000)
+    {
+        httpcode = 0;
+        flag = true;
+    }
+
+    return flag;
+
+EXIT_5:
+
+    delete[] lineBuf;
+    delete[] tmp;
+    delete[] fstr;
+
+    if (httpcode == HTTPC_ERROR_READ_TIMEOUT)
+        return false;
+
+    return httpcode == _HTTP_CODE_OK;
+}
+
+bool FCMObject::fcm_send(FirebaseHTTPClient &netClient, int &httpcode, uint8_t messageType)
+{
+
+    char *msg = new char[400];
+    char *header = new char[400];
+
+    memset(msg, 0, 400);
+    memset(header, 0, 400);
+
+    fcm_buildPayload(msg, messageType);
+
+    fcm_buildHeader(header, strlen(msg));
+
+    if (WiFi.status() != WL_CONNECTED)
+    {
+        httpcode = HTTPC_ERROR_CONNECTION_LOST;
+        return false;
+    }
+
+    uint8_t retryCount = 0;
+    httpcode = netClient.http_sendRequest(header, "");
+    while (httpcode != 0)
+    {
+        retryCount++;
+        if (retryCount > 5)
+            break;
+
+        httpcode = netClient.http_sendRequest(header, "");
+    }
+
+    if (httpcode != 0)
+        return false;
+
+    httpcode = netClient.http_sendRequest("", msg);
+
+    delete[] msg;
+    delete[] header;
+
+    if (httpcode != 0)
+        return false;
+
+    bool res = getFCMServerResponse(netClient, httpcode);
+
+    return res;
+}
+
+void FCMObject::clear()
+{
+    std::string().swap(_notify_title);
+    std::string().swap(_notify_body);
+    std::string().swap(_notify_icon);
+    std::string().swap(_notify_click_action);
+    std::string().swap(_data_msg);
+    std::string().swap(_priority);
+    std::string().swap(_collapse_key);
+    std::string().swap(_topic);
+    std::string().swap(_server_key);
+    std::string().swap(_sendResult);
+    _ttl = -1;
+    _index = 0;
+    clearDeviceToken();
+    std::vector<std::string>().swap(_deviceToken);
+}
+
+void FCMObject::strcat_c(char *str, char c)
+{
+    for (; *str; str++)
+        ;
+    *str++ = c;
+    *str++ = 0;
+}
+
+int FCMObject::strpos(const char *haystack, const char *needle, int offset)
+{
+    char _haystack[strlen(haystack)];
+    strncpy(_haystack, haystack + offset, strlen(haystack) - offset);
+    char *p = strstr(_haystack, needle);
+    if (p)
+        return p - _haystack + offset;
+    return -1;
 }
 
 FirebaseESP8266 Firebase = FirebaseESP8266();
