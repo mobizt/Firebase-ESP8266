@@ -1,5 +1,5 @@
 /*
- * HTTP Client wrapper v1.0.0
+ * HTTP Client wrapper v1.0.1
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
  * and delete calls. 
@@ -74,6 +74,7 @@ using namespace axTLS;
 #define _HTTP_CODE_PROXY_AUTHENTICATION_REQUIRED 407
 #define _HTTP_CODE_REQUEST_TIMEOUT 408
 #define _HTTP_CODE_LENGTH_REQUIRED 411
+#define _HTTP_CODE_PRECONDITION_FAILED 412
 #define _HTTP_CODE_PAYLOAD_TOO_LARGE 413
 #define _HTTP_CODE_URI_TOO_LONG 414
 #define _HTTP_CODE_MISDIRECTED_REQUEST 421
@@ -88,6 +89,7 @@ using namespace axTLS;
 #define _HTTP_CODE_HTTP_VERSION_NOT_SUPPORTED 505
 #define _HTTP_CODE_LOOP_DETECTED 508
 #define _HTTP_CODE_NETWORK_AUTHENTICATION_REQUIRED 511
+
 
 class FirebaseHTTPClient
 {
