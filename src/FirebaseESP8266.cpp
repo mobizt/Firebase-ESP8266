@@ -5,6 +5,7 @@
  * 
  * Feature Added:
  * - ETag
+ * - Classic HTTP hacks
  * 
  * Feature Fixed:
  * 
@@ -283,6 +284,11 @@ String FirebaseESP8266::getETag(FirebaseData &dataObj, const String &path)
         return dataObj._etag.c_str();
     else
         return String();
+}
+
+void FirebaseESP8266::enableClassicRequest(FirebaseData &dataObj, bool flag)
+{
+    dataObj._classicRequest = flag;
 }
 
 bool FirebaseESP8266::pushInt(FirebaseData &dataObj, const String &path, int intValue)
@@ -2808,6 +2814,8 @@ void FirebaseESP8266::sendFirebaseRequest(FirebaseData &dataObj, const char *hos
     uint8_t retryCount = 0;
     uint8_t maxRetry = 5;
 
+    uint8_t http_method = 0;
+
     size_t headerSize = 400;
     char *request = new char[headerSize];
     memset(request, 0, headerSize);
@@ -2831,24 +2839,36 @@ void FirebaseESP8266::sendFirebaseRequest(FirebaseData &dataObj, const char *hos
     {
 
         if (method == FirebaseMethod::PUT || method == FirebaseMethod::PUT_SILENT || method == FirebaseMethod::SET_RULES)
-
-            strcpy_P(request, ESP8266_FIREBASE_STR_23);
-
+        {
+            http_method = FirebaseMethod::PUT;
+            if (!dataObj._classicRequest)
+                strcpy_P(request, ESP8266_FIREBASE_STR_23);
+            else
+                strcpy_P(request, ESP8266_FIREBASE_STR_24);
+        }
         else if (method == FirebaseMethod::POST)
-
+        {
+            http_method = FirebaseMethod::POST;
             strcpy_P(request, ESP8266_FIREBASE_STR_24);
-
+        }
         else if (method == FirebaseMethod::GET || method == FirebaseMethod::BACKUP || method == FirebaseMethod::GET_RULES)
-
+        {
+            http_method = FirebaseMethod::GET;
             strcpy_P(request, ESP8266_FIREBASE_STR_25);
-
+        }
         else if (method == FirebaseMethod::PATCH || method == FirebaseMethod::PATCH_SILENT || method == FirebaseMethod::RESTORE)
-
+        {
+            http_method = FirebaseMethod::PATCH;
             strcpy_P(request, ESP8266_FIREBASE_STR_26);
-
+        }
         else if (method == FirebaseMethod::DELETE)
-
-            strcpy_P(request, ESP8266_FIREBASE_STR_27);
+        {
+            http_method = FirebaseMethod::DELETE;
+            if (!dataObj._classicRequest)
+                strcpy_P(request, ESP8266_FIREBASE_STR_23);
+            else
+                strcpy_P(request, ESP8266_FIREBASE_STR_27);
+        }
 
         strcat_P(request, ESP8266_FIREBASE_STR_6);
 
@@ -2997,6 +3017,18 @@ void FirebaseESP8266::sendFirebaseRequest(FirebaseData &dataObj, const char *hos
     {
         strcat_P(request, ESP8266_FIREBASE_STR_149);
         strcat(request, dataObj._etag2.c_str());
+        strcat_P(request, ESP8266_FIREBASE_STR_21);
+    }
+
+    if (dataObj._classicRequest && http_method != FirebaseMethod::GET && http_method != FirebaseMethod::POST && http_method != FirebaseMethod::PATCH)
+    {
+        strcat_P(request, ESP8266_FIREBASE_STR_153);
+
+        if (http_method == FirebaseMethod::PUT)
+            strcat_P(request, ESP8266_FIREBASE_STR_23);
+        else if (http_method == FirebaseMethod::DELETE)
+            strcat_P(request, ESP8266_FIREBASE_STR_27);
+
         strcat_P(request, ESP8266_FIREBASE_STR_21);
     }
 

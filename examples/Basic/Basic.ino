@@ -42,6 +42,13 @@ void setup()
 
   Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
   Firebase.reconnectWiFi(true);
+  
+  /*
+  This option allows get and delete functions (PUT and DELETE HTTP requests) works for device connected behind the
+  Firewall that allows only GET and POST requests.
+  
+  Firebase.enableClassicRequest(firebaseData, true);
+  */
 
   String path = "/ESP8266_Test";
   String jsonStr;
