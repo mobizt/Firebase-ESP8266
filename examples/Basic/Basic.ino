@@ -64,6 +64,7 @@ void setup()
       Serial.println("PASSED");
       Serial.println("PATH: " + firebaseData.dataPath());
       Serial.println("TYPE: " + firebaseData.dataType());
+      Serial.println("ETag: " + firebaseData.ETag());
       Serial.print("VALUE: ");
       if (firebaseData.dataType() == "int")
         Serial.println(firebaseData.intData());
@@ -100,6 +101,7 @@ void setup()
       Serial.println("PASSED");
       Serial.println("PATH: " + firebaseData.dataPath());
       Serial.println("TYPE: " + firebaseData.dataType());
+      Serial.println("ETag: " + firebaseData.ETag());
       Serial.print("VALUE: ");
       if (firebaseData.dataType() == "int")
         Serial.println(firebaseData.intData());
@@ -137,6 +139,7 @@ void setup()
       Serial.println("PATH: " + firebaseData.dataPath());
       Serial.print("PUSH NAME: ");
       Serial.println(firebaseData.pushName());
+      Serial.println("ETag: " + firebaseData.ETag());
       Serial.println("------------------------------------");
       Serial.println();
     }
@@ -163,6 +166,7 @@ void setup()
       Serial.println("PATH: " + firebaseData.dataPath());
       Serial.print("PUSH NAME: ");
       Serial.println(firebaseData.pushName());
+      Serial.println("ETag: " + firebaseData.ETag());
       Serial.println("------------------------------------");
       Serial.println();
     }
@@ -188,6 +192,7 @@ void setup()
       Serial.println("PASSED");
       Serial.println("PATH: " + firebaseData.dataPath());
       Serial.println("TYPE: " + firebaseData.dataType());
+      //No ETag available
       Serial.print("VALUE: ");
       if (firebaseData.dataType() == "int")
         Serial.println(firebaseData.intData());

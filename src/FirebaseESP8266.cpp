@@ -6,6 +6,7 @@
  * Feature Added:
  * - ETag
  * - Classic HTTP hacks
+ * - Server timestamp
  * 
  * Feature Fixed:
  * 
@@ -53,6 +54,7 @@ struct FirebaseESP8266::FirebaseDataType
     static const uint8_t JSON = 7;
     static const uint8_t BLOB = 8;
     static const uint8_t FILE = 9;
+    static const uint8_t TIMESTAMP = 10;
 };
 
 struct FirebaseESP8266::FirebaseMethod
@@ -382,6 +384,19 @@ bool FirebaseESP8266::pushFile(FirebaseData &dataObj, const String &path, const 
     return buildRequestFile(dataObj, FirebaseMethod::POST, path, fileName, false);
 }
 
+bool FirebaseESP8266::pushTimestamp(FirebaseData &dataObj, const String &path)
+{
+    size_t tmpSize = strlen(ESP8266_FIREBASE_STR_154) + 1;
+    char *tmp = new char[tmpSize];
+    memset(tmp, 0, tmpSize);
+
+    std::string blobStr = "";
+    strcpy_P(tmp, ESP8266_FIREBASE_STR_154);
+    bool flag = buildRequest(dataObj, FirebaseMethod::POST, FirebaseDataType::TIMESTAMP, path, tmp, false);
+    delete[] tmp;
+    return flag;
+}
+
 bool FirebaseESP8266::setInt(FirebaseData &dataObj, const String &path, int intValue)
 {
     size_t bufSize = 50;
@@ -527,7 +542,7 @@ bool FirebaseESP8266::setBlob(FirebaseData &dataObj, const String &path, uint8_t
     blobStr = tmp;
     blobStr += base64_encode_string((const unsigned char *)blob, size);
     memset(tmp, 0, tmpSize);
-    strcpy(tmp, ESP8266_FIREBASE_STR_3);
+    strcpy_P(tmp, ESP8266_FIREBASE_STR_3);
     blobStr += tmp;
 
     bool flag = buildRequest(dataObj, FirebaseMethod::PUT_SILENT, FirebaseDataType::BLOB, path, blobStr.c_str(), false);
@@ -549,7 +564,7 @@ bool FirebaseESP8266::setBlob(FirebaseData &dataObj, const String &path, uint8_t
     blobStr = tmp;
     blobStr += base64_encode_string((const unsigned char *)blob, size);
     memset(tmp, 0, tmpSize);
-    strcpy(tmp, ESP8266_FIREBASE_STR_3);
+    strcpy_P(tmp, ESP8266_FIREBASE_STR_3);
     blobStr += tmp;
 
     bool flag = buildRequest(dataObj, FirebaseMethod::PUT_SILENT, FirebaseDataType::BLOB, path, blobStr.c_str(), false, ETag.c_str());
@@ -568,6 +583,19 @@ bool FirebaseESP8266::setFile(FirebaseData &dataObj, const String &path, const S
 bool FirebaseESP8266::setFile(FirebaseData &dataObj, const String &path, const String &fileName, const String &ETag)
 {
     return buildRequestFile(dataObj, FirebaseMethod::PUT_SILENT, path, fileName, false, ETag.c_str());
+}
+
+bool FirebaseESP8266::setTimestamp(FirebaseData &dataObj, const String &path)
+{
+    size_t tmpSize = strlen(ESP8266_FIREBASE_STR_154) + 1;
+    char *tmp = new char[tmpSize];
+    memset(tmp, 0, tmpSize);
+
+    std::string blobStr = "";
+    strcpy_P(tmp, ESP8266_FIREBASE_STR_154);
+    bool flag = buildRequest(dataObj, FirebaseMethod::PUT, FirebaseDataType::TIMESTAMP, path, tmp, false);
+    delete[] tmp;
+    return flag;
 }
 
 bool FirebaseESP8266::updateNode(FirebaseData &dataObj, const String path, const String jsonString)
@@ -1093,7 +1121,7 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const std::string &p
     if (method != FirebaseMethod::BACKUP && method != FirebaseMethod::RESTORE && dataType != FirebaseDataType::FILE)
     {
 
-        sendFirebaseRequest(dataObj, _host.c_str(), method, path.c_str(), _auth.c_str(), strlen(payloadStr));
+        sendFirebaseRequest(dataObj, _host.c_str(), method, dataType, path.c_str(), _auth.c_str(), strlen(payloadStr));
     }
     else
     {
@@ -1204,13 +1232,13 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const std::string &p
         }
 
         if (dataType == FirebaseDataType::FILE)
-            sendFirebaseRequest(dataObj, _host.c_str(), method, dataObj._path.c_str(), _auth.c_str(), len);
+            sendFirebaseRequest(dataObj, _host.c_str(), method, dataType, dataObj._path.c_str(), _auth.c_str(), len);
 
         else
-            sendFirebaseRequest(dataObj, _host.c_str(), method, dataObj._backupNodePath.c_str(), _auth.c_str(), len);
+            sendFirebaseRequest(dataObj, _host.c_str(), method, dataType, dataObj._backupNodePath.c_str(), _auth.c_str(), len);
     }
 
-    if (method == FirebaseMethod::PATCH_SILENT || (method == FirebaseMethod::PUT_SILENT && dataType == FirebaseDataType::BLOB))
+    if (method == FirebaseMethod::GET_SILENT || method == FirebaseMethod::PATCH_SILENT || (method == FirebaseMethod::PUT_SILENT && dataType == FirebaseDataType::BLOB))
         dataObj._isSilentResponse = true;
 
     if (dataType == FirebaseDataType::BLOB)
@@ -2809,7 +2837,7 @@ bool FirebaseESP8266::isErrorQueueExisted(FirebaseData &dataObj, uint32_t errorQ
     return false;
 }
 
-void FirebaseESP8266::sendFirebaseRequest(FirebaseData &dataObj, const char *host, uint8_t method, const char *path, const char *auth, size_t payloadLength)
+void FirebaseESP8266::sendFirebaseRequest(FirebaseData &dataObj, const char *host, uint8_t method, uint8_t dataType, const char *path, const char *auth, size_t payloadLength)
 {
     uint8_t retryCount = 0;
     uint8_t maxRetry = 5;
@@ -2851,7 +2879,7 @@ void FirebaseESP8266::sendFirebaseRequest(FirebaseData &dataObj, const char *hos
             http_method = FirebaseMethod::POST;
             strcpy_P(request, ESP8266_FIREBASE_STR_24);
         }
-        else if (method == FirebaseMethod::GET || method == FirebaseMethod::BACKUP || method == FirebaseMethod::GET_RULES)
+        else if (method == FirebaseMethod::GET || method == FirebaseMethod::GET_SILENT || method == FirebaseMethod::BACKUP || method == FirebaseMethod::GET_RULES)
         {
             http_method = FirebaseMethod::GET;
             strcpy_P(request, ESP8266_FIREBASE_STR_25);
@@ -3009,8 +3037,8 @@ void FirebaseESP8266::sendFirebaseRequest(FirebaseData &dataObj, const char *hos
 
     strcat_P(request, ESP8266_FIREBASE_STR_33);
 
-    //ETag
-    if (method == FirebaseMethod::DELETE || method == FirebaseMethod::GET || method == FirebaseMethod::GET_SILENT || method == FirebaseMethod::PUT || method == FirebaseMethod::PUT_SILENT || method == FirebaseMethod::POST)
+    //Timestamp cannot use with ETag header, otherwise cases internal server error
+    if (dataType != FirebaseDataType::TIMESTAMP && (method == FirebaseMethod::DELETE || method == FirebaseMethod::GET || method == FirebaseMethod::GET_SILENT || method == FirebaseMethod::PUT || method == FirebaseMethod::PUT_SILENT || method == FirebaseMethod::POST))
         strcat_P(request, ESP8266_FIREBASE_STR_148);
 
     if (dataObj._etag2.length() > 0 && (method == FirebaseMethod::PUT || method == FirebaseMethod::PUT_SILENT || method == FirebaseMethod::DELETE))
