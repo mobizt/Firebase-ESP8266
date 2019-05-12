@@ -1,12 +1,14 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.0.4
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.1.0
 * 
- * May 6, 2019
+ * May 12, 2019
  * 
  * Feature Added:
  * - ETag
  * - Classic HTTP hacks
  * - Server timestamp
+ * - Shallowed Data
+ * - Priority value
  * 
  * Feature Fixed:
  * 
@@ -235,6 +237,15 @@ static const char ESP8266_FIREBASE_STR_151[] PROGMEM = "null_etag";
 static const char ESP8266_FIREBASE_STR_152[] PROGMEM = "Precondition Failed (ETag is not match)";
 static const char ESP8266_FIREBASE_STR_153[] PROGMEM = "X-HTTP-Method-Override: ";
 static const char ESP8266_FIREBASE_STR_154[] PROGMEM = "{\".sv\": \"timestamp\"}";
+static const char ESP8266_FIREBASE_STR_155[] PROGMEM = "&shallow=true";  
+static const char ESP8266_FIREBASE_STR_156[] PROGMEM = "/.priority";     
+static const char ESP8266_FIREBASE_STR_157[] PROGMEM = ",\".priority\":"; 
+static const char ESP8266_FIREBASE_STR_158[] PROGMEM = "&timeout=";       
+static const char ESP8266_FIREBASE_STR_159[] PROGMEM = "ms";              
+static const char ESP8266_FIREBASE_STR_160[] PROGMEM = "&writeSizeLimit="; 
+static const char ESP8266_FIREBASE_STR_161[] PROGMEM = "{\".value\":";     
+static const char ESP8266_FIREBASE_STR_162[] PROGMEM = "&format=export";     
+
 
 static const unsigned char ESP8266_FIREBASE_base64_table[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -412,8 +423,8 @@ public:
   void orderBy(const String &);
   void limitToFirst(int);
   void limitToLast(int);
-  void startAt(int);
-  void endAt(int);
+  void startAt(float);
+  void endAt(float);
   void startAt(const String &);
   void endAt(const String &);
   void equalTo(int);
@@ -490,7 +501,7 @@ public:
   /*
     Store Firebase's authentication credentials.
 
-    @param host - Your Firebase database project host without http:// or https:// protocol e.g. Your_ProjectID.firebaseio.com.
+    @param host - Your Firebase database project host e.g. Your_ProjectID.firebaseio.com.
     @param auth - Your database secret.
 
   */
@@ -503,6 +514,28 @@ public:
 
   */
   void reconnectWiFi(bool reconnect);
+
+  /*
+    Set the timeouts of get function.
+
+    @param dataObj - Firebase Data Object to hold data and instances.
+
+    @param millisec - The missiseconds to limit the request (0 - 900,000 ms or 15 min).
+
+  */
+  void setReadTimeout(FirebaseData &dataObj, int millisec); 
+
+  /*
+    Set the timeouts of get function.
+
+    @param dataObj - Firebase Data Object to hold data and instances.
+
+    @param size - The size identified string e.g. tiny, small, medium, large and unlimited.
+
+    Size string and its write timeout e.g. tiny (1s), small (10s), medium (30s) and large (60s).
+
+  */
+  void setwriteSizeLimit(FirebaseData &dataObj, const String &size); 
 
   /*
     Read the database rules.
@@ -549,6 +582,22 @@ public:
   String getETag(FirebaseData &dataObj, const String &path);
 
   /*
+    Get the shallowed data at defined node path.
+
+    @param dataObj - Firebase Data Object to hold data and instances.
+
+    @param path - Database path being read the data.
+
+    @return - Boolean type status indicates the success of operation.
+
+    Return the child data with its value or JSON object (its values will be truncated to true).
+
+    Call [FirebaseData object].stringData() to get shallowed string data (number, string and JSON object).
+
+  */
+  bool getShallowData(FirebaseData &dataObj, const String &path); 
+
+  /*
     Enable the library to use only classic HTTP GET and POST methods.
 
     @param dataObj - Firebase Data Object to hold data and instances.
@@ -561,6 +610,35 @@ public:
 
   */
   void enableClassicRequest(FirebaseData &dataObj, bool flag);
+
+  /*
+    Set the virtual child node ".priority" to the defined database path. 
+    
+    @param dataObj - Firebase Data Object to hold data and instances.
+    @param path - Target database path which to set the prioity value.
+    @param priority - The priority value.
+    
+    @return - Boolean type status indicates the success of operation.
+
+    This allows us to set priority to any node other than priority that set through setJSON, pushJSON, updateNode and updateNodeSilent functions.
+    
+    The returned priority value from server can read from function [FirebaseData object].priority().
+
+   */
+  bool setPriority(FirebaseData &dataObj, const String &path, float priority); 
+
+  /*
+    Read the virtual child node ".priority" value at the defined database path. 
+    
+    @param dataObj - Firebase Data Object to hold data and instances.
+    @param path - Target database path which to set the prioity value.
+    
+    @return - Boolean type status indicates the success of operation.
+
+    The priority value from server can read from function [FirebaseData object].priority().
+
+   */
+  bool getPriority(FirebaseData &dataObj, const String &path); 
 
   /*
     Append new integer value to the defined database path.
@@ -578,6 +656,13 @@ public:
   bool pushInt(FirebaseData &dataObj, const String &path, int intValue);
 
   /*
+
+    Append new integer value and the virtual child ".priority" to the defined database path.
+
+  */
+  bool pushInt(FirebaseData &dataObj, const String &path, int intValue, float priority); 
+
+  /*
     Append new float value to the defined database path.
 
     @param dataObj - Firebase Data Object to hold data and instances.
@@ -591,6 +676,13 @@ public:
 
   */
   bool pushFloat(FirebaseData &dataObj, const String &path, float floatValue);
+
+  /*
+
+    Append new float value and the virtual child ".priority" to the defined database path.
+
+  */
+  bool pushFloat(FirebaseData &dataObj, const String &path, float floatValue, float priority);
 
   /*
     Append new double value (8 bytes) to the defined database path.
@@ -608,6 +700,13 @@ public:
   bool pushDouble(FirebaseData &dataObj, const String &path, double doubleValue);
 
   /*
+
+    Append new double value (8 bytes) and the virtual child ".priority" to the defined database path.
+
+  */
+  bool pushDouble(FirebaseData &dataObj, const String &path, double doubleValue, float priority);
+
+  /*
     Append new Boolean value to the defined database path.
 
     @param dataObj - Firebase Data Object to hold data and instances.
@@ -621,6 +720,14 @@ public:
 
   */
   bool pushBool(FirebaseData &dataObj, const String &path, bool boolValue);
+
+
+  /*
+
+    Append new Boolean value and the virtual child ".priority" to the defined database path.
+
+  */
+  bool pushBool(FirebaseData &dataObj, const String &path, bool boolValue, float priority);
 
   /*
     Append new string (text) to the defined database path.
@@ -638,6 +745,13 @@ public:
   bool pushString(FirebaseData &dataObj, const String &path, const String &stringValue);
 
   /*
+
+    Append new string (text) and the virtual child ".priority" to the defined database path.
+
+  */
+  bool pushString(FirebaseData &dataObj, const String &path, const String &stringValue, float priority);
+
+  /*
     Append new child nodes's key and value (using JSON data) to the defined database path.
 
     @param dataObj - Firebase Data Object to hold data and instances.
@@ -651,6 +765,13 @@ public:
 
   */
   bool pushJSON(FirebaseData &dataObj, const String &path, const String &jsonString);
+
+  /*
+
+    Append new child nodes's key and value (using JSON data) and the virtual child ".priority" to the defined database path.
+
+  */
+  bool pushJSON(FirebaseData &dataObj, const String &path, const String &jsonString, float priority); 
 
   /*
     Append new blob (binary data) to the defined database path.
@@ -669,6 +790,13 @@ public:
   bool pushBlob(FirebaseData &dataObj, const String &path, uint8_t *blob, size_t size);
 
   /*
+
+    Append new blob (binary data) and the virtual child ".priority" to the defined database path.
+
+  */
+  bool pushBlob(FirebaseData &dataObj, const String &path, uint8_t *blob, size_t size, float priority);
+
+  /*
     Append new binary data from file store on SD card to the defined database path.
 
     @param dataObj - Firebase Data Object to hold data and instances.
@@ -682,6 +810,13 @@ public:
 
   */
   bool pushFile(FirebaseData &dataObj, const String &path, const String &fileName);
+
+  /*
+
+    Append new binary data from file store on SD card and the virtual child ".priority" to the defined database path.
+
+  */
+  bool pushFile(FirebaseData &dataObj, const String &path, const String &fileName, float priority);
 
   /*
     Append new Firebase server's timestamp to the defined database path.
@@ -716,6 +851,13 @@ public:
   bool setInt(FirebaseData &dataObj, const String &path, int intValue);
 
   /*
+
+    Set integer data and virtual child ".priority" at the defined database path.
+
+  */
+  bool setInt(FirebaseData &dataObj, const String &path, int intValue, float priority);
+
+  /*
     Set integer data at the defined database path if defined database path's ETag matched the ETag value.
 
     @param dataObj - Firebase Data Object to hold data and instances.
@@ -739,6 +881,13 @@ public:
   bool setInt(FirebaseData &dataObj, const String &path, int intValue, const String &ETag);
 
   /*
+
+    Set integer data and the virtual child ".priority" if defined ETag matches at the defined database path 
+
+  */
+  bool setInt(FirebaseData &dataObj, const String &path, int intValue, float priority, const String &ETag);
+
+  /*
     Set float data at the defined database path.
 
     @param dataObj - Firebase Data Object to hold data and instances.
@@ -755,6 +904,13 @@ public:
 
   */
   bool setFloat(FirebaseData &dataObj, const String &path, float floatValue);
+
+  /*
+
+    Set float data and virtual child ".priority" at the defined database path.
+
+  */
+  bool setFloat(FirebaseData &dataObj, const String &path, float floatValue, float priority);
 
   /*
     Set float data at the defined database path if defined database path's ETag matched the ETag value.
@@ -782,6 +938,13 @@ public:
   bool setFloat(FirebaseData &dataObj, const String &path, float floatValue, const String &ETag);
 
   /*
+
+    Set float data and the virtual child ".priority" if defined ETag matches at the defined database path 
+
+  */
+  bool setFloat(FirebaseData &dataObj, const String &path, float floatValue, float priority, const String &ETag);
+
+  /*
     Set double data at the defined database path.
 
     @param dataObj - Firebase Data Object to hold data and instances.
@@ -798,6 +961,13 @@ public:
 
   */
   bool setDouble(FirebaseData &dataObj, const String &path, double doubleValue);
+
+  /*
+
+    Set double data and virtual child ".priority" at the defined database path.
+
+  */
+  bool setDouble(FirebaseData &dataObj, const String &path, double doubleValue, float priority);
 
   /*
     Set double data at the defined database path if defined database path's ETag matched the ETag value.
@@ -825,6 +995,13 @@ public:
   bool setDouble(FirebaseData &dataObj, const String &path, double doubleValue, const String &ETag);
 
   /*
+
+    Set double data and the virtual child ".priority" if defined ETag matches at the defined database path 
+
+  */
+  bool setDouble(FirebaseData &dataObj, const String &path, double doubleValue, float priority, const String &ETag);
+
+  /*
     Set Boolean data at the defined database path.
 
     @param dataObj - Firebase Data Object to hold data and instances.
@@ -841,6 +1018,13 @@ public:
 
   */
   bool setBool(FirebaseData &dataObj, const String &path, bool boolValue);
+  
+  /*
+
+    Set boolean data and virtual child ".priority" at the defined database path.
+
+  */
+  bool setBool(FirebaseData &dataObj, const String &path, bool boolValue, float priority);
 
   /*
     Set Boolean data at the defined database path if defined database path's ETag matched the ETag value.
@@ -868,6 +1052,13 @@ public:
   bool setBool(FirebaseData &dataObj, const String &path, bool boolValue, const String &ETag);
 
   /*
+
+    Set boolean data and the virtual child ".priority" if defined ETag matches at the defined database path 
+
+  */
+  bool setBool(FirebaseData &dataObj, const String &path, bool boolValue, float priority, const String &ETag);
+
+  /*
     Set string (text) at the defined database path.
 
     @param dataObj - Firebase Data Object to hold data and instances.
@@ -884,6 +1075,13 @@ public:
 
   */
   bool setString(FirebaseData &dataObj, const String &path, const String &stringValue);
+
+  /*
+
+    Set string data and virtual child ".priority" at the defined database path.
+
+  */
+  bool setString(FirebaseData &dataObj, const String &path, const String &stringValue, float priority);
 
   /*
     Set string (text) at the defined database path if defined database path's ETag matched the ETag value.
@@ -910,6 +1108,15 @@ public:
    */
   bool setString(FirebaseData &dataObj, const String &path, const String &stringValue, const String &ETag);
 
+
+  /*
+
+    Set string data and the virtual child ".priority" if defined ETag matches at the defined database path 
+
+  */
+  bool setString(FirebaseData &dataObj, const String &path, const String &stringValue, float priority, const String &ETag);
+
+
   /*
 
     Set child nodes's key and value (using JSON data) to the defined database path.
@@ -931,6 +1138,13 @@ public:
 
   */
   bool setJSON(FirebaseData &dataObj, const String &path, const String &jsonString);
+
+  /*
+
+    Set JSON data and virtual child ".priority" at the defined database path.
+
+  */
+  bool setJSON(FirebaseData &dataObj, const String &path, const String &jsonString, float priority); 
 
   /*
 
@@ -962,6 +1176,13 @@ public:
   bool setJSON(FirebaseData &dataObj, const String &path, const String &jsonString, const String &ETag);
 
   /*
+
+    Set JSON data and the virtual child ".priority" if defined ETag matches at the defined database path 
+
+  */
+  bool setJSON(FirebaseData &dataObj, const String &path, const String &jsonString, float priority, const String &ETag); 
+
+  /*
     Set blob (binary data) at the defined database path.
 
     This will replace any child nodes inside the defined path with blob or binary data.
@@ -977,6 +1198,13 @@ public:
 
   */
   bool setBlob(FirebaseData &dataObj, const String &path, uint8_t *blob, size_t size);
+  
+  /*
+
+    Set blob data and virtual child ".priority" at the defined database path.
+
+  */
+   bool setBlob(FirebaseData &dataObj, const String &path, uint8_t *blob, size_t size, float priority);
 
   /*
     Set blob (binary data) at the defined database path if defined database path's ETag matched the ETag value.
@@ -1000,6 +1228,13 @@ public:
   bool setBlob(FirebaseData &dataObj, const String &path, uint8_t *blob, size_t size, const String &ETag);
 
   /*
+
+    Set blob data and the virtual child ".priority" if defined ETag matches at the defined database path 
+
+  */
+  bool setBlob(FirebaseData &dataObj, const String &path, uint8_t *blob, size_t size, float priority, const String &ETag);
+
+  /*
     Set binary data from file store on SD card to the defined database path.
 
     @param dataObj - Firebase Data Object to hold data and instances.
@@ -1013,6 +1248,13 @@ public:
 
   */
   bool setFile(FirebaseData &dataObj, const String &path, const String &fileName);
+
+  /*
+
+    Set binary data from file and virtual child ".priority" at the defined database path.
+
+  */
+  bool setFile(FirebaseData &dataObj, const String &path, const String &fileName, float priority);
 
   /*
     Set binary data from file store on SD card to the defined database path if defined database path's ETag matched the ETag value.
@@ -1031,6 +1273,13 @@ public:
 
    */
   bool setFile(FirebaseData &dataObj, const String &path, const String &fileName, const String &ETag);
+
+  /*
+
+    Set binary data from file and the virtual child ".priority" if defined ETag matches at the defined database path 
+
+  */
+  bool setFile(FirebaseData &dataObj, const String &path, const String &fileName, float priority, const String &ETag);
 
   /*
     Set Firebase server's timestamp to the defined database path.
@@ -1067,6 +1316,13 @@ public:
   bool updateNode(FirebaseData &dataObj, const String path, const String jsonString);
 
   /*
+
+    Update child nodes's key or exising key's value and virtual child ".priority" (using JSON data) under the defined database path.
+
+  */
+  bool updateNode(FirebaseData &dataObj, const String &path, const String &jsonString, float priority);
+
+  /*
     Update child nodes's key or exising key's value (using JSON data) under the defined database path.
 
     @param dataObj - Firebase Data Object to hold data and instances.
@@ -1080,6 +1336,13 @@ public:
 
   */
   bool updateNodeSilent(FirebaseData &dataObj, const String &path, const String &jsonString);
+
+  /*
+
+    Update child nodes's key or exising key's value and virtual child ".priority" (using JSON data) under the defined database path.
+
+  */
+  bool updateNodeSilent(FirebaseData &dataObj, const String &path, const String &jsonString, float priority);
 
   /*
     Read the integer value at the defined database path.
@@ -1658,12 +1921,23 @@ public:
    */
   bool sendTopic(FirebaseData &dataObj);
 
-  void errorToString(int httpCode, std::string &buf);
+  void errorToString(int httpCode, std::string &buff);
 
 protected:
-  bool buildRequest(FirebaseData &dataObj, uint8_t firebaseMethod, uint8_t firebaseDataType, const String &path, const char *buf, bool queue, const std::string &etag = "");
-  bool buildRequestFile(FirebaseData &dataObj, uint8_t firebaseMethod, const String &path, const String &fileName, bool queue, const std::string &etag = "");
-  bool sendRequest(FirebaseData &dataObj, const std::string &path, const uint8_t method, uint8_t dataType, const std::string &payload, const std::string &etag);
+  bool pushInt(FirebaseData &dataObj, const std::string &path, int intValue, bool queue, const std::string &priority);
+  bool pushFloat(FirebaseData &dataObj, const std::string &path, float floatValue, bool queue, const std::string &priority);
+  bool pushDouble(FirebaseData &dataObj, const std::string &path, double doubleValue, bool queue, const std::string &priority);
+  bool pushBool(FirebaseData &dataObj, const std::string &path, bool boolValue, bool queue, const std::string &priority);
+  bool pushBlob(FirebaseData &dataObj, const std::string &path, uint8_t *blob, size_t size, bool queue, const std::string &priority);
+  bool setInt(FirebaseData &dataObj, const std::string &path, int intValue, bool queue, const std::string &priority,const std::string &etag);
+  bool setFloat(FirebaseData &dataObj, const std::string &path, float floatValue, bool queue, const std::string &priority,const std::string &etag);
+  bool setDouble(FirebaseData &dataObj, const std::string &path, double doubleValue, bool queue, const std::string &priority,const std::string &etag);
+  bool setBool(FirebaseData &dataObj, const std::string &path, bool boolValue, bool queue, const std::string &priority,const std::string &etag);
+  bool setBlob(FirebaseData &dataObj, const std::string &path, uint8_t *blob, size_t size, bool queue, const std::string &priority,const std::string &etag);
+
+  bool buildRequest(FirebaseData &dataObj, uint8_t firebaseMethod, uint8_t firebaseDataType, const std::string &path, const char *buff, bool queue, const std::string &priority, const std::string &etag = ""); 
+  bool buildRequestFile(FirebaseData &dataObj, uint8_t firebaseMethod, const std::string &path, const std::string &fileName, bool queue, const std::string &priority, const std::string &etag = "");                
+  bool sendRequest(FirebaseData &dataObj, const std::string &path, const uint8_t method, uint8_t dataType, const std::string &payload, const std::string &priority, const std::string &etag); 
   void sendFirebaseRequest(FirebaseData &dataObj, const char *host, uint8_t method, uint8_t dataType, const char *path, const char *auth, size_t payloadLength);
   void endFileTransfer(FirebaseData &dataObj);
   bool firebaseConnectStream(FirebaseData &dataObj, const std::string &path);
@@ -1677,15 +1951,14 @@ protected:
   bool handleNetClientNotConnected(FirebaseData &dataObj);
   void forceEndHTTP(FirebaseData &dataObj);
   bool apConnected(FirebaseData &dataObj);
-  int firebaseConnect(FirebaseData &dataObj, const std::string &path, const uint8_t method, uint8_t dataType, const std::string &payload);
+  int firebaseConnect(FirebaseData &dataObj, const std::string &path, const uint8_t method, uint8_t dataType, const std::string &payload, const std::string &priority);
   bool cancelCurrentResponse(FirebaseData &dataObj);
   void setDataType(FirebaseData &dataObj, const char *data);
   bool commError(FirebaseData &dataObj);
   uint8_t openErrorQueue(FirebaseData &dataObj, const String &filename, uint8_t storageType, uint8_t mode);
   std::vector<std::string> splitString(int size, const char *str, const char delim);
 
-  void p_memCopy(std::string &buf, const char *p, bool empty = false);
-  inline std::string trim(std::string &str);
+  void p_memCopy(std::string &buff, const char *p, bool empty = false);
   bool sdTest();
   void createDirs(std::string dirs);
   bool replace(std::string &str, const std::string &from, const std::string &to);
@@ -2041,6 +2314,7 @@ protected:
   std::string _eventType = "";
   std::string _etag = "";
   std::string _etag2 = "";
+  std::string _priority = "";              
 
   uint16_t _maxBlobSize = 1024;
 
@@ -2048,6 +2322,13 @@ protected:
 
   int _httpCode = -1000;
   int _contentLength = 0;
+
+  
+  bool _priority_val_flag = false;  
+  bool _priority_json_flag = false; 
+  bool _shallow_flag = false;       
+  int _readTimeout = -1;            
+  std::string _writeLimit = "";     
 
   unsigned long _dataMillis = 0;
   unsigned long _streamMillis = 0;

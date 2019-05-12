@@ -48,7 +48,6 @@ void setup()
     Firebase.reconnectWiFi(true);
 
     String path = "/ESP8266_Test";
-    String jsonStr;
 
     String ETag = "";
     String wrong_ETag = "ANY_WRONG_ETag";

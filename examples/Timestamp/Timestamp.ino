@@ -54,7 +54,6 @@ void setup()
   */
 
   String path = "/ESP8266_Test";
-  String jsonStr;
 
   Serial.println("------------------------------------");
   Serial.println("Set Timestamp test...");
