@@ -11,6 +11,7 @@
  * - Priority value
  * 
  * Feature Fixed:
+ * - SD initialize fixed for ESP8266 v2.5.1
  * 
  *  
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -46,6 +47,7 @@
 #include <Arduino.h>
 #include <core_version.h>
 //ARDUINO_ESP8266_GIT_VER
+//2.5.1 0xac02aff5
 //2.5.0 0x951aeffa
 //2.5.0-beta3 0x21db8fc9
 //2.5.0-beta2 0x0fd86a07
@@ -75,6 +77,7 @@
 #define FIEBASE_PORT 443
 #define FIREBASE_RESPONSE_SIZE 400
 #define KEEP_ALIVE_TIMEOUT 30000
+#define SD_CS_PIN 15
 
 #define HTTPC_ERROR_CONNECTION_INUSED -16
 #define HTTPC_NO_FCM_TOPIC_PROVIDED -17

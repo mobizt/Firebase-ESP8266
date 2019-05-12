@@ -11,8 +11,9 @@
  * - Priority value
  * 
  * Feature Fixed:
- * 
+ * - SD initialize fixed for ESP8266 v2.5.1
  *  
+ * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
  * and delete calls. 
  * 
@@ -4130,7 +4131,7 @@ bool FirebaseESP8266::sdTest()
     std::string filepath = "";
     p_memCopy(filepath, ESP8266_FIREBASE_STR_73, true);
 
-    SD.begin();
+    SD.begin(SD_CS_PIN);
 
     file = SD.open(filepath.c_str(), FILE_WRITE);
     if (!file)
