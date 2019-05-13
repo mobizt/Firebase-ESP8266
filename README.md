@@ -54,7 +54,7 @@ This library supports ESP8266 MCU from Espressif. The following are platforms wh
 
 * **Supports Automatic Stream Resuming.** 
 
-* **Supports Multiple Streaming.**
+* **Supports Multiple Streamings.**
 
 * **Supports Pause and Resume Firebase Operations.**
 
