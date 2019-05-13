@@ -1,14 +1,9 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.1.0
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.1.1
 * 
- * May 12, 2019
+ * May 13, 2019
  * 
  * Feature Added:
- * - ETag
- * - Classic HTTP hacks
- * - Server timestamp
- * - Shallowed Data
- * - Priority value
  * 
  * Feature Fixed:
  * - SD initialize fixed for ESP8266 v2.5.1
