@@ -1,8 +1,8 @@
 ---
 name: Bug report
 about: Create a report to help us improve
-title: ''
-labels: bug, good first issue, wontfix
+title: BUG
+labels: bug, good first issue, invalid, wontfix
 assignees: ''
 
 ---
