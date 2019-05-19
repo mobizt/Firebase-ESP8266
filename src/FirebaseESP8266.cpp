@@ -6,7 +6,7 @@
  * Feature Added:
  * 
  * Feature Fixed:
- * - Cloud Messaging
+ * - Cloud Messaging 
  *  
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
