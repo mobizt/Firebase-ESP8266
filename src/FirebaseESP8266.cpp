@@ -1,12 +1,12 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.1.1
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.1.2
 * 
- * May 13, 2019
+ * May 19, 2019
  * 
  * Feature Added:
  * 
  * Feature Fixed:
- * - SD initialize fixed for ESP8266 v2.5.1
+ * - Cloud Messaging
  *  
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -181,11 +181,11 @@ bool FirebaseESP8266::buildRequest(FirebaseData &dataObj, uint8_t firebaseMethod
 
     unsigned long lastTime = millis();
 
-    if (dataObj._streamCall || dataObj._cfmCall)
-        while ((dataObj._streamCall || dataObj._cfmCall) && millis() - lastTime < 1000)
+    if (dataObj._streamCall || dataObj._fcmCall)
+        while ((dataObj._streamCall || dataObj._fcmCall) && millis() - lastTime < 1000)
             delay(1);
 
-    if (dataObj._streamCall || dataObj._cfmCall)
+    if (dataObj._streamCall || dataObj._fcmCall)
     {
         dataObj._httpCode = HTTPC_ERROR_CONNECTION_INUSED;
         return false;
@@ -237,11 +237,11 @@ bool FirebaseESP8266::buildRequestFile(FirebaseData &dataObj, uint8_t firebaseMe
 
     unsigned long lastTime = millis();
 
-    if (dataObj._streamCall || dataObj._cfmCall)
-        while ((dataObj._streamCall || dataObj._cfmCall) && millis() - lastTime < 1000)
+    if (dataObj._streamCall || dataObj._fcmCall)
+        while ((dataObj._streamCall || dataObj._fcmCall) && millis() - lastTime < 1000)
             delay(1);
 
-    if (dataObj._streamCall || dataObj._cfmCall)
+    if (dataObj._streamCall || dataObj._fcmCall)
     {
         dataObj._httpCode = HTTPC_ERROR_CONNECTION_INUSED;
         return false;
@@ -2931,7 +2931,7 @@ bool FirebaseESP8266::getServerStreamResponse(FirebaseData &dataObj)
             if (!apConnected(dataObj))
                 return false;
 
-            while (dataObj._firebaseCall || dataObj._cfmCall)
+            while (dataObj._firebaseCall || dataObj._fcmCall)
                 delay(1);
 
             dataObj._streamCall = true;
@@ -2960,7 +2960,7 @@ bool FirebaseESP8266::getServerStreamResponse(FirebaseData &dataObj)
         if (!apConnected(dataObj))
             return false;
 
-        while (dataObj._firebaseCall || dataObj._cfmCall)
+        while (dataObj._firebaseCall || dataObj._fcmCall)
             delay(1);
 
         dataObj._streamCall = true;
@@ -2999,7 +2999,7 @@ bool FirebaseESP8266::apConnected(FirebaseData &dataObj)
         dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
         dataObj._firebaseCall = false;
         dataObj._streamCall = false;
-        dataObj._cfmCall = false;
+        dataObj._fcmCall = false;
         return false;
     }
     return true;
@@ -3738,7 +3738,7 @@ bool FirebaseESP8266::sendFCMMessage(FirebaseData &dataObj, uint8_t messageType)
         return false;
     }
 
-    if (dataObj.fcm._deviceToken.size() == 0)
+    if (dataObj.fcm._deviceToken.size() == 0 && messageType == FirebaseESP8266::FCMMessageType::SINGLE)
     {
         dataObj._httpCode = HTTPC_NO_FCM_DEVICE_TOKEN_PROVIDED;
         return false;
@@ -3777,17 +3777,17 @@ bool FirebaseESP8266::sendFCMMessage(FirebaseData &dataObj, uint8_t messageType)
     bool res = false;
     unsigned long lastTime = millis();
 
-    if (dataObj._streamCall || dataObj._firebaseCall || dataObj._cfmCall)
-        while ((dataObj._streamCall || dataObj._firebaseCall || dataObj._cfmCall) && millis() - lastTime < 1000)
+    if (dataObj._streamCall || dataObj._firebaseCall || dataObj._fcmCall)
+        while ((dataObj._streamCall || dataObj._firebaseCall || dataObj._fcmCall) && millis() - lastTime < 1000)
             delay(1);
 
-    if (dataObj._streamCall || dataObj._firebaseCall || dataObj._cfmCall)
+    if (dataObj._streamCall || dataObj._firebaseCall || dataObj._fcmCall)
     {
         dataObj._httpCode = HTTPC_ERROR_CONNECTION_INUSED;
         return false;
     }
 
-    dataObj._cfmCall = true;
+    dataObj._fcmCall = true;
 
     if (dataObj._http.http_connected())
         forceEndHTTP(dataObj);
@@ -3797,12 +3797,12 @@ bool FirebaseESP8266::sendFCMMessage(FirebaseData &dataObj, uint8_t messageType)
     if (!res)
     {
         dataObj._httpCode = HTTPC_ERROR_CONNECTION_REFUSED;
-        dataObj._cfmCall = false;
+        dataObj._fcmCall = false;
         return false;
     }
 
     res = dataObj.fcm.fcm_send(dataObj._http, dataObj._httpCode, messageType);
-    dataObj._cfmCall = false;
+    dataObj._fcmCall = false;
     return res;
 }
 
