@@ -7,7 +7,7 @@
  * 
  * Feature Fixed:
  * - Flash string error in FCMObject::setTopic 
- *  
+ * - Fixed incorrect Delete function header when classic http request is used
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
  * and delete calls. 
@@ -3240,10 +3240,10 @@ void FirebaseESP8266::sendFirebaseRequest(FirebaseData &dataObj, const char *hos
         if (method == FirebaseMethod::PUT || method == FirebaseMethod::PUT_SILENT || method == FirebaseMethod::SET_PRIORITY || method == FirebaseMethod::SET_RULES)
         {
             http_method = FirebaseMethod::PUT;
-            if (!dataObj._classicRequest)
-                strcpy_P(request, ESP8266_FIREBASE_STR_23);
-            else
+            if (dataObj._classicRequest)
                 strcpy_P(request, ESP8266_FIREBASE_STR_24);
+            else
+                strcpy_P(request, ESP8266_FIREBASE_STR_23);
         }
         else if (method == FirebaseMethod::POST)
         {
@@ -3263,8 +3263,8 @@ void FirebaseESP8266::sendFirebaseRequest(FirebaseData &dataObj, const char *hos
         else if (method == FirebaseMethod::DELETE)
         {
             http_method = FirebaseMethod::DELETE;
-            if (!dataObj._classicRequest)
-                strcpy_P(request, ESP8266_FIREBASE_STR_23);
+            if (dataObj._classicRequest)
+                strcpy_P(request, ESP8266_FIREBASE_STR_24);
             else
                 strcpy_P(request, ESP8266_FIREBASE_STR_27);
         }
