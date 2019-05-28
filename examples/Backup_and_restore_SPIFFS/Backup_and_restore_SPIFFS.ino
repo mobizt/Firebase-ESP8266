@@ -11,8 +11,6 @@
 
 //This example shows how to backup and restore database data
 
-
-
 //FirebaseESP8266.h must be included before ESP8266WiFi.h
 #include "FirebaseESP8266.h"
 #include <ESP8266WiFi.h>
@@ -48,15 +46,15 @@ void setup()
   Serial.println("------------------------------------");
   Serial.println("Backup test...");
 
-  //Download and save data to SD card.
+  //Download and save data to Flash memory.
   //{TARGET_NODE_PATH} is the full path of database to backup and restore.
-  //{FILE_NAME} is file name in 8.3 DOS format (max. 8 bytes file name and 3 bytes file extension)
+  //{FILE_NAME} is file name included path to save to Flash meory
 
-  if (!Firebase.backup(firebaseData, StorageType::SD, "/{TARGET_NODE_PATH}", "/{FILE_NAME}"))
+  if (!Firebase.backup(firebaseData, StorageType::SPIFFS, "/{TARGET_NODE_PATH}", "/{FILE_NAME}"))
   {
     Serial.println("FAILED");
     Serial.println("REASON: " + firebaseData.fileTransferError());
-	Serial.println("------------------------------------");
+    Serial.println("------------------------------------");
     Serial.println();
   }
   else
@@ -64,29 +62,29 @@ void setup()
     Serial.println("PASSED");
     Serial.println("BACKUP FILE: " + firebaseData.getBackupFilename());
     Serial.println("FILE SIZE: " + String(firebaseData.getBackupFileSize()));
-	Serial.println("------------------------------------");
+    Serial.println("------------------------------------");
     Serial.println();
   }
 
   Serial.println("------------------------------------");
   Serial.println("Restore test...");
 
-  //Restore data to defined database path using backup file on SD card.
+  //Restore data to defined database path using backup file on Flash memory.
   //{TARGET_NODE_PATH} is the full path of database to restore
-  //{FILE_NAME} is file name in 8.3 DOS format (max. 8 bytes file name and 3 bytes file extension)
+  //{FILE_NAME} is file name included path of backed up file.
 
-  if (!Firebase.restore(firebaseData, StorageType::SD, "/{TARGET_NODE_PATH}", "/{FILE_NAME}"))
+  if (!Firebase.restore(firebaseData, StorageType::SPIFFS, "/{TARGET_NODE_PATH}", "/{FILE_NAME}"))
   {
     Serial.println("FAILED");
     Serial.println("REASON: " + firebaseData.fileTransferError());
-	Serial.println("------------------------------------");
+    Serial.println("------------------------------------");
     Serial.println();
   }
   else
   {
     Serial.println("PASSED");
     Serial.println("BACKUP FILE: " + firebaseData.getBackupFilename());
-	Serial.println("------------------------------------");
+    Serial.println("------------------------------------");
     Serial.println();
   }
 }

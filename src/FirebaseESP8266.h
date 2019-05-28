@@ -1,13 +1,13 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.1.3
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.1.4
 * 
- * May 25, 2019
+ * May 28, 2019
  * 
  * Feature Added:
+ * - SPIFFS now supported by setFile, pushFile, getFile, backup and restore functions. 
  * 
  * Feature Fixed:
- * - Flash string error in FCMObject::setTopic 
- * - Fixed incorrect Delete function header when classic http request is used
+ * - Flash string error in query object
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
  * and delete calls. 
@@ -242,8 +242,8 @@ static const char ESP8266_FIREBASE_STR_158[] PROGMEM = "&timeout=";
 static const char ESP8266_FIREBASE_STR_159[] PROGMEM = "ms";              
 static const char ESP8266_FIREBASE_STR_160[] PROGMEM = "&writeSizeLimit="; 
 static const char ESP8266_FIREBASE_STR_161[] PROGMEM = "{\".value\":";     
-static const char ESP8266_FIREBASE_STR_162[] PROGMEM = "&format=export";     
-
+static const char ESP8266_FIREBASE_STR_162[] PROGMEM = "&format=export";
+static const char ESP8266_FIREBASE_STR_163[] PROGMEM = "Flash memory was not ready";
 
 static const unsigned char ESP8266_FIREBASE_base64_table[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -440,6 +440,12 @@ protected:
   std::string _equalTo = "";
 };
 
+struct StorageType
+{
+  static const uint8_t SPIFFS = 0;
+  static const uint8_t SD = 1;
+};
+
 struct QueueStorageType
 {
   static const uint8_t SPIFFS = 0;
@@ -454,6 +460,7 @@ struct QueueItem
   uint32_t timestamp = 0;
   uint8_t runCount = 0;
   uint8_t runIndex = 0;
+  uint8_t storageType = 0;
 
   std::string path = "";
   std::string payload = "";
@@ -795,11 +802,12 @@ public:
   bool pushBlob(FirebaseData &dataObj, const String &path, uint8_t *blob, size_t size, float priority);
 
   /*
-    Append new binary data from file store on SD card to the defined database path.
+    Append new binary data from file store on SD card/Flash memory to the defined database path.
 
     @param dataObj - Firebase Data Object to hold data and instances.
+    @param storageType - Type of storage to read file data, StorageType::SPIFS or StorageType::SD.
     @param path - Target database path which binary data from file will be appended.
-    @param fileName - File name (8.3 DOS format) in SD card.
+    @param fileName - File name included its path in SD card/Flash memory.
 
     @return - Boolean type status indicates the success of operation.
 
@@ -807,14 +815,14 @@ public:
     which its value can be accessed via function [FirebaseData object].pushName().
 
   */
-  bool pushFile(FirebaseData &dataObj, const String &path, const String &fileName);
+  bool pushFile(FirebaseData &dataObj, uint8_t storageType, const String &path, const String &fileName);
 
   /*
 
-    Append new binary data from file store on SD card and the virtual child ".priority" to the defined database path.
+    Append new binary data from file store on SD card/Flash memory and the virtual child ".priority" to the defined database path.
 
   */
-  bool pushFile(FirebaseData &dataObj, const String &path, const String &fileName, float priority);
+  bool pushFile(FirebaseData &dataObj, uint8_t storageType, const String &path, const String &fileName, float priority);
 
   /*
     Append new Firebase server's timestamp to the defined database path.
@@ -1233,33 +1241,34 @@ public:
   bool setBlob(FirebaseData &dataObj, const String &path, uint8_t *blob, size_t size, float priority, const String &ETag);
 
   /*
-    Set binary data from file store on SD card to the defined database path.
+    Set binary data from file store on SD card/Flash memory to the defined database path.
 
     @param dataObj - Firebase Data Object to hold data and instances.
+    @param storageType - Type of storage to read file data, StorageType::SPIFS or StorageType::SD.
     @param path - Target database path which binary data from file will be set.
-    @param fileName - File name in 8.3 DOS format (max. 8 bytes file name and 3 bytes file extension)
-    stored in SD card.
+    @param fileName - File name included its path in SD card/Flash memory
 
     @return - Boolean type status indicates the success of operation.
 
     No payload returned from server.
 
   */
-  bool setFile(FirebaseData &dataObj, const String &path, const String &fileName);
+  bool setFile(FirebaseData &dataObj, uint8_t storageType,const String &path, const String &fileName);
 
   /*
 
     Set binary data from file and virtual child ".priority" at the defined database path.
 
   */
-  bool setFile(FirebaseData &dataObj, const String &path, const String &fileName, float priority);
+  bool setFile(FirebaseData &dataObj, uint8_t storageType, const String &path, const String &fileName, float priority);
 
   /*
-    Set binary data from file store on SD card to the defined database path if defined database path's ETag matched the ETag value.
+    Set binary data from file store on SD card/Flash memory to the defined database path if defined database path's ETag matched the ETag value.
 
     @param dataObj - Firebase Data Object to hold data and instances.
+    @param storageType - Type of storage to read file data, StorageType::SPIFS or StorageType::SD.
     @param path - Target database path which binary data from file will be set.
-    @param fileName - File name (full file path) in SD card.
+    @param fileName - File name included its path in SD card/Flash memory.
     @param ETag - Known unique identifier string (ETag) of defined database path.
 
     @return - Boolean type status indicates the success of operation.
@@ -1270,14 +1279,14 @@ public:
     the operation will failed with HTTP code 412, Precondition Failed (ETag is not match).
 
    */
-  bool setFile(FirebaseData &dataObj, const String &path, const String &fileName, const String &ETag);
+  bool setFile(FirebaseData &dataObj, uint8_t storageType, const String &path, const String &fileName, const String &ETag);
 
   /*
 
     Set binary data from file and the virtual child ".priority" if defined ETag matches at the defined database path 
 
   */
-  bool setFile(FirebaseData &dataObj, const String &path, const String &fileName, float priority, const String &ETag);
+  bool setFile(FirebaseData &dataObj, uint8_t storageType, const String &path, const String &fileName, float priority, const String &ETag);
 
   /*
     Set Firebase server's timestamp to the defined database path.
@@ -1649,20 +1658,21 @@ public:
   bool getBlob(FirebaseData &dataObj, const String &path, std::vector<uint8_t> &target);
 
   /*
-    Download file data in database at defined database path and save to SD card.
+    Download file data in database at defined database path and save to SD card/Flash memory.
 
     The downloaded data will be decoded to binary and save to SD card, then
     please make sure that data at the defined database path is file type.
 
     @param dataObj - Firebase Data Object to hold data and instances.
+    @param storageType - Type of storage to write file data, StorageType::SPIFS or StorageType::SD.
     @param nodePath - Database path that file data will be downloaded.
-    @param fileName - File name in 8.3 DOS format (max. 8 bytes file name and 3 bytes file extension)
+    @param fileName - File name included its path in SD card/Flash memory.
     to save in SD card.
 
     @return Boolean type status indicates the success of operation.
 
   */
-  bool getFile(FirebaseData &dataObj, const String &nodePath, const String &fileName);
+  bool getFile(FirebaseData &dataObj, uint8_t storageType, const String &nodePath, const String &fileName);
 
   /*
     Delete all child nodes at the defined database path.
@@ -1733,32 +1743,33 @@ public:
   bool endStream(FirebaseData &dataObj);
 
   /*
-    Backup (download) database at defined database path to SD card.
+    Backup (download) database at defined database path to SD card/Flash memory.
 
     @param dataObj - Firebase Data Object to hold data and instances.
+    @param storageType - Type of storage to save file, QueueStorageType::SPIFS or QueueStorageType::SD.
     @param nodePath - Database path to be backuped.
-    @param fileName - File name in 8.3 DOS format (max. 8 bytes file name and 3 bytes file extension) 
-    to save in SD card.
+    @param fileName - File name to save.
+    
+    Only 8.3 DOS format (max. 8 bytes file name and 3 bytes file extension) can be saved to SD card.
 
     @return Boolean type status indicates the success of operation.
 
 
   */
-  bool backup(FirebaseData &dataObj, const String &nodePath, const String &fileName);
+  bool backup(FirebaseData &dataObj, uint8_t storageType, const String &nodePath, const String &fileName);
 
   /*
-    Restore database at defined path usin backup file saved on SD card.
+    Restore database at defined path usin backup file saved on SD card/Flash memory.
 
     @param dataObj - Firebase Data Object to hold data and instances.
+    @param storageType - Type of storage to read file, QueueStorageType::SPIFS or QueueStorageType::SD.
     @param nodePath - Database path to  be restored.
-    @param fileName - Backup file name in 8.3 DOS format (max. 8 bytes file name and 3 bytes file extension)
-    stored in SD card.
-
+    @param fileName - File name to read
 
     @return Boolean type status indicates the success of operation.
 
   */
-  bool restore(FirebaseData &dataObj, const String &nodePath, const String &fileName);
+  bool restore(FirebaseData &dataObj, uint8_t storageType, const String &nodePath, const String &fileName);
 
   /*
 
@@ -1933,9 +1944,9 @@ protected:
   bool setBool(FirebaseData &dataObj, const std::string &path, bool boolValue, bool queue, const std::string &priority,const std::string &etag);
   bool setBlob(FirebaseData &dataObj, const std::string &path, uint8_t *blob, size_t size, bool queue, const std::string &priority,const std::string &etag);
 
-  bool buildRequest(FirebaseData &dataObj, uint8_t firebaseMethod, uint8_t firebaseDataType, const std::string &path, const char *buff, bool queue, const std::string &priority, const std::string &etag = ""); 
-  bool buildRequestFile(FirebaseData &dataObj, uint8_t firebaseMethod, const std::string &path, const std::string &fileName, bool queue, const std::string &priority, const std::string &etag = "");                
-  bool sendRequest(FirebaseData &dataObj, const std::string &path, const uint8_t method, uint8_t dataType, const std::string &payload, const std::string &priority, const std::string &etag); 
+  bool buildRequest(FirebaseData &dataObj, uint8_t firebaseMethod, uint8_t firebaseDataType, const std::string &path, const char *buff, bool queue, const std::string &priority, const std::string &etag = "");
+  bool buildRequestFile(FirebaseData &dataObj, uint8_t storageType, uint8_t firebaseMethod, const std::string &path, const std::string &fileName, bool queue, const std::string &priority, const std::string &etag = "");
+  bool sendRequest(FirebaseData &dataObj, uint8_t storageType, const std::string &path, const uint8_t method, uint8_t dataType, const std::string &payload, const std::string &priority, const std::string &etag);
   void sendFirebaseRequest(FirebaseData &dataObj, const char *host, uint8_t method, uint8_t dataType, const char *path, const char *auth, size_t payloadLength);
   void endFileTransfer(FirebaseData &dataObj);
   bool firebaseConnectStream(FirebaseData &dataObj, const std::string &path);
@@ -1958,10 +1969,10 @@ protected:
 
   void p_memCopy(std::string &buff, const char *p, bool empty = false);
   bool sdTest();
-  void createDirs(std::string dirs);
+  void createDirs(std::string dirs, uint8_t storageType);
   bool replace(std::string &str, const std::string &from, const std::string &to);
   std::string base64_encode_string(const unsigned char *src, size_t len);
-  void send_base64_encode_file(WiFiClientSecure &netClient, const std::string &filePath);
+  void send_base64_encode_file(WiFiClientSecure &netClient, const std::string &filePath, uint8_t storageType);
   bool base64_decode_string(const std::string src, std::vector<uint8_t> &out);
   bool base64_decode_file(File &file, const char *src, size_t len);
 
@@ -2223,9 +2234,9 @@ public:
 
   /*
 
-    Determine the name (full path) of backup file in SD card.
+    Determine the name (full path) of backup file in SD card/Flash memory.
 
-    @return String (String object) of file name that store on SD card after backup operation.
+    @return String (String object) of file name that store on SD card/Flash memory after backup operation.
 
   */
   String getBackupFilename();
@@ -2298,6 +2309,7 @@ protected:
 
   uint8_t _r_method = 0;
   uint8_t _r_dataType = 0;
+  uint8_t _storageType = 0;
 
   std::string _path = "";
   std::string _path2 = "";
@@ -2340,6 +2352,7 @@ protected:
   FirebaseHTTPClient _http;
 
   void addQueue(uint8_t firebaseMethod,
+                uint8_t storageType,
                 uint8_t firebaseDataType,
                 const std::string path,
                 const std::string filename,

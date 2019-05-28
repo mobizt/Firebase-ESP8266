@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.1.3
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.1.4
 
 
 This library supports ESP8266 MCU from Espressif. The following are platforms which library are also available.
@@ -26,7 +26,7 @@ This library supports ESP8266 MCU from Espressif. The following are platforms wh
 
 * **Not Required Fingerprint and Certificate.**
 
-* **Completed Firebase RTDB REST APIs Implementation.**
+* **Completed Google's Firebase RTDB REST APIs Implementation.**
 
 * **No Delay for Contiuous Read and Store Data.**
 
@@ -244,13 +244,15 @@ The server's **Timestamp** can be store in database through `Firebase.setTimesta
 
 The returned **Timestamp** value can get from `firebaseData.getInt()`. 
 
-The following example showed how to store file data to "/test/file_data".
+The following example showed how to store file data to Flash memory at "/test/file_data".
 
 
 ```C++
-if (Firebase.setFile(firebaseData, "/test/file_data", "/test.txt"))
+
+if (Firebase.setFile(firebaseData,StorateType::SPIFFS, "/test/file_data", "/test.txt"))
 {
-  File file = SD.open("/test.txt", FILE_READ);
+  //SPIFFS.begin(); //not need to begin again due to it has been called in function.
+  File file = SPIFFS.open("/test.txt", "r");
 
   while (file.available())
   {     
@@ -506,7 +508,7 @@ if (firebaseData.streamAvailable())
 
 This library allows you to backup and restore database at the definded path.
 
-The backup file will store in SD card.
+The backup file will store in SD card or Flash memory (SPIFFS).
 
 Due to SD library used, only 8.3 DOS format file name was support.
 
@@ -521,7 +523,7 @@ The following example showed how to backup all database at "/" and restore.
 ```C++
  String backupFileName = "";
 
- if (!Firebase.backup(firebaseData, "/", "/backup.txt"))
+ if (!Firebase.backup(firebaseData, StorateType::SD, "/", "/backup.txt"))
  {
    Serial.println(firebaseData.fileTransferError());
  }
@@ -534,7 +536,7 @@ The following example showed how to backup all database at "/" and restore.
 
 
   //Begin restore backed dup data back to database
-  if (!Firebase.restore(firebaseData, "/", backupFileName))
+  if (!Firebase.restore(firebaseData, StorateType::SD, "/", backupFileName))
   {
     Serial.println(firebaseData.fileTransferError());
   }
@@ -622,7 +624,7 @@ Error Queus can be saved as file in SD card or Flash memory with function `saveE
 
 Error Queues store as file can be restored to Error Queue collection with function `restoreErrorQueue`.
 
-Two types of storage can be assigned with these functions, `QueueStorageType::SPIFFS` and `QueueStorageType::SD`.
+Two types of storage can be assigned with these functions, `StorageType::SPIFFS` and `StorageType::SD`.
 
 Read data (get) operation is not support queues restore
 
@@ -631,14 +633,14 @@ The following example showed how to restore and save Error Queues in /test.txt f
 ```C++
 //To restore Error Queues
 
-if (Firebase.errorQueueCount(firebaseData, "/test.txt", QueueStorageType::SPIFFS) > 0)
+if (Firebase.errorQueueCount(firebaseData, "/test.txt", StorageType::SPIFFS) > 0)
 {
-    Firebase.restoreErrorQueue(firebaseData, "/test.txt", QueueStorageType::SPIFFS);
-    Firebase.deleteStorageFile("/test.txt", QueueStorageType::SPIFFS);
+    Firebase.restoreErrorQueue(firebaseData, "/test.txt", StorageType::SPIFFS);
+    Firebase.deleteStorageFile("/test.txt", StorageType::SPIFFS);
 }
 
 //To save Error Queues to file
-Firebase.saveErrorQueue(firebaseData, "/test.txt", QueueStorageType::SPIFFS);
+Firebase.saveErrorQueue(firebaseData, "/test.txt", StorageType::SPIFFS);
 
 ```
 

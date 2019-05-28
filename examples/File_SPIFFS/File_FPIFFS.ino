@@ -10,7 +10,7 @@
 */
 
 
-//This example shows how to store and read binary data from file on SD card to database.
+//This example shows how to store and read binary data from file on Flash memory to database.
 
 //FirebaseESP8266.h must be included before ESP8266WiFi.h
 #include "FirebaseESP8266.h"
@@ -51,36 +51,35 @@ void setup()
   Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
   Firebase.reconnectWiFi(true);
 
-  //Mount SD card
-  if (!SD.begin(15))
+
+  if (!SPIFFS.begin())
   {
-    Serial.println("SD Card mounted failed");
+    Serial.println("SPIFFS initialization failed");
     return;
   }
 
   //Delete demo files
-  if (SD.exists("/file1.txt"))
-    SD.remove("/file1.txt");
+  if (SPIFFS.exists("/file1.txt"))
+    SPIFFS.remove("/file1.txt");
 
-  if (SD.exists("/file2.txt"))
-    SD.remove("/file2.txt");
+  if (SPIFFS.exists("/file2.txt"))
+    SPIFFS.remove("/file2.txt");
 
-  if (SD.exists("/file3.txt"))
-    SD.remove("/file3.txt");
+  if (SPIFFS.exists("/file3.txt"))
+    SPIFFS.remove("/file3.txt");
 
   Serial.println("------------------------------------");
   Serial.println("Set file data test...");
 
   //Write demo data to file
-  file = SD.open("/file1.txt", FILE_WRITE);
+  file = SPIFFS.open("/file1.txt", "w");
   for (int i = 0; i < 256; i++)
     file.write((uint8_t)i);
 
   file.close();
 
-  //Set file (read file from SD card and set to database)
-  //File name must be in 8.3 DOS format (max. 8 bytes file name and 3 bytes file extension)
-  if (Firebase.setFile(firebaseData, StorageType::SD, path + "/Binary/File/data", "/file1.txt"))
+  //Set file (read file from Flash memory and set to database)
+  if (Firebase.setFile(firebaseData, StorageType::SPIFFS, path + "/Binary/File/data", "/file1.txt"))
   {
     Serial.println("PASSED");
     Serial.println("------------------------------------");
@@ -97,16 +96,15 @@ void setup()
   Serial.println("------------------------------------");
   Serial.println("Get file data test...");
 
-  //Get file (download file to SD card)
-  //File name must be in 8.3 DOS format (max. 8 bytes file name and 3 bytes file extension)
-  if (Firebase.getFile(firebaseData, StorageType::SD, path + "/Binary/File/data", "/file2.txt"))
+  //Get file (download file to Flash memory)
+  if (Firebase.getFile(firebaseData, StorageType::SPIFFS, path + "/Binary/File/data", "/file2.txt"))
   {
 
     Serial.println("PASSED");
     Serial.println("DATA");
 
     //Readout the downloaded file
-    file = SD.open("/file2.txt", FILE_READ);
+    file = SPIFFS.open("/file2.txt", "r");
     int i = 0;
 
     while (file.available())
@@ -149,8 +147,7 @@ void setup()
   file.close();
 
   //Append file data to database
-  //File name must be in 8.3 DOS format (max. 8 bytes file name and 3 bytes file extension)
-  if (Firebase.pushFile(firebaseData, StorageType::SD, path + "/Binary/File/Logs", "/file1.txt"))
+  if (Firebase.pushFile(firebaseData, StorageType::SPIFFS, path + "/Binary/File/Logs", "/file1.txt"))
   {
     Serial.println("PASSED");
     Serial.println("PATH: " + firebaseData.dataPath());
@@ -162,16 +159,15 @@ void setup()
     Serial.println("------------------------------------");
     Serial.println("Get appended file data test...");
 
-    //Get the recently appended file (download file to SD card)
-    //File name must be in 8.3 DOS format (max. 8 bytes file name and 3 bytes file extension)
-    if (Firebase.getFile(firebaseData, StorageType::SD, path + "/Binary/File/Logs/" + firebaseData.pushName(), "/file3.txt"))
+    //Get the recently appended file (download file to Flash memory)
+    if (Firebase.getFile(firebaseData, StorageType::SPIFFS, path + "/Binary/File/Logs/" + firebaseData.pushName(), "/file3.txt"))
     {
 
       Serial.println("PASSED");
       Serial.println("DATA");
 
       //Readout the downloaded file
-      file = SD.open("/file3.txt", FILE_READ);
+      file = SPIFFS.open("/file3.txt", "r");
       int i = 0;
       int idx = 0;
 
@@ -183,7 +179,7 @@ void setup()
 
         Serial.print(i, HEX);
         Serial.print(" ");
-        
+
         if (idx > 0 && (idx + 1) % 16 == 0)
           Serial.println();
         idx++;

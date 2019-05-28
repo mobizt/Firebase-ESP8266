@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.1.3
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.1.4
 
 
 ## Global functions
@@ -445,13 +445,15 @@ bool pushBlob(FirebaseData &dataObj, const String &path, uint8_t *blob, size_t s
 
 
 
-#### Append new binary data from file stores on SD card to the defined database path.
+#### Append new binary data from file stores on SD card/Flash memory to the defined database path.
 
 param **`dataObj`** - Firebase Data Object to hold data and instances.
 
+@param **`storageType`** - Type of storage to read file data, StorageType::SPIFS or StorageType::SD.
+
 param **`path`** - Target database path which binary data from file will be appended.
 
-param **`fileName`** - File name (8.3 DOS format) in SD card.
+param **`fileName`** - File name included its path in SD card/Flash memory.
 
 return **`Boolean`** type status indicates the success of operation.
 
@@ -459,16 +461,16 @@ The new appended node's key will be stored in Firebase Data object,
 which its value can be accessed via function [FirebaseData object].pushName().
 
 ```C++
-bool pushFile(FirebaseData &dataObj, const String &path, const String &fileName);
+bool pushFile(FirebaseData &dataObj, uint8_t storageType, const String &path, const String &fileName);
 ```
 
 
 
 
-#### Append new binary data from file store on SD card and the virtual child ".priority" to the defined database path.
+#### Append new binary data from file store on SD card/Flash memory and the virtual child ".priority" to the defined database path.
 
 ```C++
-bool pushFile(FirebaseData &dataObj, const String &path, const String &fileName, float priority);
+bool pushFile(FirebaseData &dataObj, uint8_t storageType, const String &path, const String &fileName, float priority);
 ```
 
 
@@ -1027,20 +1029,22 @@ bool setBlob(FirebaseData &dataObj, const String &path, uint8_t *blob, size_t si
 
 
 
-#### Set binary data from file stores on SD card to the defined database path
+#### Set binary data from file store on SD card/Flash memory to the defined database path.
 
 param **`dataObj`** - Firebase Data Object to hold data and instances.
 
+@param **`storageType`** - Type of storage to read file data, StorageType::SPIFS or StorageType::SD.
+
 param **`path`** - Target database path which binary data from file will be set.
 
-param **`fileName`** - File name in 8.3 DOS format (max. 8 bytes file name and 3 bytes file extension) stored in SD card.
+param **`fileName`** - File name included its path in SD card/Flash memory.
 
 return **`Boolean`** type status indicates the success of operation.
 
 No payload returned from server.
 
 ```C++
-bool setFile(FirebaseData &dataObj, const String &path, const String &fileName);
+bool setFile(FirebaseData &dataObj, uint8_t storageType, const String &path, const String &fileName);
 ```
 
 
@@ -1050,7 +1054,7 @@ bool setFile(FirebaseData &dataObj, const String &path, const String &fileName);
 #### Set binary data from file and virtual child ".priority" at the defined database path.
 
 ```C++
-bool setFile(FirebaseData &dataObj, const String &path, const String &fileName, float priority);
+bool setFile(FirebaseData &dataObj, uint8_t storageType, const String &path, const String &fileName, float priority);
 ```
 
 
@@ -1058,13 +1062,15 @@ bool setFile(FirebaseData &dataObj, const String &path, const String &fileName, 
 
 
 
-#### Set binary data from file stores on SD card to the defined database path if defined database path's ETag matched the ETag value
+#### Set binary data from file stores on SD card/Flash memory to the defined database path if defined database path's ETag matched the ETag value
 
 param **`dataObj`** - Firebase Data Object to hold data and instances.
 
+@param **`storageType`** - Type of storage to read file data, StorageType::SPIFS or StorageType::SD.
+
 param **`path`** - Target database path which binary data from file will be set.
 
-param **`fileName`** - File name in 8.3 DOS format (max. 8 bytes file name and 3 bytes file extension) stored in SD card.
+param **`fileName`** - File name included its path in SD card/Flash memory.
 
 param **`ETag`** - Known unique identifier string (ETag) of defined database path.
 
@@ -1076,7 +1082,7 @@ If ETag at the defined database path is not match the provided ETag parameter,
 the operation will failed with HTTP code 412, Precondition Failed (ETag is not match).
 
 ```C++
-bool setFile(FirebaseData &dataObj, const String &path, const String &fileName, const String &ETag);
+bool setFile(FirebaseData &dataObj, uint8_t storageType, const String &path, const String &fileName, const String &ETag);
 ```
 
 
@@ -1087,7 +1093,7 @@ bool setFile(FirebaseData &dataObj, const String &path, const String &fileName, 
 #### Set binary data from file and the virtual child ".priority" if defined ETag matches at the defined database path 
 
 ```C++
-bool setFile(FirebaseData &dataObj, const String &path, const String &fileName, float priority, const String &ETag);
+bool setFile(FirebaseData &dataObj, uint8_t storageType, const String &path, const String &fileName, float priority, const String &ETag);
 ```
 
 
@@ -1609,7 +1615,7 @@ bool getBlob(FirebaseData &dataObj, const String &path, std::vector<uint8_t> &ta
 
 
 
-#### Download file data in database at defined database path and save to SD card
+#### Download file data in database at defined database path and save to SD card/flash memory.
 
 The downloaded data will be decoded to binary and save to SD card, then
 
@@ -1617,14 +1623,16 @@ please make sure that data at the defined database path is file type.
 
 param **`dataObj`** - Firebase Data Object to hold data and instances.
 
+@param **`storageType`** - Type of storage to write file data, StorageType::SPIFS or StorageType::SD.
+
 param **`nodePath`** - Database path that file data will be downloaded.
 
-param **`fileName`** - File name in 8.3 DOS format (max. 8 bytes file name and 3 bytes file extension) to save in SD card.
+param **`fileName`** - File name included its path in SD card/Flash memory.
 
 return **`Boolean`** type status indicates the success of operation.
 
 ```C++
-bool getFile(FirebaseData &dataObj, const String &nodePath, const String &fileName);
+bool getFile(FirebaseData &dataObj, uint8_t storageType, const String &nodePath, const String &fileName);
 ```
 
 
@@ -1729,15 +1737,19 @@ bool endStream(FirebaseData &dataObj);
 
 param **`dataObj`** - Firebase Data Object to hold data and instances.
 
+@param **`storageType`** - Type of storage to save file, StorageType::SPIFS or StorageType::SD.
+
 param **`nodePath`** - Database path to be backuped.
 
-param **`fileName`** - File name in 8.3 DOS format (max. 8 bytes file name and 3 bytes file extension) to save in SD card.
+param **`fileName`** - File name to save.
+
+Only 8.3 DOS format (max. 8 bytes file name and 3 bytes file extension) can be saved to SD card.
 
 return **`Boolean`** type status indicates the success of operation.
 
 
 ```C++
-bool backup(FirebaseData &dataObj, const String &nodePath, const String &fileName);
+bool backup(FirebaseData &dataObj, uint8_t storageType, const String &nodePath, const String &fileName);
 ```
 
 
@@ -1748,14 +1760,16 @@ bool backup(FirebaseData &dataObj, const String &nodePath, const String &fileNam
 
 param **`dataObj`** - Firebase Data Object to hold data and instances.
 
+@param **`storageType`** - Type of storage to read file, StorageType::SPIFS or StorageType::SD.
+
 param **`nodePath`** - Database path to  be restored.
 
-param **`fileName`** - Backup file name in 8.3 DOS format (max. 8 bytes file name and 3 bytes file extension) stored in SD card.
+param **`fileName`** - File name to read.
 
 return **`Boolean`** type status indicates the success of operation.
 
 ```C++
-bool restore(FirebaseData &dataObj, const String &nodePath, const String &fileName);
+bool restore(FirebaseData &dataObj, uint8_t storageType const String &nodePath, const String &fileName);
 ```
 
 
@@ -1801,7 +1815,7 @@ param **`dataObj`** - Firebase Data Object to hold data and instances.
 
 param **`filename`** - File name to be saved.
 
-param **`storageType`** - Type of storage to save file, QueueStorageType::SPIFS or QueueStorageType::SD.
+param **`storageType`** - Type of storage to save file, StorageType::SPIFS or StorageType::SD.
     
 ```C++
 bool saveErrorQueue(FirebaseData &dataObj, const String &filename, uint8_t storageType);
@@ -1816,7 +1830,7 @@ bool saveErrorQueue(FirebaseData &dataObj, const String &filename, uint8_t stora
 
 param **`filename`** - File name to delete.
 
-param **`storageType`** - Type of storage to save file, QueueStorageType::SPIFS or QueueStorageType::SD.
+param **`storageType`** - Type of storage to save file, StorageType::SPIFS or StorageType::SD.
     
 ```C++
 bool deleteStorageFile(const String &filename, uint8_t storageType);
@@ -1832,7 +1846,7 @@ param **`dataObj`** - Firebase Data Object to hold data and instances.
 
 param **`filename`** - File name to be read and restore queues.
 
-param **`storageType`** - Type of storage to read file, QueueStorageType::SPIFS or QueueStorageType::SD.
+param **`storageType`** - Type of storage to read file, StorageType::SPIFS or StorageType::SD.
     
 ```C++
 bool restoreErrorQueue(FirebaseData &dataObj, const String &filename, uint8_t storageType);
@@ -1848,7 +1862,7 @@ param **`dataObj`** - Firebase Data Object to hold data and instances.
 
 param **`filename`** - File name to be read and count for queues.
 
-param **`storageType`** - Type of storage to read file, QueueStorageType::SPIFS or QueueStorageType::SD.
+param **`storageType`** - Type of storage to read file, StorageType::SPIFS or StorageType::SD.
 
 
 return **`Number`** (0-255) of queues store in defined SPIFFS file.
@@ -2330,9 +2344,9 @@ bool bufferOverflow();
 
 
 
-#### Determine the name (full path) of backup file in SD card
+#### Determine the name (full path) of backup file in SD card/Flah memory
 
-return **`String`** (String object) of file name that store on SD card after backup operation.
+return **`String`** (String object) of file name that store on SD card/Flash memory after backup operation.
 
 ```C++
 String getBackupFilename();
