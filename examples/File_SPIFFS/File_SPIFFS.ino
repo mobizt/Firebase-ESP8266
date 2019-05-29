@@ -16,11 +16,10 @@
 #include "FirebaseESP8266.h"
 #include <ESP8266WiFi.h>
 
-
-#define FIREBASE_HOST "esp32-firebase-project.firebaseio.com" //Without http:// or https://
-#define FIREBASE_AUTH "4Oa3v44eypSOpqiRfvha9x82V5gBGjXaqFVw4gut"
-#define WIFI_SSID "@1000"
-#define WIFI_PASSWORD "39013145"
+#define FIREBASE_HOST "YOUR_FIREBASE_PROJECT.firebaseio.com" //Do not include https:// in FIREBASE_HOST
+#define FIREBASE_AUTH "YOUR_FIREBASE_DATABASE_SECRET"
+#define WIFI_SSID "YOUR_WIFI_AP"
+#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
 
 //Define Firebase Data object
 FirebaseData firebaseData;
