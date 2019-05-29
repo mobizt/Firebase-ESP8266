@@ -15,7 +15,7 @@
 //FirebaseESP8266.h must be included before ESP8266WiFi.h
 #include "FirebaseESP8266.h"
 #include <ESP8266WiFi.h>
-#include "SD.h"
+
 
 #define FIREBASE_HOST "esp32-firebase-project.firebaseio.com" //Without http:// or https://
 #define FIREBASE_AUTH "4Oa3v44eypSOpqiRfvha9x82V5gBGjXaqFVw4gut"
