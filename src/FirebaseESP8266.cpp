@@ -1,13 +1,14 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.1.4
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.1.5
 * 
- * May 28, 2019
+ * May 29, 2019
  * 
  * Feature Added:
  * - SPIFFS now supported by setFile, pushFile, getFile, backup and restore functions. 
  * 
  * Feature Fixed:
  * - Flash string error in query object
+ * - ESP8266 Core backward compattible
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
  * and delete calls. 
@@ -1521,7 +1522,7 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const std::string &p
                 if (dataObj._storageType == StorageType::SPIFFS)
                 {
                     SPIFFS.remove(dataObj._backupFilename.c_str());
-                    file = SPIFFS.open(dataObj._backupFilename.c_str(), "w");
+                    _file = SPIFFS.open(dataObj._backupFilename.c_str(), "w");
                 }
                 else if (dataObj._storageType == StorageType::SD)
                 {
@@ -1532,7 +1533,7 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const std::string &p
             else if (method == FirebaseMethod::RESTORE)
             {
                 if (dataObj._storageType == StorageType::SPIFFS && SPIFFS.exists(dataObj._backupFilename.c_str()))
-                    file = SPIFFS.open(dataObj._backupFilename.c_str(), "r");
+                    _file = SPIFFS.open(dataObj._backupFilename.c_str(), "r");
                 else if (dataObj._storageType == StorageType::SD && SD.exists(dataObj._backupFilename.c_str()))
                     file = SD.open(dataObj._backupFilename.c_str(), FILE_READ);
                 else
@@ -1542,10 +1543,12 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const std::string &p
                     dataObj._file_transfer_error = temp;
                     goto EXIT_1;
                 }
-            }
 
-            if (method == FirebaseMethod::RESTORE)
-                len = file.size();
+                if (dataObj._storageType == StorageType::SPIFFS)
+                    len = _file.size();
+                else if (dataObj._storageType == StorageType::SD)
+                    len = file.size();
+            }
         }
 
         if (dataType == FirebaseDataType::FILE)
@@ -1556,7 +1559,7 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const std::string &p
                 {
 
                     if (SPIFFS.exists(dataObj._fileName.c_str()))
-                        file = SPIFFS.open(dataObj._fileName.c_str(), "r");
+                        _file = SPIFFS.open(dataObj._fileName.c_str(), "r");
                     else
                     {
                         dataObj._file_transfer_error.clear();
@@ -1578,7 +1581,11 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const std::string &p
                         goto EXIT_1;
                     }
                 }
-                len = (4 * ceil(file.size() / 3.0)) + strlen(ESP8266_FIREBASE_STR_93) + 1;
+
+                if (dataObj._storageType == StorageType::SPIFFS)
+                    len = (4 * ceil(_file.size() / 3.0)) + strlen(ESP8266_FIREBASE_STR_93) + 1;
+                else if (dataObj._storageType == StorageType::SD)
+                    len = (4 * ceil(file.size() / 3.0)) + strlen(ESP8266_FIREBASE_STR_93) + 1;
             }
             else if (method == FirebaseMethod::GET)
             {
@@ -1597,10 +1604,7 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const std::string &p
 
                 if (dataObj._storageType == StorageType::SPIFFS)
                 {
-                    if (!SPIFFS.exists(folder))
-                        createDirs(folder, dataObj._storageType);
-
-                    file = SPIFFS.open(dataObj._fileName.c_str(), "w");
+                    _file = SPIFFS.open(dataObj._fileName.c_str(), "w");
                 }
                 else if (dataObj._storageType == StorageType::SD)
                 {
@@ -1617,7 +1621,7 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const std::string &p
             }
         }
 
-        if (!file)
+        if ((!_file && dataObj._storageType == StorageType::SPIFFS) || (!file && dataObj._storageType == StorageType::SD))
         {
             memset(temp, 0, tempSize);
             strcat_P(temp, ESP8266_FIREBASE_STR_86);
@@ -1677,7 +1681,10 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const std::string &p
                     toRead = buffSize - 1;
 
                 memset(buff, 0, buffSize);
-                file.read((uint8_t *)buff, toRead);
+                if (dataObj._storageType == StorageType::SPIFFS)
+                    _file.read((uint8_t *)buff, toRead);
+                else if (dataObj._storageType == StorageType::SD)
+                    file.read((uint8_t *)buff, toRead);
 
                 buff[toRead] = '\0';
 
@@ -2625,10 +2632,21 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
                     dataTime = millis();
                     toRead = cnt;
                     buff[cnt] = '\0';
-                    if (dataObj._fileName == "")
-                        file.write((uint8_t *)buff, toRead);
-                    else
-                        base64_decode_file(file, buff, toRead);
+                    if (dataObj._storageType == StorageType::SPIFFS)
+                    {
+                        if (dataObj._fileName == "")
+                            _file.write((uint8_t *)buff, toRead);
+                        else
+                            base64_decode_SPIFFS(_file, buff, toRead);
+                    }
+                    else if (dataObj._storageType == StorageType::SD)
+                    {
+                        if (dataObj._fileName == "")
+                            file.write((uint8_t *)buff, toRead);
+                        else
+                            base64_decode_file(file, buff, toRead);
+                    }
+
                     continue;
                 }
             }
@@ -2895,7 +2913,10 @@ bool FirebaseESP8266::getUploadResponse(FirebaseData &dataObj)
 void FirebaseESP8266::endFileTransfer(FirebaseData &dataObj)
 {
     _sdInUse = false;
-    file.close();
+    if (_file)
+        _file.close();
+    if (file)
+        file.close();
     _sdOk = false;
     dataObj._file_transfering = false;
 }
@@ -3936,13 +3957,13 @@ bool FirebaseESP8266::saveErrorQueue(FirebaseData &dataObj, const String &filena
             return false;
         file = SD.open(filename.c_str(), FILE_WRITE);
     }
-    else
+    else if (storageType == QueueStorageType::SPIFFS)
     {
         SPIFFS.begin();
-        file = SPIFFS.open(filename.c_str(), "w");
+        _file = SPIFFS.open(filename.c_str(), "w");
     }
 
-    if (!file)
+    if ((storageType == QueueStorageType::SPIFFS && !_file) || (storageType == QueueStorageType::SD && !file))
         return false;
 
     uint8_t idx = 0;
@@ -3994,9 +4015,18 @@ bool FirebaseESP8266::saveErrorQueue(FirebaseData &dataObj, const String &filena
             idx++;
         }
     }
+    if (storageType == QueueStorageType::SD)
+    {
 
-    file.print(buff.c_str());
-    file.close();
+        file.print(buff.c_str());
+        file.close();
+    }
+    else if (storageType == QueueStorageType::SPIFFS)
+    {
+
+        _file.print(buff.c_str());
+        _file.close();
+    }
 
     delete[] nbuf;
     std::string().swap(buff);
@@ -4041,26 +4071,33 @@ uint8_t FirebaseESP8266::openErrorQueue(FirebaseData &dataObj, const String &fil
             return 0;
         file = SD.open(filename.c_str(), FILE_READ);
     }
-    else
+    else if (storageType == QueueStorageType::SPIFFS)
     {
         SPIFFS.begin();
-        file = SPIFFS.open(filename.c_str(), "r");
+        _file = SPIFFS.open(filename.c_str(), "r");
     }
 
-    if (!file)
+    if ((storageType == QueueStorageType::SPIFFS && !_file) || (storageType == QueueStorageType::SD && !file))
         return 0;
 
     std::string t = "";
 
     uint8_t c = 0;
 
-    while (file.available())
+    while (file.available() || _file.available())
     {
-        c = file.read();
+        if (storageType == QueueStorageType::SPIFFS)
+            c = _file.read();
+        if (storageType == QueueStorageType::SD)
+            c = file.read();
+
         t += (char)c;
     }
 
-    file.close();
+    if (storageType == QueueStorageType::SPIFFS)
+        _file.close();
+    else if (storageType == QueueStorageType::SD)
+        file.close();
 
     std::vector<std::string> p = splitString(dataObj._maxBlobSize, t.c_str(), '\r');
 
@@ -4206,9 +4243,7 @@ void FirebaseESP8266::createDirs(std::string dirs, uint8_t storageType)
         {
             if (dir.length() > 0)
             {
-                if (storageType == StorageType::SPIFFS)
-                    SPIFFS.mkdir(dir.substr(0, dir.length() - 1).c_str());
-                else if (storageType == StorageType::SD)
+                if (storageType == StorageType::SD)
                     SD.mkdir(dir.substr(0, dir.length() - 1).c_str());
             }
 
@@ -4217,9 +4252,7 @@ void FirebaseESP8266::createDirs(std::string dirs, uint8_t storageType)
     }
     if (count > 0)
     {
-        if (storageType == StorageType::SPIFFS)
-            SPIFFS.mkdir(dir.c_str());
-        else if (storageType == StorageType::SD)
+        if (storageType == StorageType::SD)
             SD.mkdir(dir.c_str());
     }
     std::string().swap(dir);
@@ -4286,11 +4319,11 @@ std::string FirebaseESP8266::base64_encode_string(const unsigned char *src, size
 void FirebaseESP8266::send_base64_encode_file(WiFiClientSecure &netClient, const std::string &filePath, uint8_t storageType)
 {
     if (storageType == StorageType::SPIFFS)
-        file = SPIFFS.open(filePath.c_str(), "r");
+        _file = SPIFFS.open(filePath.c_str(), "r");
     else if (storageType == StorageType::SD)
         file = SD.open(filePath.c_str(), FILE_READ);
 
-    if (!file)
+    if ((storageType == StorageType::SPIFFS && !_file) || (storageType == StorageType::SD && !file))
         return;
 
     size_t chunkSize = 512;
@@ -4301,17 +4334,25 @@ void FirebaseESP8266::send_base64_encode_file(WiFiClientSecure &netClient, const
     unsigned char *buff = new unsigned char[chunkSize];
     memset(buff, 0, chunkSize);
 
-    size_t len = file.size();
+    size_t len = 0;
+
+    if (storageType == StorageType::SPIFFS)
+        len = _file.size();
+    else if (storageType == StorageType::SD)
+        len = file.size();
 
     size_t fbufIndex = 0;
     unsigned char *fbuf = new unsigned char[3];
 
-    while (file.available())
+    while (file.available() || _file.available())
     {
         memset(fbuf, 0, fbufSize);
         if (len - fbufIndex >= 3)
         {
-            file.read(fbuf, 3);
+            if (storageType == StorageType::SPIFFS)
+                _file.read(fbuf, 3);
+            else if (storageType == StorageType::SD)
+                file.read(fbuf, 3);
 
             buff[byteAdd++] = ESP8266_FIREBASE_base64_table[fbuf[0] >> 2];
             buff[byteAdd++] = ESP8266_FIREBASE_base64_table[((fbuf[0] & 0x03) << 4) | (fbuf[1] >> 4)];
@@ -4335,25 +4376,40 @@ void FirebaseESP8266::send_base64_encode_file(WiFiClientSecure &netClient, const
         else
         {
             if (len - fbufIndex == 1)
-                fbuf[0] = file.read();
+            {
+                if (storageType == StorageType::SPIFFS)
+                    fbuf[0] = _file.read();
+                else if (storageType == StorageType::SD)
+                    fbuf[0] = file.read();
+            }
             else if (len - fbufIndex == 2)
             {
-                fbuf[0] = file.read();
-                fbuf[1] = file.read();
+                if (storageType == StorageType::SPIFFS)
+                {
+                    fbuf[0] = _file.read();
+                    fbuf[1] = _file.read();
+                }
+                else if (storageType == StorageType::SD)
+                {
+                    fbuf[0] = file.read();
+                    fbuf[1] = file.read();
+                }
             }
 
             break;
         }
     }
 
-    file.close();
+    if (storageType == StorageType::SPIFFS)
+        _file.close();
+    else if (storageType == StorageType::SD)
+        file.close();
 
     if (byteAdd > 0)
         netClient.write(buff, byteAdd);
 
     if (len - fbufIndex > 0)
     {
-
         memset(buff, 0, chunkSize);
         byteAdd = 0;
 
@@ -4453,6 +4509,77 @@ bool FirebaseESP8266::base64_decode_string(const std::string src, std::vector<ui
 }
 
 bool FirebaseESP8266::base64_decode_file(File &file, const char *src, size_t len)
+{
+    unsigned char *dtable = new unsigned char[256];
+    memset(dtable, 0x80, 256);
+    for (size_t i = 0; i < sizeof(ESP8266_FIREBASE_base64_table) - 1; i++)
+        dtable[ESP8266_FIREBASE_base64_table[i]] = (unsigned char)i;
+    dtable['='] = 0;
+
+    unsigned char *block = new unsigned char[4];
+    unsigned char tmp;
+    size_t i, count;
+    int pad = 0;
+    size_t extra_pad;
+
+    count = 0;
+
+    for (i = 0; i < len; i++)
+    {
+        if (dtable[(uint8_t)src[i]] != 0x80)
+            count++;
+    }
+
+    if (count == 0)
+        return false;
+
+    extra_pad = (4 - count % 4) % 4;
+
+    count = 0;
+    for (i = 0; i < len + extra_pad; i++)
+    {
+        unsigned char val;
+
+        if (i >= len)
+            val = '=';
+        else
+            val = src[i];
+        tmp = dtable[val];
+        if (tmp == 0x80)
+            continue;
+
+        if (val == '=')
+            pad++;
+
+        block[count] = tmp;
+        count++;
+        if (count == 4)
+        {
+            file.write((block[0] << 2) | (block[1] >> 4));
+            count = 0;
+            if (pad)
+            {
+                if (pad == 1)
+                    file.write((block[1] << 4) | (block[2] >> 2));
+                else if (pad > 2)
+                    return false;
+                break;
+            }
+            else
+            {
+                file.write((block[1] << 4) | (block[2] >> 2));
+                file.write((block[2] << 6) | block[3]);
+            }
+        }
+    }
+
+    delete[] block;
+    delete[] dtable;
+
+    return true;
+}
+
+bool FirebaseESP8266::base64_decode_SPIFFS(fs::File &file, const char *src, size_t len)
 {
     unsigned char *dtable = new unsigned char[256];
     memset(dtable, 0x80, 256);

@@ -17,17 +17,17 @@
 #include <ESP8266WiFi.h>
 #include "SD.h"
 
-#define FIREBASE_HOST "YOUR_FIREBASE_PROJECT.firebaseio.com" //Do not include https:// in FIREBASE_HOST
-#define FIREBASE_AUTH "YOUR_FIREBASE_DATABASE_SECRET"
-#define WIFI_SSID "YOUR_WIFI_AP"
-#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
+#define FIREBASE_HOST "esp32-firebase-project.firebaseio.com" //Without http:// or https://
+#define FIREBASE_AUTH "4Oa3v44eypSOpqiRfvha9x82V5gBGjXaqFVw4gut"
+#define WIFI_SSID "@1000"
+#define WIFI_PASSWORD "39013145"
 
 //Define Firebase Data object
 FirebaseData firebaseData;
 
 String path = "/ESP8266_Test";
 
-File file;
+fs::File file;
 
 void setup()
 {
@@ -136,11 +136,11 @@ void setup()
   Serial.println("------------------------------------");
   Serial.println("Append file data test...");
 
-  if (SD.exists("/file1.txt"))
-    SD.remove("/file1.txt");
+  if (SPIFFS.exists("/file1.txt"))
+    SPIFFS.remove("/file1.txt");
 
   //Write demo data to file
-  file = SD.open("/file1.txt", FILE_WRITE);
+  file = SPIFFS.open("/file1.txt", "w");
   for (int i = 255; i >= 0; i--)
     file.write((uint8_t)i);
 

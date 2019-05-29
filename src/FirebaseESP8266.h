@@ -1,13 +1,14 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.1.4
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.1.5
 * 
- * May 28, 2019
+ * May 29, 2019
  * 
  * Feature Added:
  * - SPIFFS now supported by setFile, pushFile, getFile, backup and restore functions. 
  * 
  * Feature Fixed:
  * - Flash string error in query object
+ * - ESP8266 Core backward compattible
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
  * and delete calls. 
@@ -235,13 +236,13 @@ static const char ESP8266_FIREBASE_STR_151[] PROGMEM = "null_etag";
 static const char ESP8266_FIREBASE_STR_152[] PROGMEM = "Precondition Failed (ETag is not match)";
 static const char ESP8266_FIREBASE_STR_153[] PROGMEM = "X-HTTP-Method-Override: ";
 static const char ESP8266_FIREBASE_STR_154[] PROGMEM = "{\".sv\": \"timestamp\"}";
-static const char ESP8266_FIREBASE_STR_155[] PROGMEM = "&shallow=true";  
-static const char ESP8266_FIREBASE_STR_156[] PROGMEM = "/.priority";     
-static const char ESP8266_FIREBASE_STR_157[] PROGMEM = ",\".priority\":"; 
-static const char ESP8266_FIREBASE_STR_158[] PROGMEM = "&timeout=";       
-static const char ESP8266_FIREBASE_STR_159[] PROGMEM = "ms";              
-static const char ESP8266_FIREBASE_STR_160[] PROGMEM = "&writeSizeLimit="; 
-static const char ESP8266_FIREBASE_STR_161[] PROGMEM = "{\".value\":";     
+static const char ESP8266_FIREBASE_STR_155[] PROGMEM = "&shallow=true";
+static const char ESP8266_FIREBASE_STR_156[] PROGMEM = "/.priority";
+static const char ESP8266_FIREBASE_STR_157[] PROGMEM = ",\".priority\":";
+static const char ESP8266_FIREBASE_STR_158[] PROGMEM = "&timeout=";
+static const char ESP8266_FIREBASE_STR_159[] PROGMEM = "ms";
+static const char ESP8266_FIREBASE_STR_160[] PROGMEM = "&writeSizeLimit=";
+static const char ESP8266_FIREBASE_STR_161[] PROGMEM = "{\".value\":";
 static const char ESP8266_FIREBASE_STR_162[] PROGMEM = "&format=export";
 static const char ESP8266_FIREBASE_STR_163[] PROGMEM = "Flash memory was not ready";
 
@@ -528,7 +529,7 @@ public:
     @param millisec - The missiseconds to limit the request (0 - 900,000 ms or 15 min).
 
   */
-  void setReadTimeout(FirebaseData &dataObj, int millisec); 
+  void setReadTimeout(FirebaseData &dataObj, int millisec);
 
   /*
     Set the timeouts of get function.
@@ -540,7 +541,7 @@ public:
     Size string and its write timeout e.g. tiny (1s), small (10s), medium (30s) and large (60s).
 
   */
-  void setwriteSizeLimit(FirebaseData &dataObj, const String &size); 
+  void setwriteSizeLimit(FirebaseData &dataObj, const String &size);
 
   /*
     Read the database rules.
@@ -600,7 +601,7 @@ public:
     Call [FirebaseData object].stringData() to get shallowed string data (number, string and JSON object).
 
   */
-  bool getShallowData(FirebaseData &dataObj, const String &path); 
+  bool getShallowData(FirebaseData &dataObj, const String &path);
 
   /*
     Enable the library to use only classic HTTP GET and POST methods.
@@ -630,7 +631,7 @@ public:
     The returned priority value from server can read from function [FirebaseData object].priority().
 
    */
-  bool setPriority(FirebaseData &dataObj, const String &path, float priority); 
+  bool setPriority(FirebaseData &dataObj, const String &path, float priority);
 
   /*
     Read the virtual child node ".priority" value at the defined database path. 
@@ -643,7 +644,7 @@ public:
     The priority value from server can read from function [FirebaseData object].priority().
 
    */
-  bool getPriority(FirebaseData &dataObj, const String &path); 
+  bool getPriority(FirebaseData &dataObj, const String &path);
 
   /*
     Append new integer value to the defined database path.
@@ -665,7 +666,7 @@ public:
     Append new integer value and the virtual child ".priority" to the defined database path.
 
   */
-  bool pushInt(FirebaseData &dataObj, const String &path, int intValue, float priority); 
+  bool pushInt(FirebaseData &dataObj, const String &path, int intValue, float priority);
 
   /*
     Append new float value to the defined database path.
@@ -726,7 +727,6 @@ public:
   */
   bool pushBool(FirebaseData &dataObj, const String &path, bool boolValue);
 
-
   /*
 
     Append new Boolean value and the virtual child ".priority" to the defined database path.
@@ -776,7 +776,7 @@ public:
     Append new child nodes's key and value (using JSON data) and the virtual child ".priority" to the defined database path.
 
   */
-  bool pushJSON(FirebaseData &dataObj, const String &path, const String &jsonString, float priority); 
+  bool pushJSON(FirebaseData &dataObj, const String &path, const String &jsonString, float priority);
 
   /*
     Append new blob (binary data) to the defined database path.
@@ -1024,7 +1024,7 @@ public:
 
   */
   bool setBool(FirebaseData &dataObj, const String &path, bool boolValue);
-  
+
   /*
 
     Set boolean data and virtual child ".priority" at the defined database path.
@@ -1114,14 +1114,12 @@ public:
    */
   bool setString(FirebaseData &dataObj, const String &path, const String &stringValue, const String &ETag);
 
-
   /*
 
     Set string data and the virtual child ".priority" if defined ETag matches at the defined database path 
 
   */
   bool setString(FirebaseData &dataObj, const String &path, const String &stringValue, float priority, const String &ETag);
-
 
   /*
 
@@ -1150,7 +1148,7 @@ public:
     Set JSON data and virtual child ".priority" at the defined database path.
 
   */
-  bool setJSON(FirebaseData &dataObj, const String &path, const String &jsonString, float priority); 
+  bool setJSON(FirebaseData &dataObj, const String &path, const String &jsonString, float priority);
 
   /*
 
@@ -1186,7 +1184,7 @@ public:
     Set JSON data and the virtual child ".priority" if defined ETag matches at the defined database path 
 
   */
-  bool setJSON(FirebaseData &dataObj, const String &path, const String &jsonString, float priority, const String &ETag); 
+  bool setJSON(FirebaseData &dataObj, const String &path, const String &jsonString, float priority, const String &ETag);
 
   /*
     Set blob (binary data) at the defined database path.
@@ -1204,13 +1202,13 @@ public:
 
   */
   bool setBlob(FirebaseData &dataObj, const String &path, uint8_t *blob, size_t size);
-  
+
   /*
 
     Set blob data and virtual child ".priority" at the defined database path.
 
   */
-   bool setBlob(FirebaseData &dataObj, const String &path, uint8_t *blob, size_t size, float priority);
+  bool setBlob(FirebaseData &dataObj, const String &path, uint8_t *blob, size_t size, float priority);
 
   /*
     Set blob (binary data) at the defined database path if defined database path's ETag matched the ETag value.
@@ -1253,7 +1251,7 @@ public:
     No payload returned from server.
 
   */
-  bool setFile(FirebaseData &dataObj, uint8_t storageType,const String &path, const String &fileName);
+  bool setFile(FirebaseData &dataObj, uint8_t storageType, const String &path, const String &fileName);
 
   /*
 
@@ -1938,11 +1936,11 @@ protected:
   bool pushDouble(FirebaseData &dataObj, const std::string &path, double doubleValue, bool queue, const std::string &priority);
   bool pushBool(FirebaseData &dataObj, const std::string &path, bool boolValue, bool queue, const std::string &priority);
   bool pushBlob(FirebaseData &dataObj, const std::string &path, uint8_t *blob, size_t size, bool queue, const std::string &priority);
-  bool setInt(FirebaseData &dataObj, const std::string &path, int intValue, bool queue, const std::string &priority,const std::string &etag);
-  bool setFloat(FirebaseData &dataObj, const std::string &path, float floatValue, bool queue, const std::string &priority,const std::string &etag);
-  bool setDouble(FirebaseData &dataObj, const std::string &path, double doubleValue, bool queue, const std::string &priority,const std::string &etag);
-  bool setBool(FirebaseData &dataObj, const std::string &path, bool boolValue, bool queue, const std::string &priority,const std::string &etag);
-  bool setBlob(FirebaseData &dataObj, const std::string &path, uint8_t *blob, size_t size, bool queue, const std::string &priority,const std::string &etag);
+  bool setInt(FirebaseData &dataObj, const std::string &path, int intValue, bool queue, const std::string &priority, const std::string &etag);
+  bool setFloat(FirebaseData &dataObj, const std::string &path, float floatValue, bool queue, const std::string &priority, const std::string &etag);
+  bool setDouble(FirebaseData &dataObj, const std::string &path, double doubleValue, bool queue, const std::string &priority, const std::string &etag);
+  bool setBool(FirebaseData &dataObj, const std::string &path, bool boolValue, bool queue, const std::string &priority, const std::string &etag);
+  bool setBlob(FirebaseData &dataObj, const std::string &path, uint8_t *blob, size_t size, bool queue, const std::string &priority, const std::string &etag);
 
   bool buildRequest(FirebaseData &dataObj, uint8_t firebaseMethod, uint8_t firebaseDataType, const std::string &path, const char *buff, bool queue, const std::string &priority, const std::string &etag = "");
   bool buildRequestFile(FirebaseData &dataObj, uint8_t storageType, uint8_t firebaseMethod, const std::string &path, const std::string &fileName, bool queue, const std::string &priority, const std::string &etag = "");
@@ -1975,6 +1973,7 @@ protected:
   void send_base64_encode_file(WiFiClientSecure &netClient, const std::string &filePath, uint8_t storageType);
   bool base64_decode_string(const std::string src, std::vector<uint8_t> &out);
   bool base64_decode_file(File &file, const char *src, size_t len);
+  bool base64_decode_SPIFFS(fs::File &file, const char *src, size_t len);
 
   bool sendFCMMessage(FirebaseData &dataObj, uint8_t messageType);
 
@@ -1990,6 +1989,7 @@ protected:
   bool _sdOk = false;
   bool _sdInUse = false;
   File file;
+  fs::File _file;
 };
 
 class FirebaseData
@@ -2324,7 +2324,7 @@ protected:
   std::string _eventType = "";
   std::string _etag = "";
   std::string _etag2 = "";
-  std::string _priority = "";              
+  std::string _priority = "";
 
   uint16_t _maxBlobSize = 1024;
 
@@ -2333,12 +2333,11 @@ protected:
   int _httpCode = -1000;
   int _contentLength = 0;
 
-  
-  bool _priority_val_flag = false;  
-  bool _priority_json_flag = false; 
-  bool _shallow_flag = false;       
-  int _readTimeout = -1;            
-  std::string _writeLimit = "";     
+  bool _priority_val_flag = false;
+  bool _priority_json_flag = false;
+  bool _shallow_flag = false;
+  int _readTimeout = -1;
+  std::string _writeLimit = "";
 
   unsigned long _dataMillis = 0;
   unsigned long _streamMillis = 0;
