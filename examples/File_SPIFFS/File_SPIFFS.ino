@@ -16,6 +16,7 @@
 #include "FirebaseESP8266.h"
 #include <ESP8266WiFi.h>
 
+
 #define FIREBASE_HOST "YOUR_FIREBASE_PROJECT.firebaseio.com" //Do not include https:// in FIREBASE_HOST
 #define FIREBASE_AUTH "YOUR_FIREBASE_DATABASE_SECRET"
 #define WIFI_SSID "YOUR_WIFI_AP"
@@ -50,12 +51,13 @@ void setup()
   Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
   Firebase.reconnectWiFi(true);
 
-
   if (!SPIFFS.begin())
   {
-    Serial.println("SPIFFS initialization failed");
+    Serial.println("SPIFFS initialization failed.");
+    Serial.println("For Arduino IDE, please select flash size from menu Tools > Flash size");
     return;
   }
+  
 
   //Delete demo files
   if (SPIFFS.exists("/file1.txt"))
@@ -76,6 +78,7 @@ void setup()
     file.write((uint8_t)i);
 
   file.close();
+
 
   //Set file (read file from Flash memory and set to database)
   if (Firebase.setFile(firebaseData, StorageType::SPIFFS, path + "/Binary/File/data", "/file1.txt"))
