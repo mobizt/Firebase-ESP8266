@@ -1,14 +1,16 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.1.5
-* 
- * May 29, 2019
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.1.6
+ * 
+ * June 18, 2019
  * 
  * Feature Added:
- * - SPIFFS now supported by setFile, pushFile, getFile, backup and restore functions. 
+ * - Get the seconds of server's timestamp through getInt(). 
  * 
  * Feature Fixed:
- * - Flash string error in query object
- * - ESP8266 Core backward compattible
+ * - Int data type returned instead of double for large double with zero decimal place
+ * - Update timestamp example for proper printed value
+ * - Update other examples for double printed value
+ * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
  * and delete calls. 
@@ -965,6 +967,9 @@ public:
     Call [FirebaseData object].doubleData will return the double value of
     payload returned from server.
 
+    Due to bugs in Serial.print in Arduino, to print large double value with zero decimal place, 
+    use printf("%.9lf\n", firebaseData.doubleData()); for print the returned double value up to 9 decimal places.
+
   */
   bool setDouble(FirebaseData &dataObj, const String &path, double doubleValue);
 
@@ -1294,8 +1299,11 @@ public:
 
     @return - Boolean type status indicates the success of operation.
 
-    Call [FirebaseData object].intData will return the integer value of
-    timestamp returned from server.
+    Call [FirebaseData object].intData will return the integer value of timestamp in seconds
+    or [FirebaseData object].doubleData to get millisecond timestamp.
+
+    Due to bugs in Serial.print in Arduino, to print large double value with zero decimal place, 
+    use printf("%.0lf\n", firebaseData.doubleData());.
 
    */
   bool setTimestamp(FirebaseData &dataObj, const String &path);
@@ -1436,6 +1444,9 @@ public:
 
     If the payload returned from server is not integer, float and double, 
     the function [FirebaseData object].doubleData will return zero (0).
+
+    Due to bugs in Serial.print in Arduino, to print large double value with zero decimal place, 
+    use printf("%.9lf\n", firebaseData.doubleData()); for print value up to 9 decimal places.
 
    */
   bool getDouble(FirebaseData &dataObj, const String &path);
@@ -2108,6 +2119,15 @@ public:
 
   */
   double doubleData();
+
+  /*
+
+    Return the long data of server returned payload.
+
+    @return double value.
+
+  */
+  int longData();
 
   /*
 

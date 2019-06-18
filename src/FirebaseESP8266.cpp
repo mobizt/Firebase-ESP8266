@@ -1,14 +1,16 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.1.5
-* 
- * May 29, 2019
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.1.6
+ * 
+ * June 18, 2019
  * 
  * Feature Added:
- * - SPIFFS now supported by setFile, pushFile, getFile, backup and restore functions. 
+ * - Get the seconds of server's timestamp through getInt(). 
  * 
  * Feature Fixed:
- * - Flash string error in query object
- * - ESP8266 Core backward compattible
+ * - Int data type returned instead of double for large double with zero decimal place
+ * - Update timestamp example for proper printed value
+ * - Update other examples for double printed value
+ * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
  * and delete calls. 
@@ -3630,7 +3632,11 @@ void FirebaseESP8266::setDataType(FirebaseData &dataObj, const char *data)
         if (!typeSet)
         {
             typeSet = true;
-            dataObj._dataType = FirebaseDataType::INTEGER;
+            double d = atof(data);
+            if (d > 0x7fffffff)
+                dataObj._dataType = FirebaseDataType::DOUBLE;
+            else
+                dataObj._dataType = FirebaseDataType::INTEGER;
         }
 
         if (strcmp(data, DEF_ESP8266_FIREBASE_STR_19) == 0 && dataObj.queryFilter._orderBy == "")
@@ -4880,7 +4886,16 @@ String FirebaseData::dataPath()
 int FirebaseData::intData()
 {
     if (_data.length() > 0 && (_dataType == FirebaseESP8266::FirebaseDataType::INTEGER || _dataType == FirebaseESP8266::FirebaseDataType::FLOAT || _dataType == FirebaseESP8266::FirebaseDataType::DOUBLE))
-        return atoi(_data.c_str());
+    {
+        if (_r_dataType == FirebaseESP8266::FirebaseDataType::TIMESTAMP)
+        {
+            double d = atof(_data.c_str());
+            int ts = d / 1000;
+            return ts;
+        }
+        else
+            return atoi(_data.c_str());
+    }
     else
         return 0;
 }
@@ -4890,15 +4905,17 @@ float FirebaseData::floatData()
     if (_data.length() > 0 && (_dataType == FirebaseESP8266::FirebaseDataType::INTEGER || _dataType == FirebaseESP8266::FirebaseDataType::FLOAT || _dataType == FirebaseESP8266::FirebaseDataType::DOUBLE))
         return atof(_data.c_str());
     else
-        return 0.0;
+        return 0;
 }
 
 double FirebaseData::doubleData()
 {
     if (_data.length() > 0 && (_dataType == FirebaseESP8266::FirebaseDataType::INTEGER || _dataType == FirebaseESP8266::FirebaseDataType::FLOAT || _dataType == FirebaseESP8266::FirebaseDataType::DOUBLE))
+    {
         return atof(_data.c_str());
+    }
     else
-        return 0.0;
+        return 0;
 }
 
 bool FirebaseData::boolData()

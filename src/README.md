@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.1.5
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.1.6
 
 
 ## Global functions
@@ -654,6 +654,10 @@ stores in database.
 Call [FirebaseData object].doubleData will return the double value of
 payload returned from server.
 
+Due to bugs in Serial.print in Arduino, to print large double value with zero decimal place, 
+use printf("%.9lf\n", firebaseData.doubleData()); for print the returned double value up to 9 decimal places.
+
+
 ```C++
 bool setDouble(FirebaseData &dataObj, const String &path, double doubleValue);
 ```
@@ -1109,7 +1113,11 @@ param **`path`** - Target database path which timestamp will be set.
 
 return - **`Boolean`** type status indicates the success of operation.
     
-Call [FirebaseData object].intData will return the integer value of timestamp returned from server.
+Call [FirebaseData object].intData will return the integer value of timestamp in seconds
+or [FirebaseData object].doubleData to get millisecond timestamp.
+
+Due to bugs in Serial.print in Arduino, to print large double value with zero decimal place, 
+use printf("%.0lf\n", firebaseData.doubleData());.
 
 ```C++
 bool setTimestamp(FirebaseData &dataObj, const String &path);
@@ -1300,6 +1308,9 @@ payload returned from server.
 
 If the payload returned from server is not integer, float and double, 
 the function [FirebaseData object].doubleData will return zero (0).
+
+Due to bugs in Serial.print in Arduino, to print large double value with zero decimal place, 
+use printf("%.9lf\n", firebaseData.doubleData()); for print the returned double value up to 9 decimal places.
 
 ```C++
 bool getDouble(FirebaseData &dataObj, const String &path);
