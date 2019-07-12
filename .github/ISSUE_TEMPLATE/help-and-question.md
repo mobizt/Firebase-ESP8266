@@ -7,4 +7,5 @@ assignees: ''
 
 ---
 
-
+Before open the issue, take a look at the usage examples.
+https://github.com/mobizt/Firebase-ESP8266/tree/master/examples
