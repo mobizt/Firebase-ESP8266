@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.1.6
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.2.0
 
 
 ## Global functions
@@ -1767,6 +1767,54 @@ bool backup(FirebaseData &dataObj, uint8_t storageType, const String &nodePath, 
 
 
 
+
+
+#### Set the stream callback functions
+
+setStreamCallback should be called before Firebase.beginStream.
+
+param **`dataObj`** - Firebase Data Object to hold data and instances.
+
+param **`dataAvailablecallback`** - Callback function that accepts streamData parameter.
+
+param **`timeoutCallback`** - Callback function will be called when stream connection was timeout (optional).
+
+dataAvailablecallback will be called When data in the defined path changed or the stream path changed or stream connection
+was resumed from read, store, update and deleteNode.
+
+The payload returned from server will be one of these integer, float, string, json and blob types.
+
+Call [streamData object].dataType to determine what type of data that successfully
+stores in database. 
+    
+Call [streamData object].xxxData will return the appropiated data type of
+payload returned from server.
+
+```C++
+void setStreamCallback(FirebaseData &dataObj, StreamEventCallback dataAvailablecallback, StreamTimeoutCallback timeoutCallback = NULL);
+```
+
+
+
+
+
+
+
+#### Remove stream callback functions
+
+param **`dataObj`** - Firebase Data Object to hold data and instances.
+
+```C++
+void removeStreamCallback(FirebaseData &dataObj);
+```
+
+
+
+
+
+
+
+
 #### Restore database at defined path usin backup file saved on SD card
 
 param **`dataObj`** - Firebase Data Object to hold data and instances.
@@ -1797,6 +1845,51 @@ param **`num`** - The maximum retry.
 ```C++
 void setMaxRetry(FirebaseData &dataObj, uint8_t num);
 ```
+
+
+
+
+
+
+#### Start the Firbase Error Queues Auto Run Process
+
+param **`dataObj`** - Firebase Data Object to hold data and instances.
+
+param **`callback`** - Callback function that accepts QueueInfo Object as parameter, optional.
+
+The following functions are available from QueueInfo Object accepted by callback.
+
+**queueInfo.totalQueues()**, get the total Error Queues in Error Queue Collection.
+
+**queueInfo.currentQueueID()**, get current Error Queue ID that being process.
+
+**queueInfo.isQueueFull()**, determine whether Error Queue Collection is full or not.
+
+**queueInfo.dataType()**, get string of the Frebase call data type that being process of current Error Queue.
+
+**queueInfo.method()**, get string of the Firebase call method that being process of current Error Queue.
+
+**queueInfo.path()**, get string of the Firebase call path that being process of current Error Queue.
+
+
+```C++
+void beginAutoRunErrorQueue(FirebaseData &dataObj, QueueInfoCallback callback = NULL);
+```
+
+
+
+
+
+#### Stop the Firbase Error Queues Auto Run Process
+
+param **`dataObj`** - Firebase Data Object to hold data and instances.
+
+
+```C++
+void endAutoRunErrorQueue(FirebaseData &dataObj);
+```
+
+
 
 
 

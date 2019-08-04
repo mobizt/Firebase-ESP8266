@@ -8,17 +8,10 @@
 
 Firebase    KEYWORD1
 FirebaseData	KEYWORD1
-<<<<<<< HEAD
 StreamData  KEYWORD1
 QueryFilter KEYWORD1
-||||||| merged common ancestors
-StreamData  KEYWORD1
-QueryFilter	KEYWORD1
-=======
-StreamData	KEYWORD1
-QueryFilter	KEYWORD1
->>>>>>> 557dfbe7e3f1d91bba8e7e431e31de0641e9f0ea
 QueueManager	KEYWORD1
+QueueInfo	KEYWORD1
 fcm	KEYWORD1
 
 ###############################################
@@ -70,6 +63,10 @@ deleteNode	KEYWORD2
 beginStream	KEYWORD2
 readStream	KEYWORD2
 endStream	KEYWORD2
+setStreamCallback	KEYWORD2
+removeStreamCallback	KEYWORD2
+beginAutoRunErrorQueue	KEYWORD2
+endAutoRunErrorQueue	KEYWORD2
 backup	KEYWORD2
 restore	KEYWORD2
 setMaxRetry	KEYWORD2

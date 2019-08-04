@@ -1,16 +1,15 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.1.6
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.2.0
  * 
- * June 18, 2019
+ * August 4, 2019
  * 
  * Feature Added:
- * - Get the seconds of server's timestamp through getInt(). 
+ * - Stream callback. 
+ * - Error queues callback
  * 
  * Feature Fixed:
- * - Int data type returned instead of double for large double with zero decimal place
- * - Update timestamp example for proper printed value
- * - Update other examples for double printed value
- * 
+ * - Flash string error in Core SDK 2.5.2
+ * - Incorrect handles for continuous stream data event
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
  * and delete calls. 
@@ -71,6 +70,9 @@
 #include <FS.h>
 #include <SD.h>
 #include <vector>
+#include <functional>
+#include <Schedule.h>
+#include <ets_sys.h>
 
 #define FIEBASE_PORT 443
 #define FIREBASE_RESPONSE_SIZE 400
@@ -248,12 +250,29 @@ static const char ESP8266_FIREBASE_STR_161[] PROGMEM = "{\".value\":";
 static const char ESP8266_FIREBASE_STR_162[] PROGMEM = "&format=export";
 static const char ESP8266_FIREBASE_STR_163[] PROGMEM = "Flash memory was not ready";
 
+static const char ESP8266_FIREBASE_STR_164[] PROGMEM = "get";
+static const char ESP8266_FIREBASE_STR_165[] PROGMEM = "set";
+static const char ESP8266_FIREBASE_STR_166[] PROGMEM = "push";
+static const char ESP8266_FIREBASE_STR_167[] PROGMEM = "update";
+static const char ESP8266_FIREBASE_STR_168[] PROGMEM = "delete";
+
+
+
 static const unsigned char ESP8266_FIREBASE_base64_table[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 class FirebaseData;
 class StreamData;
+class QueueInfo;
 class FirebaseESP8266;
 class FCMObject;
+
+typedef void (*StreamEventCallback)(StreamData);
+typedef void (*StreamTimeoutCallback)(bool);
+typedef void (*QueueInfoCallback)(QueueInfo);
+typedef std::function<void(void)> callback_function_t;
+
+static std::vector<std::reference_wrapper<FirebaseData>> firebaseDataObject;
+static uint8_t dataObjectIndex __attribute__((used)) = 0; 
 
 class FCMObject
 {
@@ -453,6 +472,31 @@ struct QueueStorageType
 {
   static const uint8_t SPIFFS = 0;
   static const uint8_t SD = 1;
+};
+
+class QueueInfo
+{
+public:
+  QueueInfo();
+  ~QueueInfo();
+  uint8_t totalQueues();
+  uint32_t currentQueueID();
+  bool isQueueFull();
+  String dataType();
+  String firebaseMethod();
+  String dataPath();
+
+  friend FirebaseESP8266;
+
+protected:
+  void clear();
+  uint8_t _totalQueue = 0;
+  uint32_t _currentQueueID = 0;
+  bool _isQueueFull = false;
+  bool _isQueue = false;
+  std::string _dataType = "";
+  std::string _method = "";
+  std::string _path = "";
 };
 
 struct QueueItem
@@ -1751,6 +1795,42 @@ public:
   */
   bool endStream(FirebaseData &dataObj);
 
+
+  /*
+    Set the stream callback functions.
+
+    setStreamCallback should be called before Firebase.beginStream.
+    
+    @param dataObj - Firebase Data Object to hold data and instances.
+    @param dataAvailablecallback - Callback function that accepts streamData parameter.
+    @param timeoutCallback - Callback function will be called when stream connection was timeout (optional).
+
+    dataAvailablecallback will be called When data in the defined path changed or the stream path changed or stream connection
+    was resumed from getXXX, setXXX, pushXXX, updateNode, deleteNode.
+
+    The payload returned from server will be one of these integer, float, string, json and blob types.
+
+    Call [streamData object].dataType to determine what type of data that successfully
+    stores in database. 
+    
+    Call [streamData object].xxxData will return the appropiated data type of
+    payload returned from server.
+
+   */
+  void setStreamCallback(FirebaseData &dataObj, StreamEventCallback dataAvailablecallback, StreamTimeoutCallback timeoutCallback = NULL);
+
+  /*
+    Remove stream callback functions.
+
+    @param dataObj - Firebase Data Object to hold data and instances.
+   */
+  void removeStreamCallback(FirebaseData &dataObj);
+
+
+
+
+ 
+
   /*
     Backup (download) database at defined database path to SD card/Flash memory.
 
@@ -1866,15 +1946,15 @@ public:
   */
   bool isErrorQueueFull(FirebaseData &dataObj);
 
-  /*
+   /*
     Pocess all failed Firebase operation queue items when network is available.
 
     @param dataObj - Firebase Data Object to hold data and instances.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param callback - Callback function that accepts QueueInfo parameter.
   
   */
-  void processErrorQueue(FirebaseData &dataObj);
+  void processErrorQueue(FirebaseData &dataObj, QueueInfoCallback callback = NULL);
 
   /*
     Return Firebase Error Queue ID of last Firebase Error.
@@ -1898,6 +1978,37 @@ public:
 
    */
   bool isErrorQueueExisted(FirebaseData &dataObj, uint32_t errorQueueID);
+
+   /*
+    Start the Firbase Error Queues Auto Run Process.
+
+    @param dataObj - Firebase Data Object to hold data and instances.
+    @param callback - Callback function that accepts QueueInfo Object as parameter, optional.
+
+    The following functions are available from QueueInfo Object accepted by callback.
+
+    queueInfo.totalQueues(), get the total Error Queues in Error Queue Collection.
+
+    queueInfo.currentQueueID(), get current Error Queue ID that being process.
+
+    queueInfo.isQueueFull(), determine whether Error Queue Collection is full or not.
+
+    queueInfo.dataType(), get string of the Frebase call data type that being process of current Error Queue.
+
+    queueInfo.method(), get string of the Firebase call method that being process of current Error Queue.
+
+    queueInfo.path(), get string of the Firebase call path that being process of current Error Queue.
+
+   */
+  void beginAutoRunErrorQueue(FirebaseData &dataObj, QueueInfoCallback callback = NULL);
+
+  /*
+    Stop the Firbase Error Queues Auto Run Process.
+
+    @param dataObj - Firebase Data Object to hold data and instances.
+
+  */
+  void endAutoRunErrorQueue(FirebaseData &dataObj);
 
   /*
     Clear all Firbase Error Queues in Error Queue collection.
@@ -1942,6 +2053,7 @@ public:
   void errorToString(int httpCode, std::string &buff);
 
 protected:
+  callback_function_t _callback_function = nullptr;
   bool pushInt(FirebaseData &dataObj, const std::string &path, int intValue, bool queue, const std::string &priority);
   bool pushFloat(FirebaseData &dataObj, const std::string &path, float floatValue, bool queue, const std::string &priority);
   bool pushDouble(FirebaseData &dataObj, const std::string &path, double doubleValue, bool queue, const std::string &priority);
@@ -1960,6 +2072,7 @@ protected:
   void endFileTransfer(FirebaseData &dataObj);
   bool firebaseConnectStream(FirebaseData &dataObj, const std::string &path);
   bool getServerStreamResponse(FirebaseData &dataObj);
+  
   bool getServerResponse(FirebaseData &dataObj);
   bool getDownloadResponse(FirebaseData &dataObj);
   bool getUploadResponse(FirebaseData &dataObj);
@@ -1975,6 +2088,9 @@ protected:
   bool commError(FirebaseData &dataObj);
   uint8_t openErrorQueue(FirebaseData &dataObj, const String &filename, uint8_t storageType, uint8_t mode);
   std::vector<std::string> splitString(int size, const char *str, const char delim);
+
+  void processFirebaseStream();
+  void processAllErrorQueues();
 
   void p_memCopy(std::string &buff, const char *p, bool empty = false);
   bool sdTest();
@@ -1992,6 +2108,13 @@ protected:
   int strpos(const char *haystack, const char *needle, int offset);
   int rstrpos(const char *haystack, const char *needle, int offset);
   char *rstrstr(const char *haystack, const char *needle);
+
+   void set_scheduled_callback(callback_function_t callback)
+    {
+        _callback_function = std::move([callback]() { schedule_function(callback); });
+        _callback_function();
+    }
+
 
   std::string _host = "";
   std::string _auth = "";
@@ -2300,6 +2423,15 @@ public:
   friend QueueManager;
 
 protected:
+
+  StreamEventCallback _dataAvailableCallback = NULL;
+  StreamTimeoutCallback _timeoutCallback = NULL;
+  QueueInfoCallback _queueInfoCallback = NULL;
+
+  int _index = -1;
+  int _Qindex = -1;
+  
+
   bool _firebaseCall = false;
   bool _streamCall = false;
   bool _fcmCall = false;
@@ -2356,6 +2488,7 @@ protected:
   bool _priority_val_flag = false;
   bool _priority_json_flag = false;
   bool _shallow_flag = false;
+  bool _processResponse = false;
   int _readTimeout = -1;
   std::string _writeLimit = "";
 
@@ -2369,6 +2502,9 @@ protected:
   size_t _backupzFileSize = 0;
 
   FirebaseHTTPClient _http;
+
+  std::string getDataType(uint8_t type);
+  std::string getMethod(uint8_t method);
 
   void addQueue(uint8_t firebaseMethod,
                 uint8_t storageType,
@@ -2387,6 +2523,8 @@ protected:
   void clearQueueItem(QueueItem &item);
 
   void setQuery(QueryFilter &query);
+
+
 
   friend FirebaseESP8266;
 };
@@ -2413,6 +2551,7 @@ protected:
   std::string _streamPath = "";
   std::string _path = "";
   std::string _data = "";
+  std::vector<uint8_t> _blob = std::vector<uint8_t>();
   std::string _dataTypeStr = "";
   std::string _eventTypeStr = "";
   uint8_t _dataType = 0;

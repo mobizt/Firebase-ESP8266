@@ -32,6 +32,32 @@ double mydouble = 0;
 uint32_t queueID[20];
 uint8_t qIdx = 0;
 
+
+void callback (QueueInfo queueinfo){
+
+  if (queueinfo.isQueueFull())
+  {
+    Serial.println("Queue is full");
+  }
+
+  Serial.print("Remaining queues: ");
+  Serial.println(queueinfo.totalQueues());
+
+  Serial.print("Being processed queue ID: ");
+  Serial.println(queueinfo.currentQueueID());  
+
+  Serial.print("Data type:");
+  Serial.println(queueinfo.dataType()); 
+
+  Serial.print("Method: ");
+  Serial.println(queueinfo.firebaseMethod());
+
+  Serial.print("Path: ");
+  Serial.println(queueinfo.dataPath());
+
+  Serial.println();
+}
+
 void setup()
 {
 
@@ -55,12 +81,10 @@ void setup()
   Firebase.reconnectWiFi(true);
 
   //Open and retore Firebase Error Queues from file.
-  if (Firebase.errorQueueCount(firebaseData, "/test.txt", StorageType::SPIFFS) > 0)
+  if (Firebase.errorQueueCount(firebaseData, "/test.txt", QueueStorageType::SPIFFS) > 0)
   {
-    Firebase.restoreErrorQueue(firebaseData, "/test.txt", StorageType::SPIFFS);
-    //Delete Firebase Error Queue file
-    Firebase.deleteStorageFile("/test.txt", StorageType::SPIFFS);
-    Firebase.deleteStorageFile("/test.txt", StorageType::SPIFFS);
+    Firebase.restoreErrorQueue(firebaseData, "/test.txt", QueueStorageType::SPIFFS);
+    Firebase.deleteStorageFile("/test.txt", QueueStorageType::SPIFFS);
   }
 
   //Set maximum Firebase read/store retry operation (0 - 255) in case of network problems and buffer overflow
@@ -71,6 +95,10 @@ void setup()
   Firebase.setMaxErrorQueue(firebaseData, 10);
 
   
+  Firebase.beginAutoRunErrorQueue(firebaseData, callback);
+
+  //Firebase.beginAutoRunErrorQueue(firebaseData);
+
 
   Serial.println("------------------------------------");
   Serial.println("Set BLOB data test...");
@@ -125,7 +153,9 @@ void setup()
     if (firebaseData.dataType() == "int")
       Serial.println(firebaseData.intData());
     else if (firebaseData.dataType() == "float")
-      Serial.println(firebaseData.floatData());
+      Serial.println(firebaseData.floatData(), 5);
+    else if (firebaseData.dataType() == "double")
+      printf("%.9lf\n", firebaseData.doubleData());
     else if (firebaseData.dataType() == "boolean")
       Serial.println(firebaseData.boolData() == 1 ? "true" : "false");
     else if (firebaseData.dataType() == "string")
@@ -253,15 +283,25 @@ void setup()
     Serial.println();
 
     //Save Error Queues to file
-    Firebase.saveErrorQueue(firebaseData, "/test.txt", StorageType::SPIFFS);
+    Firebase.saveErrorQueue(firebaseData, "/test.txt", QueueStorageType::SPIFFS);
   }
 
+  //Stop error queue auto run process
+  //Firebase.endAutoRunErrorQueue(firebaseData);
 }
 
 void loop()
 {
   if (Firebase.errorQueueCount(firebaseData) > 0)
   {
+
+   
+
+    /*
+
+    if Firebase.beginAutoRunErrorQueue was not call,
+    to manaul run the Firebase Error Queues, just call Firebase.processErrorQueue in loop
+    
     
     Firebase.processErrorQueue(firebaseData);
 
@@ -286,6 +326,8 @@ void loop()
     }
     Serial.println();
 
+    */
+
     if (mydouble > 0)
     {
       Serial.println("------------------------------------");
@@ -300,7 +342,7 @@ void loop()
       Serial.println("------------------------------------");
       Serial.println("Blob Data get from Queue");
       Serial.println();
-      for (int i = 0; i < myblob.size(); i++)
+      for (size_t i = 0; i < myblob.size(); i++)
       {
         if (i > 0 && i % 16 == 0)
           Serial.println();
@@ -315,3 +357,4 @@ void loop()
     }
   }
 }
+

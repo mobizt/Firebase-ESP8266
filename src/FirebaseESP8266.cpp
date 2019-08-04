@@ -1,16 +1,15 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.1.6
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.2.0
  * 
- * June 18, 2019
+ * August 4, 2019
  * 
  * Feature Added:
- * - Get the seconds of server's timestamp through getInt(). 
+ * - Stream callback. 
+ * - Error queues callback
  * 
  * Feature Fixed:
- * - Int data type returned instead of double for large double with zero decimal place
- * - Update timestamp example for proper printed value
- * - Update other examples for double printed value
- * 
+ * - Flash string error in Core SDK 2.5.2
+ * - Incorrect handles for continuous stream data event
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
  * and delete calls. 
@@ -113,7 +112,7 @@ void FirebaseESP8266::begin(const String &host, const String &auth)
         if (h[strlen(h) - 1] == '/')
             p2 = 1;
 
-        strncpy(_h, h + p1 + strlen(ESP8266_FIREBASE_STR_111), strlen(h) - p1 - p2 - strlen(ESP8266_FIREBASE_STR_111));
+        strncpy(_h, h + p1 + strlen_P(ESP8266_FIREBASE_STR_111), strlen(h) - p1 - p2 - strlen_P(ESP8266_FIREBASE_STR_111));
         _host = _h;
     }
 
@@ -127,7 +126,7 @@ void FirebaseESP8266::begin(const String &host, const String &auth)
             if (h[strlen(h) - 1] == '/')
                 p2 = 1;
 
-            strncpy(_h, h + p1 + strlen(ESP8266_FIREBASE_STR_112), strlen(h) - p1 - p2 - strlen(ESP8266_FIREBASE_STR_112));
+            strncpy(_h, h + p1 + strlen_P(ESP8266_FIREBASE_STR_112), strlen(h) - p1 - p2 - strlen_P(ESP8266_FIREBASE_STR_112));
             _host = _h;
         }
     }
@@ -508,7 +507,7 @@ bool FirebaseESP8266::pushBlob(FirebaseData &dataObj, const std::string &path, u
         return false;
     }
 
-    size_t tmpSize = strlen(ESP8266_FIREBASE_STR_92) + 1;
+    size_t tmpSize = strlen_P(ESP8266_FIREBASE_STR_92) + 1;
     char *tmp = new char[tmpSize];
     memset(tmp, 0, tmpSize);
 
@@ -543,7 +542,7 @@ bool FirebaseESP8266::pushFile(FirebaseData &dataObj, uint8_t storageType, const
 
 bool FirebaseESP8266::pushTimestamp(FirebaseData &dataObj, const String &path)
 {
-    size_t tmpSize = strlen(ESP8266_FIREBASE_STR_154) + 1;
+    size_t tmpSize = strlen_P(ESP8266_FIREBASE_STR_154) + 1;
     char *tmp = new char[tmpSize];
     memset(tmp, 0, tmpSize);
 
@@ -834,7 +833,7 @@ bool FirebaseESP8266::setBlob(FirebaseData &dataObj, const std::string &path, ui
         return false;
     }
 
-    size_t tmpSize = strlen(ESP8266_FIREBASE_STR_92) + 1;
+    size_t tmpSize = strlen_P(ESP8266_FIREBASE_STR_92) + 1;
     char *tmp = new char[tmpSize];
     memset(tmp, 0, tmpSize);
 
@@ -885,7 +884,7 @@ bool FirebaseESP8266::setFile(FirebaseData &dataObj, uint8_t storageType, const 
 
 bool FirebaseESP8266::setTimestamp(FirebaseData &dataObj, const String &path)
 {
-    size_t tmpSize = strlen(ESP8266_FIREBASE_STR_154) + 1;
+    size_t tmpSize = strlen_P(ESP8266_FIREBASE_STR_154) + 1;
     char *tmp = new char[tmpSize];
     memset(tmp, 0, tmpSize);
 
@@ -1584,9 +1583,9 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const std::string &p
                 }
 
                 if (dataObj._storageType == StorageType::SPIFFS)
-                    len = (4 * ceil(_file.size() / 3.0)) + strlen(ESP8266_FIREBASE_STR_93) + 1;
+                    len = (4 * ceil(_file.size() / 3.0)) + strlen_P(ESP8266_FIREBASE_STR_93) + 1;
                 else if (dataObj._storageType == StorageType::SD)
-                    len = (4 * ceil(file.size() / 3.0)) + strlen(ESP8266_FIREBASE_STR_93) + 1;
+                    len = (4 * ceil(file.size() / 3.0)) + strlen_P(ESP8266_FIREBASE_STR_93) + 1;
             }
             else if (method == FirebaseMethod::GET)
             {
@@ -1747,7 +1746,7 @@ bool FirebaseESP8266::sendRequest(FirebaseData &dataObj, uint8_t storageType, co
         {
             tryCount++;
             delay(50);
-            if (tryCount > 60)
+            if (tryCount > 20)
                 break;
         }
     }
@@ -1874,7 +1873,7 @@ bool FirebaseESP8266::sendRequest(FirebaseData &dataObj, uint8_t storageType, co
         //can't establish connection
         dataObj._httpCode = httpCode;
         dataObj._httpConnected = false;
-        delay(100);
+        delay(50);
         dataObj._firebaseCall = false;
         return false;
     }
@@ -1899,10 +1898,14 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
     if (!handleNetClientNotConnected(dataObj) || !dataObj._httpConnected)
         return false;
 
+    if(dataObj._processResponse) return false;
+
     bool flag = false;
 
     dataObj._data.clear();
 
+    dataObj._processResponse = true;
+   
     std::string jsonRes = "";
 
     char *lineBuf = new char[FIREBASE_RESPONSE_SIZE];
@@ -1942,15 +1945,19 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
     if (!dataObj._isStream)
         while (client.connected() && !client.available() && millis() - dataTime < dataObj._http.netClientTimeout)
         {
-            if (!apConnected(dataObj))
+            if (!apConnected(dataObj)){
+                dataObj._processResponse = false;
                 return false;
+            }
+               
             delay(1);
         }
 
     dataTime = millis();
+   
     if (client.connected() && client.available())
     {
-
+        
         while (client.available())
         {
             yield();
@@ -1958,8 +1965,11 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
             if (dataObj._interruptRequest)
                 return cancelCurrentResponse(dataObj);
 
-            if (!apConnected(dataObj))
+            if (!apConnected(dataObj)){
+                dataObj._processResponse = false;
                 return false;
+            }
+               
 
             res = client.read();
 
@@ -1992,7 +2002,7 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
                 continue;
             }
 
-            if (charPos >= strlen(ESP8266_FIREBASE_STR_92) - 1 && !hasBlob)
+            if (charPos >= strlen_P(ESP8266_FIREBASE_STR_92) - 1 && !hasBlob)
             {
                 memset(fstr, 0, 60);
                 strcpy_P(fstr, ESP8266_FIREBASE_STR_92);
@@ -2039,7 +2049,7 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
                     {
 
                         memset(tmp, 0, tempBufSize);
-                        strncpy(tmp, lineBuf + p1 + strlen(ESP8266_FIREBASE_STR_5), strlen(lineBuf) - p1 - strlen(ESP8266_FIREBASE_STR_5));
+                        strncpy(tmp, lineBuf + p1 + strlen_P(ESP8266_FIREBASE_STR_5), strlen(lineBuf) - p1 - strlen_P(ESP8266_FIREBASE_STR_5));
                         dataObj._httpCode = atoi(tmp);
                     }
 
@@ -2054,7 +2064,7 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
                         {
                             memset(tmp, 0, tempBufSize);
                             dataObj._redirectURL.clear();
-                            strncpy(tmp, lineBuf + p1 + strlen(ESP8266_FIREBASE_STR_95), strlen(lineBuf) - p1 - strlen(ESP8266_FIREBASE_STR_95));
+                            strncpy(tmp, lineBuf + p1 + strlen_P(ESP8266_FIREBASE_STR_95), strlen(lineBuf) - p1 - strlen_P(ESP8266_FIREBASE_STR_95));
                             dataObj._redirectURL = tmp;
                             int res = firebaseConnect(dataObj, dataObj._redirectURL.c_str(), dataObj._r_method, dataObj._r_dataType, "", dataObj._priority);
 
@@ -2072,7 +2082,7 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
                     if (p1 != -1)
                     {
                         memset(tmp, 0, tempBufSize);
-                        strncpy(tmp, lineBuf + p1 + strlen(ESP8266_FIREBASE_STR_150), strlen(lineBuf) - p1 - strlen(ESP8266_FIREBASE_STR_150));
+                        strncpy(tmp, lineBuf + p1 + strlen_P(ESP8266_FIREBASE_STR_150), strlen(lineBuf) - p1 - strlen_P(ESP8266_FIREBASE_STR_150));
                         dataObj._etag = tmp;
                     }
 
@@ -2096,7 +2106,7 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
                         {
                             dataObj._firebaseError.clear();
                             memset(tmp, 0, tempBufSize);
-                            strncpy(tmp, lineBuf + p1 + strlen(ESP8266_FIREBASE_STR_102) + 1, strlen(lineBuf) - p1 - strlen(ESP8266_FIREBASE_STR_102));
+                            strncpy(tmp, lineBuf + p1 + strlen_P(ESP8266_FIREBASE_STR_102) + 1, strlen(lineBuf) - p1 - strlen_P(ESP8266_FIREBASE_STR_102));
                             dataObj._firebaseError.append(tmp, strlen(tmp) - 1);
                         }
 
@@ -2107,7 +2117,7 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
                         if (p1 != -1)
                         {
                             memset(tmp, 0, tempBufSize);
-                            strncpy(tmp, lineBuf + p1 + strlen(ESP8266_FIREBASE_STR_8), strlen(lineBuf) - p1 - strlen(ESP8266_FIREBASE_STR_8));
+                            strncpy(tmp, lineBuf + p1 + strlen_P(ESP8266_FIREBASE_STR_8), strlen(lineBuf) - p1 - strlen_P(ESP8266_FIREBASE_STR_8));
 
                             memset(fstr, 0, 60);
                             strcpy_P(fstr, ESP8266_FIREBASE_STR_9);
@@ -2123,7 +2133,7 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
                         if (p1 != -1)
                         {
                             memset(tmp, 0, tempBufSize);
-                            strncpy(tmp, lineBuf + p1 + strlen(ESP8266_FIREBASE_STR_10), strlen(lineBuf) - p1 - strlen(ESP8266_FIREBASE_STR_10));
+                            strncpy(tmp, lineBuf + p1 + strlen_P(ESP8266_FIREBASE_STR_10), strlen(lineBuf) - p1 - strlen_P(ESP8266_FIREBASE_STR_10));
 
                             memset(fstr, 0, 60);
                             strcpy_P(fstr, ESP8266_FIREBASE_STR_11);
@@ -2142,7 +2152,7 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
                         {
 
                             memset(tmp, 0, tempBufSize);
-                            strncpy(tmp, lineBuf + p1 + strlen(ESP8266_FIREBASE_STR_12), strlen(lineBuf) - p1 - strlen(ESP8266_FIREBASE_STR_12));
+                            strncpy(tmp, lineBuf + p1 + strlen_P(ESP8266_FIREBASE_STR_12), strlen(lineBuf) - p1 - strlen_P(ESP8266_FIREBASE_STR_12));
 
                             dataObj._contentLength = atoi(tmp);
                         }
@@ -2154,11 +2164,11 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
                         if (p1 != -1)
                         {
                             memset(eventType, 0, eventTypeSize);
-                            strncpy(eventType, lineBuf + p1 + strlen(ESP8266_FIREBASE_STR_13), strlen(lineBuf) - p1 - strlen(ESP8266_FIREBASE_STR_13));
-
+                            strncpy(eventType, lineBuf + p1 + strlen_P(ESP8266_FIREBASE_STR_13), strlen(lineBuf) - p1 - strlen_P(ESP8266_FIREBASE_STR_13));
                             hasEvent = true;
                             isStream = true;
                             dataObj._httpCode = _HTTP_CODE_OK;
+                             memset(lineBuf, 0, FIREBASE_RESPONSE_SIZE);
                         }
 
                         memset(fstr, 0, 60);
@@ -2172,9 +2182,10 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
                             dataObj._httpCode = _HTTP_CODE_OK;
 
                             memset(tmp, 0, tempBufSize);
-                            strncpy(tmp, lineBuf + p1 + strlen(ESP8266_FIREBASE_STR_14), strlen(lineBuf) - p1 - strlen(ESP8266_FIREBASE_STR_14));
+                            strncpy(tmp, lineBuf + p1 + strlen_P(ESP8266_FIREBASE_STR_14), strlen(lineBuf) - p1 - strlen_P(ESP8266_FIREBASE_STR_14));
                             memset(lineBuf, 0, FIREBASE_RESPONSE_SIZE);
                             strcpy(lineBuf, tmp);
+                             break;
                         }
                     }
                 }
@@ -2252,12 +2263,12 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
                         {
                             memset(fstr, 0, 60);
                             strcpy_P(fstr, ESP8266_FIREBASE_STR_3);
-                            p2 = strpos(lineBuf, fstr, p1 + strlen(ESP8266_FIREBASE_STR_17));
+                            p2 = strpos(lineBuf, fstr, p1 + strlen_P(ESP8266_FIREBASE_STR_17));
                             if (p2 != -1)
                             {
                                 dataObj._path.clear();
                                 memset(tmp, 0, tempBufSize);
-                                strncpy(tmp, lineBuf + p1 + strlen(ESP8266_FIREBASE_STR_17), p2 - p1 - strlen(ESP8266_FIREBASE_STR_17));
+                                strncpy(tmp, lineBuf + p1 + strlen_P(ESP8266_FIREBASE_STR_17), p2 - p1 - strlen_P(ESP8266_FIREBASE_STR_17));
                                 dataObj._path = tmp;
                             }
                         }
@@ -2271,7 +2282,7 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
 
                             dataObj._data.clear();
                             memset(tmp, 0, tempBufSize);
-                            strncpy(tmp, lineBuf + p1 + strlen(ESP8266_FIREBASE_STR_18), strlen(lineBuf) - p1 - strlen(ESP8266_FIREBASE_STR_18) - 1);
+                            strncpy(tmp, lineBuf + p1 + strlen_P(ESP8266_FIREBASE_STR_18), strlen(lineBuf) - p1 - strlen_P(ESP8266_FIREBASE_STR_18) - 1);
                             dataObj._data = tmp;
 
                             setDataType(dataObj, dataObj._data.c_str());
@@ -2282,17 +2293,17 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
                             bool emptyPath = dataObj._path2.length() == 0;
                             bool sameData = dataObj._data == dataObj._data2;
 
-                            if (dataObj._data.length() >= strlen(ESP8266_FIREBASE_STR_92) && !hasBlob)
+                            if (dataObj._data.length() >= strlen_P(ESP8266_FIREBASE_STR_92) && !hasBlob)
                             {
                                 memset(fstr, 0, 60);
                                 strcpy_P(fstr, ESP8266_FIREBASE_STR_92);
-                                if (strcmp(dataObj._data.substr(0, strlen(ESP8266_FIREBASE_STR_92)).c_str(), fstr) == 0)
+                                if (strcmp(dataObj._data.substr(0, strlen_P(ESP8266_FIREBASE_STR_92)).c_str(), fstr) == 0)
                                 {
                                     char *tmp = new char[dataObj._data.length() + 1];
                                     memset(tmp, 0, dataObj._data.length() + 1);
                                     strcpy(tmp, dataObj._data.c_str());
                                     memset(lineBuf, 0, FIREBASE_RESPONSE_SIZE);
-                                    strncpy(lineBuf, tmp + strlen(ESP8266_FIREBASE_STR_92), dataObj._data.length() - strlen(ESP8266_FIREBASE_STR_92) - 1);
+                                    strncpy(lineBuf, tmp + strlen_P(ESP8266_FIREBASE_STR_92), dataObj._data.length() - strlen_P(ESP8266_FIREBASE_STR_92) - 1);
                                     hasBlob = true;
                                     std::vector<uint8_t>().swap(dataObj._blob);
                                     dataObj._dataType = FirebaseDataType::BLOB;
@@ -2392,12 +2403,12 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
                     {
                         memset(fstr, 0, 60);
                         strcpy_P(fstr, ESP8266_FIREBASE_STR_3);
-                        p2 = strpos(lineBuf, fstr, p1 + strlen(ESP8266_FIREBASE_STR_20));
+                        p2 = strpos(lineBuf, fstr, p1 + strlen_P(ESP8266_FIREBASE_STR_20));
                         if (p2 != -1)
                         {
                             dataObj._pushName.clear();
                             memset(tmp, 0, tempBufSize);
-                            strncpy(tmp, lineBuf + p1 + strlen(ESP8266_FIREBASE_STR_20), p2 - p1 - strlen(ESP8266_FIREBASE_STR_20));
+                            strncpy(tmp, lineBuf + p1 + strlen_P(ESP8266_FIREBASE_STR_20), p2 - p1 - strlen_P(ESP8266_FIREBASE_STR_20));
                             dataObj._pushName = tmp;
                             dataObj._dataType = -1;
                             dataObj._dataType2 = -1;
@@ -2465,7 +2476,8 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
     delete[] eventType;
     std::string().swap(jsonRes);
     delete[] fstr;
-
+    dataObj._processResponse = false;
+     
     return flag;
 
 EXIT_2:
@@ -2475,6 +2487,7 @@ EXIT_2:
     delete[] eventType;
     std::string().swap(jsonRes);
     delete[] fstr;
+     dataObj._processResponse = false;
 
     if (dataObj._httpCode == HTTPC_ERROR_READ_TIMEOUT)
         return false;
@@ -2487,6 +2500,7 @@ EXIT_3:
     delete[] eventType;
     std::string().swap(jsonRes);
     delete[] fstr;
+     dataObj._processResponse = false;
     return true;
 
 EXIT_4:
@@ -2495,6 +2509,7 @@ EXIT_4:
     delete[] eventType;
     std::string().swap(jsonRes);
     delete[] fstr;
+     dataObj._processResponse = false;
     return getServerResponse(dataObj);
 }
 
@@ -2663,11 +2678,11 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
                 {
                     memset(fstr, 0, 60);
                     strcpy_P(fstr, ESP8266_FIREBASE_STR_6);
-                    p2 = strpos(lineBuf, fstr, p1 + strlen(ESP8266_FIREBASE_STR_5));
+                    p2 = strpos(lineBuf, fstr, p1 + strlen_P(ESP8266_FIREBASE_STR_5));
                     if (p2 != -1)
                     {
                         memset(tmp, 0, tempBufSize);
-                        strncpy(tmp, lineBuf + p1 + strlen(ESP8266_FIREBASE_STR_5), p2 - p1 - strlen(ESP8266_FIREBASE_STR_5));
+                        strncpy(tmp, lineBuf + p1 + strlen_P(ESP8266_FIREBASE_STR_5), p2 - p1 - strlen_P(ESP8266_FIREBASE_STR_5));
                         dataObj._httpCode = atoi(tmp);
                     }
                 }
@@ -2678,7 +2693,7 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
                 {
                     memset(tmp, 0, tempBufSize);
                     dataObj._firebaseError.clear();
-                    strncpy(tmp, lineBuf + p1 + strlen(ESP8266_FIREBASE_STR_102) + 1, strlen(lineBuf) - p1 - strlen(ESP8266_FIREBASE_STR_102) - 2);
+                    strncpy(tmp, lineBuf + p1 + strlen_P(ESP8266_FIREBASE_STR_102) + 1, strlen(lineBuf) - p1 - strlen_P(ESP8266_FIREBASE_STR_102) - 2);
                     dataObj._firebaseError = tmp;
                 }
 
@@ -2689,9 +2704,9 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
                 {
                     memset(fstr, 0, 60);
                     strcpy_P(fstr, ESP8266_FIREBASE_STR_79);
-                    p2 = strpos(lineBuf, fstr, p1 + strlen(ESP8266_FIREBASE_STR_8));
+                    p2 = strpos(lineBuf, fstr, p1 + strlen_P(ESP8266_FIREBASE_STR_8));
                     if (p2 != -1)
-                        strncpy(contentType, lineBuf + p1 + strlen(ESP8266_FIREBASE_STR_8), p2 - p1 - strlen(ESP8266_FIREBASE_STR_8));
+                        strncpy(contentType, lineBuf + p1 + strlen_P(ESP8266_FIREBASE_STR_8), p2 - p1 - strlen_P(ESP8266_FIREBASE_STR_8));
                 }
 
                 memset(fstr, 0, 60);
@@ -2700,13 +2715,13 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
                 if (p1 != -1)
                 {
                     memset(tmp, 0, tempBufSize);
-                    strncpy(tmp, lineBuf + p1 + strlen(ESP8266_FIREBASE_STR_12), strlen(lineBuf) - p1 - strlen(ESP8266_FIREBASE_STR_12));
+                    strncpy(tmp, lineBuf + p1 + strlen_P(ESP8266_FIREBASE_STR_12), strlen(lineBuf) - p1 - strlen_P(ESP8266_FIREBASE_STR_12));
                     contentLength = atoi(tmp);
                     dataObj._backupzFileSize = contentLength;
                     count = contentLength;
 
                     if (dataObj._fileName != "")
-                        count -= strlen(ESP8266_FIREBASE_STR_93) - 1;
+                        count -= strlen_P(ESP8266_FIREBASE_STR_93) - 1;
                 }
                 memset(fstr, 0, 60);
                 strcpy_P(fstr, ESP8266_FIREBASE_STR_80);
@@ -2715,9 +2730,9 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
                 {
                     memset(fstr, 0, 60);
                     strcpy_P(fstr, ESP8266_FIREBASE_STR_79);
-                    p2 = strpos(lineBuf, fstr, p1 + strlen(ESP8266_FIREBASE_STR_80));
+                    p2 = strpos(lineBuf, fstr, p1 + strlen_P(ESP8266_FIREBASE_STR_80));
                     if (p2 != -1)
-                        strncpy(contentDisposition, lineBuf + p1 + strlen(ESP8266_FIREBASE_STR_80), p2 - p1 - strlen(ESP8266_FIREBASE_STR_80));
+                        strncpy(contentDisposition, lineBuf + p1 + strlen_P(ESP8266_FIREBASE_STR_80), p2 - p1 - strlen_P(ESP8266_FIREBASE_STR_80));
                 }
 
                 bool k1, k2;
@@ -2733,7 +2748,7 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
                     beginPayload = true;
                     if (dataObj._fileName != "")
                     {
-                        for (size_t i = 0; i < strlen(ESP8266_FIREBASE_STR_93); i++)
+                        for (size_t i = 0; i < strlen_P(ESP8266_FIREBASE_STR_93); i++)
                             netClient.read();
                     }
                 }
@@ -2856,7 +2871,7 @@ bool FirebaseESP8266::getUploadResponse(FirebaseData &dataObj)
 
                     memset(tmp, 0, tempBufSize);
                     dataObj._firebaseError.clear();
-                    strncpy(tmp, lineBuf + p1 + strlen(ESP8266_FIREBASE_STR_102) + 1, strlen(lineBuf) - p1 - strlen(ESP8266_FIREBASE_STR_102) - 2);
+                    strncpy(tmp, lineBuf + p1 + strlen_P(ESP8266_FIREBASE_STR_102) + 1, strlen(lineBuf) - p1 - strlen_P(ESP8266_FIREBASE_STR_102) - 2);
                     dataObj._firebaseError = tmp;
                 }
                 memset(fstr, 0, 60);
@@ -2866,11 +2881,11 @@ bool FirebaseESP8266::getUploadResponse(FirebaseData &dataObj)
                 {
                     memset(fstr, 0, 60);
                     strcpy_P(fstr, ESP8266_FIREBASE_STR_6);
-                    p2 = strpos(lineBuf, fstr, p1 + strlen(ESP8266_FIREBASE_STR_5));
+                    p2 = strpos(lineBuf, fstr, p1 + strlen_P(ESP8266_FIREBASE_STR_5));
                     if (p2 != -1)
                     {
                         memset(tmp, 0, tempBufSize);
-                        strncpy(tmp, lineBuf + p1 + strlen(ESP8266_FIREBASE_STR_5), p2 - p1 - strlen(ESP8266_FIREBASE_STR_5));
+                        strncpy(tmp, lineBuf + p1 + strlen_P(ESP8266_FIREBASE_STR_5), p2 - p1 - strlen_P(ESP8266_FIREBASE_STR_5));
                         _httpCode = atoi(tmp);
                     }
                 }
@@ -3004,7 +3019,7 @@ bool FirebaseESP8266::getServerStreamResponse(FirebaseData &dataObj)
                 {
                     tryCount++;
                     delay(50);
-                    if (tryCount > 60)
+                    if (tryCount > 20)
                         break;
                 }
             }
@@ -3073,6 +3088,9 @@ bool FirebaseESP8266::getServerStreamResponse(FirebaseData &dataObj)
     return true;
 }
 
+
+
+
 bool FirebaseESP8266::apConnected(FirebaseData &dataObj)
 {
     if (WiFi.status() != WL_CONNECTED)
@@ -3102,7 +3120,7 @@ void FirebaseESP8266::forceEndHTTP(FirebaseData &dataObj)
     delay(50);
 }
 
-void FirebaseESP8266::processErrorQueue(FirebaseData &dataObj)
+void FirebaseESP8266::processErrorQueue(FirebaseData &dataObj,  QueueInfoCallback callback)
 {
     if (dataObj._firebaseCall)
         return;
@@ -3559,6 +3577,7 @@ bool FirebaseESP8266::cancelCurrentResponse(FirebaseData &dataObj)
     dataObj._dataAvailable = false;
     dataObj._isStreamTimeout = false;
     dataObj._httpCode = HTTPC_ERROR_CONNECTION_REFUSED;
+    dataObj._processResponse = false;
     return false;
 }
 
@@ -3848,7 +3867,7 @@ bool FirebaseESP8266::sendFCMMessage(FirebaseData &dataObj, uint8_t messageType)
         {
             tryCount++;
             delay(50);
-            if (tryCount > 60)
+            if (tryCount > 20)
                 break;
         }
     }
@@ -3904,6 +3923,90 @@ bool FirebaseESP8266::sendTopic(FirebaseData &dataObj)
 {
     return sendFCMMessage(dataObj, FirebaseESP8266::FCMMessageType::TOPIC);
 }
+
+void FirebaseESP8266::setStreamCallback(FirebaseData &dataObj, StreamEventCallback dataAvailablecallback, StreamTimeoutCallback timeoutCallback)
+{
+  int index = dataObj._index;
+
+
+  bool hasHandle = false;
+
+   if (dataObj._index!=-1 || dataObj._Qindex!=-1)
+   hasHandle = true;
+   else
+  {
+    index = dataObjectIndex;
+    dataObjectIndex++;
+  }
+ 
+
+  dataObj._index = index;
+  dataObj._dataAvailableCallback = dataAvailablecallback;
+  dataObj._timeoutCallback = timeoutCallback;
+
+  //object created
+  if (hasHandle)
+    firebaseDataObject[index] = dataObj;
+  else
+    firebaseDataObject.push_back(dataObj);
+
+   if(!_callback_function)
+       set_scheduled_callback(std::bind(&FirebaseESP8266::processFirebaseStream, this));
+
+}
+
+
+
+void FirebaseESP8266::removeStreamCallback(FirebaseData &dataObj)
+{
+  int index = dataObj._index;
+
+  if (index != -1)
+  {
+    
+      dataObj._index = -1;
+      dataObj._dataAvailableCallback = NULL;
+      dataObj._timeoutCallback = NULL;
+
+      firebaseDataObject.erase(firebaseDataObject.begin() + index);
+  }
+}
+
+void FirebaseESP8266::beginAutoRunErrorQueue(FirebaseData &dataObj, QueueInfoCallback callback)
+{
+
+  int index = dataObj._Qindex;
+
+    bool hasHandle = false;
+
+   if (dataObj._index!=-1 || dataObj._Qindex!=-1)
+   hasHandle = true;
+   else
+  {
+    index = dataObjectIndex;
+    dataObjectIndex++;
+  }
+ 
+
+  dataObj._Qindex = index;
+
+  if (callback)
+    dataObj._queueInfoCallback = callback;
+  else
+    dataObj._queueInfoCallback = NULL;
+
+
+  //object created
+  if (hasHandle)
+    firebaseDataObject[index] = dataObj;
+  else
+    firebaseDataObject.push_back(dataObj);
+
+  set_scheduled_callback(std::bind(&FirebaseESP8266::processAllErrorQueues, this));
+
+}
+
+
 
 void FirebaseESP8266::clearErrorQueue(FirebaseData &dataObj)
 {
@@ -4186,11 +4289,68 @@ std::vector<std::string> FirebaseESP8266::splitString(int size, const char *str,
     return out;
 }
 
+void FirebaseESP8266::processFirebaseStream(){
+
+     for (size_t id=0;id<firebaseDataObject.size();id++)
+    {
+      if ((firebaseDataObject[id].get()._dataAvailableCallback || firebaseDataObject[id].get()._timeoutCallback))
+      {
+
+        Firebase.readStream(firebaseDataObject[id].get());
+
+        if (firebaseDataObject[id].get().streamTimeout() && firebaseDataObject[id].get()._timeoutCallback)
+          firebaseDataObject[id].get()._timeoutCallback(true);
+
+        if (!firebaseDataObject[id].get()._processResponse && firebaseDataObject[id].get().streamAvailable() && firebaseDataObject[id].get()._dataAvailableCallback)
+        {
+
+          StreamData s;
+          s._streamPath = firebaseDataObject[id].get()._streamPath;
+          s._data = firebaseDataObject[id].get()._data;
+          s._path = firebaseDataObject[id].get()._path;
+
+          s._dataType = firebaseDataObject[id].get()._dataType;
+          s._dataTypeStr = firebaseDataObject[id].get().getDataType(s._dataType);
+          s._eventTypeStr = firebaseDataObject[id].get()._eventType;
+
+          if (s._dataType == FirebaseESP8266::FirebaseDataType::BLOB)
+          {
+            s._blob = firebaseDataObject[id].get()._blob;
+            //Free ram in case of callback data was used
+            firebaseDataObject[id].get()._blob.clear();
+          }
+
+          firebaseDataObject[id].get()._dataAvailableCallback(s);
+          s.empty();
+        }
+      }
+     
+    }
+
+     set_scheduled_callback(std::bind(&FirebaseESP8266::processFirebaseStream, this));
+
+}
+
+void FirebaseESP8266::processAllErrorQueues(){
+
+    for (size_t id=0;id<firebaseDataObject.size();id++)
+    {
+
+      if (firebaseDataObject[id].get()._queueInfoCallback)
+        Firebase.processErrorQueue(firebaseDataObject[id].get(), firebaseDataObject[id].get()._queueInfoCallback);
+      else
+        Firebase.processErrorQueue(firebaseDataObject[id].get(), NULL);
+
+    }
+
+    set_scheduled_callback(std::bind(&FirebaseESP8266::processAllErrorQueues, this));
+}
+
 void FirebaseESP8266::p_memCopy(std::string &buff, const char *p, bool empty)
 {
     if (empty)
         buff.clear();
-    size_t len = strlen(p) + 1;
+    size_t len = strlen_P(p) + 10;
     char *b = new char[len];
     memset(b, 0, len);
     strcpy(b, p);
@@ -4873,6 +5033,105 @@ String FirebaseData::ETag()
     return res.c_str();
 }
 
+std::string FirebaseData::getDataType(uint8_t type)
+{
+   std::string res = "";
+   char *t = new char[100];
+   memset(t,0,100);
+
+  if (type == FirebaseESP8266::FirebaseDataType::JSON){
+    strcpy_P(t,ESP8266_FIREBASE_STR_74);
+    goto ex_get_type;
+  }
+
+  if (type == FirebaseESP8266::FirebaseDataType::STRING){
+    strcpy_P(t,ESP8266_FIREBASE_STR_75);
+    goto ex_get_type;
+  }
+
+  if (type == FirebaseESP8266::FirebaseDataType::FLOAT){
+    strcpy_P(t,ESP8266_FIREBASE_STR_76);
+    goto ex_get_type;
+  }
+    
+
+  if (type == FirebaseESP8266::FirebaseDataType::DOUBLE){
+    strcpy_P(t,ESP8266_FIREBASE_STR_108);
+    goto ex_get_type;
+  }
+
+  if (type == FirebaseESP8266::FirebaseDataType::BOOLEAN){
+    strcpy_P(t,ESP8266_FIREBASE_STR_105);
+    goto ex_get_type;
+  }
+
+  if (type == FirebaseESP8266::FirebaseDataType::INTEGER){
+    strcpy_P(t,ESP8266_FIREBASE_STR_77);
+    goto ex_get_type;
+  }
+
+  if (type == FirebaseESP8266::FirebaseDataType::BLOB){
+    strcpy_P(t,ESP8266_FIREBASE_STR_91);
+    goto ex_get_type;
+  }
+
+  if (type == FirebaseESP8266::FirebaseDataType::NULL_){
+    strcpy_P(t,ESP8266_FIREBASE_STR_78);
+    goto ex_get_type;
+  }
+
+
+ ex_get_type:
+
+ res= t;
+ delete[] t;
+
+  return res;
+}
+
+std::string FirebaseData::getMethod(uint8_t method)
+{
+    std::string res = "";
+   char *t = new char[100];
+   memset(t,0,100);
+
+  if (method == FirebaseESP8266::FirebaseMethod::GET){
+       strcpy_P(t,ESP8266_FIREBASE_STR_164);
+    goto ex_get_method;
+  }
+
+  if (method == FirebaseESP8266::FirebaseMethod::PUT || method == FirebaseESP8266::FirebaseMethod::PATCH_SILENT)
+   {    
+       strcpy_P(t,ESP8266_FIREBASE_STR_165);
+    goto ex_get_method;
+  }
+
+  if (method == FirebaseESP8266::FirebaseMethod::POST)
+  {    
+      strcpy_P(t,ESP8266_FIREBASE_STR_166);
+    goto ex_get_method;
+  }
+
+  if (method == FirebaseESP8266::FirebaseMethod::PATCH || method == FirebaseESP8266::FirebaseMethod::PATCH_SILENT)
+   {    
+       strcpy_P(t,ESP8266_FIREBASE_STR_167);
+    goto ex_get_method;
+  }
+
+  if (method == FirebaseESP8266::FirebaseMethod::DELETE)
+  {     
+      strcpy_P(t,ESP8266_FIREBASE_STR_168);
+    goto ex_get_method;
+  }
+
+   ex_get_method:
+
+ res= t;
+ delete[] t;
+
+  return res;
+}
+
 String FirebaseData::streamPath()
 {
     return _streamPath.c_str();
@@ -5039,8 +5298,14 @@ String FirebaseData::errorReason()
 
     if (_firebaseError != "")
     {
-        buff += ESP8266_FIREBASE_STR_132;
-        buff += ESP8266_FIREBASE_STR_6;
+        char *str = new char[100];
+        memset(str, 0, 100);
+        strcpy_P(str, ESP8266_FIREBASE_STR_132);
+        buff += str;
+        memset(str, 0, 100);
+        strcpy_P(str, ESP8266_FIREBASE_STR_6);
+        buff += str;
+        delete[] str;
         buff += _firebaseError;
     }
 
@@ -5290,6 +5555,53 @@ bool QueueManager::add(QueueItem q)
 void QueueManager::remove(uint8_t index)
 {
     _queueCollection.erase(_queueCollection.begin() + index);
+}
+
+
+QueueInfo::QueueInfo()
+{
+}
+
+QueueInfo::~QueueInfo()
+{
+  clear();
+}
+
+uint8_t QueueInfo::totalQueues()
+{
+  return _totalQueue;
+}
+
+uint32_t QueueInfo::currentQueueID()
+{
+  return _currentQueueID;
+}
+
+bool QueueInfo::isQueueFull()
+{
+  return _isQueueFull;
+}
+
+String QueueInfo::dataType()
+{
+  return _dataType.c_str();
+}
+
+String QueueInfo::firebaseMethod()
+{
+  return _method.c_str();
+}
+
+String QueueInfo::dataPath()
+{
+  return _path.c_str();
+}
+
+void QueueInfo::clear()
+{
+  std::string().swap(_dataType);
+  std::string().swap(_method);
+  std::string().swap(_path);
 }
 
 FCMObject::FCMObject() {}

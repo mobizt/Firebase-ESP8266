@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.1.6
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.2.0
 
 
 This library supports ESP8266 MCU from Espressif. The following are platforms which library are also available.
@@ -55,6 +55,8 @@ This library supports ESP8266 MCU from Espressif. The following are platforms wh
 * **Supports Automatic Stream Resuming.** 
 
 * **Supports Multiple Streamings.**
+
+* **Supports Stream Event Callbacks**
 
 * **Supports Pause and Resume Firebase Operations.**
 
@@ -433,9 +435,15 @@ query.clear();
 
 This library uses HTTP GET request with stream header to request the stream event and data at defined database path.
 
-The Firebase's functions that handle the stream are `beginStream` and `readStream`.
+The Firebase's functions that handle the stream are `beginStream`, `setStreamCallback` and/or `readStream`.
 
 Function `beginStream` used to subscribe the stream changes at defined database path.
+
+Function `setStreamCallback` used to assign the callback function that accept the **StreamData** class as parameter.
+
+The **StreamData** contains stream event and data and interface function calls are similar to Firebase Data object.
+
+To check the stream manually, use function `readStream`.
 
 Function `readStream` used in loop() task to continuous read the stream changes event and data.
 
@@ -460,9 +468,70 @@ After new stream data was available, it can be accessed with the following Fireb
 * `firebaseData.blobData`
 
 
-Function `endStream` ends the stream operation. 
+Function `endStream` ends the stream operation.
 
-The following example showed how to subscribe the stream changes at "/test/data".
+The following example showed how to subscribe the stream changes at "/test/data" with callback function.
+
+```C++
+
+//In setup(), set the stream callback function to handle data
+//streamCallback is the function that called when database data changes or updates occurred
+//streamTimeoutCallback is the function that called when connection between server 
+//and client was timeout during HTTP stream
+
+Firebase.setStreamCallback(firebaseData, streamCallback, streamTimeoutCallback);
+
+//In setup(), set the streaming path to "/test/data" and begin stream connection
+
+if (!Firebase.beginStream(firebaseData, "/test/data"))
+{
+  //Could not begin stream connection, then print out the error detail
+  Serial.println(firebaseData.errorReason());
+}
+
+  
+  //Global function that handle stream data
+void streamCallback(StreamData data)
+{
+
+  //Print out all information
+
+  Serial.println("Stream Data...");
+  Serial.println(data.streamPath());
+  Serial.println(data.dataPath());
+  Serial.println(data.dataType());
+
+  //Print out value
+  //Stream data can be many types which can be determined from function dataType
+
+  if (data.dataType() == "int")
+    Serial.println(data.intData());
+  else if (data.dataType() == "float")
+    Serial.println(data.floatData(), 5);
+  else if (data.dataType() == "double")
+    printf("%.9lf\n", data.doubleData());
+  else if (data.dataType() == "boolean")
+    Serial.println(data.boolData() == 1 ? "true" : "false");
+  else if (data.dataType() == "string")
+    Serial.println(data.stringData());
+  else if (data.dataType() == "json")
+    Serial.println(data.jsonData());
+
+}
+
+//Global function that notify when stream connection lost
+//The library will resume the stream connection automatically
+void streamTimeoutCallback(bool timeout)
+{
+  if(timeout){
+    //Stream timeout occurred
+    Serial.println("Stream timeout, resume streaming...");
+  }  
+}
+
+```
+
+The following example showed how to subscribe the stream changes at "/test/data" and read the stream manually.
 
 ```C++
 //In setup(), set the streaming path to "/test/data" and begin stream connection
@@ -501,6 +570,7 @@ if (firebaseData.streamAvailable())
     
 }
 ```
+
 
 
 ### Backup and Restore Data
@@ -571,15 +641,72 @@ The full of queue collection can be checked through function `isErrorQueueFull`.
  Firebase.isErrorQueueFull(firebaseData);
 ```
 
+This library provides two approaches to run or process Error Queues with two functions. 
 
-The function `processErrorQueue` will run or process queues and should call inside the loop().
+* `beginAutoRunErrorQueue`
+* `processErrorQueue`
 
-Function `getErrorQueueID` will return the unsigned integer presents the id of queue.
+The function `beginAutoRunErrorQueue` will run or process queues automatically and can be call once. 
 
-Use `getErrorQueueID` and `isErrorQueueExisted` to check whether this queue id is still existed in Error Queue collection or not. 
+While function `processErrorQueue` will run or process queues and should call inside the loop().
+
+With function `beginAutoRunErrorQueue`, you can assigned callback function that accept **QueueInfo** object as parameter.
+
+Which contains all information about being processed queue, number of remaining queues and Error Queue collection status.
+
+Otherwise, Error Queues can be trackacked manually with the following functions.
+
+Function `getErrorQueueID` will return the unsigned integer presents the id of queue which will keep to use later.
+
+Use `getErrorQueueID` and `isErrorQueueExisted` to check whether this queue id is still existed or not. 
+
+If Error Queue ID is not existed in Error Queues collection, that queue is already done.
+
+The following example showed how to run Error Queues automatically and track the status with callback function.
+
+```C++
+
+//In setup()
+
+//Set the maximum Firebase Error Queues in collection (0 - 255).
+//Firebase read/store operation causes by network problems and buffer overflow will be 
+//added to Firebase Error Queues ollection.
+Firebase.setMaxErrorQueue(firebaseData, 10);
+
+//Begin to run Error Queues in Error Queue collection  
+Firebase.beginAutoRunErrorQueue(firebaseData, callback);
 
 
-The following example showed how to run Error Queues and track the queues status.
+//Use to stop the auto run queues
+//Firebase.endAutoRunErrorQueue(firebaseData);
+
+void errorQueueCallback (QueueInfo queueinfo){
+
+  if (queueinfo.isQueueFull())
+  {
+    Serial.println("Queue is full");
+  }
+
+  Serial.print("Remaining queues: ");
+  Serial.println(queueinfo.totalQueues());
+
+  Serial.print("Being processed queue ID: ");
+  Serial.println(queueinfo.currentQueueID());  
+
+  Serial.print("Data type:");
+  Serial.println(queueinfo.dataType()); 
+
+  Serial.print("Method: ");
+  Serial.println(queueinfo.method());
+
+  Serial.print("Path: ");
+  Serial.println(queueinfo.path());
+
+  Serial.println();
+}
+```
+
+The following example showed how to run Error Queues and track its status manually.
 
 ```C++
 //In setup()
@@ -624,7 +751,7 @@ Error Queus can be saved as file in SD card or Flash memory with function `saveE
 
 Error Queues store as file can be restored to Error Queue collection with function `restoreErrorQueue`.
 
-Two types of storage can be assigned with these functions, `StorageType::SPIFFS` and `StorageType::SD`.
+Two types of storage can be assigned with these functions, `QueueStorageType::SPIFFS` and `QueueStorageType::SD`.
 
 Read data (get) operation is not support queues restore
 
@@ -633,16 +760,18 @@ The following example showed how to restore and save Error Queues in /test.txt f
 ```C++
 //To restore Error Queues
 
-if (Firebase.errorQueueCount(firebaseData, "/test.txt", StorageType::SPIFFS) > 0)
+if (Firebase.errorQueueCount(firebaseData, "/test.txt", QueueStorageType::SPIFFS) > 0)
 {
-    Firebase.restoreErrorQueue(firebaseData, "/test.txt", StorageType::SPIFFS);
-    Firebase.deleteStorageFile("/test.txt", StorageType::SPIFFS);
+    Firebase.restoreErrorQueue(firebaseData, "/test.txt", QueueStorageType::SPIFFS);
+    Firebase.deleteStorageFile("/test.txt", QueueStorageType::SPIFFS);
 }
 
 //To save Error Queues to file
-Firebase.saveErrorQueue(firebaseData, "/test.txt", StorageType::SPIFFS);
+Firebase.saveErrorQueue(firebaseData, "/test.txt", QueueStorageType::SPIFFS);
 
 ```
+
+
 
 
 ## Firebase Cloud Messaging (FCM)
