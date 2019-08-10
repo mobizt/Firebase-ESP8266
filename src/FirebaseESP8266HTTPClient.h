@@ -53,11 +53,15 @@
 #if ARDUINO_ESP8266_GIT_VER != 0xf6d232f1 && ARDUINO_ESP8266_GIT_VER != 0x0c897c37 && ARDUINO_ESP8266_GIT_VER != 0x4ceabea9 && ARDUINO_ESP8266_GIT_VER != 0x614f7c32 && ARDUINO_ESP8266_GIT_VER != 0xbb28d4a3
 #include <WiFiClientSecure.h>
 #define SSL_CLIENT BearSSL::WiFiClientSecure
-#else
+#elif ARDUINO_ESP8266_GIT_VER == 0xbb28d4a3
 #define USING_AXTLS
 #include <WiFiClientSecureAxTLS.h>
 using namespace axTLS;
 #define SSL_CLIENT axTLS::WiFiClientSecure
+#else
+#define USING_AXTLS
+#include <WiFiClientSecure.h>
+#define SSL_CLIENT WiFiClientSecure
 #endif
 
 /// HTTP client errors
