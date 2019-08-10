@@ -1,15 +1,13 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.2.0
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.3.0
  * 
- * August 4, 2019
+ * August 10, 2019
  * 
  * Feature Added:
- * - Stream callback. 
- * - Error queues callback
+ * - Add support BearSSL as default SSL provider for Core SDK v2.5.x
  * 
  * Feature Fixed:
- * - Flash string error in Core SDK 2.5.2
- * - Incorrect handles for continuous stream data event
+ * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
  * and delete calls. 
@@ -42,27 +40,6 @@
 #define FirebaseESP8266_H
 
 #include <Arduino.h>
-#include <core_version.h>
-//ARDUINO_ESP8266_GIT_VER
-//2.5.1 0xac02aff5
-//2.5.0 0x951aeffa
-//2.5.0-beta3 0x21db8fc9
-//2.5.0-beta2 0x0fd86a07
-//2.5.0-beta1 0x9c1e03a1
-//2.4.2 0xbb28d4a3
-//2.4.1 0x614f7c32
-//2.4.0 0x4ceabea9
-//2.4.0-rc2 0x0c897c37
-//2.4.0-rc1 0xf6d232f1
-
-#ifndef ARDUINO_ESP8266_GIT_VER
-#error Your ESP8266 Arduino Core SDK is outdated, please update. From Arduino IDE go to Boards Manager and search 'esp8266' then select version 2.4.0 or above.
-#endif
-
-#if ARDUINO_ESP8266_GIT_VER != 0xf6d232f1 && ARDUINO_ESP8266_GIT_VER != 0x0c897c37 && ARDUINO_ESP8266_GIT_VER != 0x4ceabea9 && ARDUINO_ESP8266_GIT_VER != 0x614f7c32 && ARDUINO_ESP8266_GIT_VER != 0xbb28d4a3
-#define USING_AXTLS
-#endif
-
 #include <ESP8266WiFi.h>
 #include "FirebaseESP8266HTTPClient.h"
 #include <SPI.h>
@@ -256,8 +233,6 @@ static const char ESP8266_FIREBASE_STR_166[] PROGMEM = "push";
 static const char ESP8266_FIREBASE_STR_167[] PROGMEM = "update";
 static const char ESP8266_FIREBASE_STR_168[] PROGMEM = "delete";
 
-
-
 static const unsigned char ESP8266_FIREBASE_base64_table[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 class FirebaseData;
@@ -272,7 +247,7 @@ typedef void (*QueueInfoCallback)(QueueInfo);
 typedef std::function<void(void)> callback_function_t;
 
 static std::vector<std::reference_wrapper<FirebaseData>> firebaseDataObject;
-static uint8_t dataObjectIndex __attribute__((used)) = 0; 
+static uint8_t dataObjectIndex __attribute__((used)) = 0;
 
 class FCMObject
 {
@@ -1795,7 +1770,6 @@ public:
   */
   bool endStream(FirebaseData &dataObj);
 
-
   /*
     Set the stream callback functions.
 
@@ -1825,11 +1799,6 @@ public:
     @param dataObj - Firebase Data Object to hold data and instances.
    */
   void removeStreamCallback(FirebaseData &dataObj);
-
-
-
-
- 
 
   /*
     Backup (download) database at defined database path to SD card/Flash memory.
@@ -1946,7 +1915,7 @@ public:
   */
   bool isErrorQueueFull(FirebaseData &dataObj);
 
-   /*
+  /*
     Pocess all failed Firebase operation queue items when network is available.
 
     @param dataObj - Firebase Data Object to hold data and instances.
@@ -1979,7 +1948,7 @@ public:
    */
   bool isErrorQueueExisted(FirebaseData &dataObj, uint32_t errorQueueID);
 
-   /*
+  /*
     Start the Firbase Error Queues Auto Run Process.
 
     @param dataObj - Firebase Data Object to hold data and instances.
@@ -2072,7 +2041,7 @@ protected:
   void endFileTransfer(FirebaseData &dataObj);
   bool firebaseConnectStream(FirebaseData &dataObj, const std::string &path);
   bool getServerStreamResponse(FirebaseData &dataObj);
-  
+
   bool getServerResponse(FirebaseData &dataObj);
   bool getDownloadResponse(FirebaseData &dataObj);
   bool getUploadResponse(FirebaseData &dataObj);
@@ -2097,7 +2066,7 @@ protected:
   void createDirs(std::string dirs, uint8_t storageType);
   bool replace(std::string &str, const std::string &from, const std::string &to);
   std::string base64_encode_string(const unsigned char *src, size_t len);
-  void send_base64_encode_file(WiFiClientSecure &netClient, const std::string &filePath, uint8_t storageType);
+  void send_base64_encode_file(SSL_CLIENT &ssl_client, const std::string &filePath, uint8_t storageType);
   bool base64_decode_string(const std::string src, std::vector<uint8_t> &out);
   bool base64_decode_file(File &file, const char *src, size_t len);
   bool base64_decode_SPIFFS(fs::File &file, const char *src, size_t len);
@@ -2109,12 +2078,11 @@ protected:
   int rstrpos(const char *haystack, const char *needle, int offset);
   char *rstrstr(const char *haystack, const char *needle);
 
-   void set_scheduled_callback(callback_function_t callback)
-    {
-        _callback_function = std::move([callback]() { schedule_function(callback); });
-        _callback_function();
-    }
-
+  void set_scheduled_callback(callback_function_t callback)
+  {
+    _callback_function = std::move([callback]() { schedule_function(callback); });
+    _callback_function();
+  }
 
   std::string _host = "";
   std::string _auth = "";
@@ -2140,7 +2108,7 @@ public:
     @return - WiFi client instance.
 
   */
-  WiFiClientSecure getWiFiClient();
+  SSL_CLIENT getWiFiClient();
 
   /*
 
@@ -2423,15 +2391,14 @@ public:
   friend QueueManager;
 
 protected:
-
   StreamEventCallback _dataAvailableCallback = NULL;
   StreamTimeoutCallback _timeoutCallback = NULL;
   QueueInfoCallback _queueInfoCallback = NULL;
 
   int _index = -1;
   int _Qindex = -1;
-  
 
+  FirebaseHTTPClient _net;
   bool _firebaseCall = false;
   bool _streamCall = false;
   bool _fcmCall = false;
@@ -2501,8 +2468,6 @@ protected:
   std::string _backupFilename = "";
   size_t _backupzFileSize = 0;
 
-  FirebaseHTTPClient _http;
-
   std::string getDataType(uint8_t type);
   std::string getMethod(uint8_t method);
 
@@ -2523,8 +2488,6 @@ protected:
   void clearQueueItem(QueueItem &item);
 
   void setQuery(QueryFilter &query);
-
-
 
   friend FirebaseESP8266;
 };

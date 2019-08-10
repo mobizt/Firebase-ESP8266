@@ -1,5 +1,5 @@
 /*
- * HTTP Client wrapper v1.0.1
+ * HTTP Client wrapper v1.0.3
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
  * and delete calls. 
@@ -31,12 +31,33 @@
 #ifndef FirebaseESP8266HTTPClient_H
 #define FirebaseESP8266HTTPClient_H
 
+//ARDUINO_ESP8266_GIT_VER
+//2.5.1 0xac02aff5
+//2.5.0 0x951aeffa
+//2.5.0-beta3 0x21db8fc9
+//2.5.0-beta2 0x0fd86a07
+//2.5.0-beta1 0x9c1e03a1
+//2.4.2 0xbb28d4a3
+//2.4.1 0x614f7c32
+//2.4.0 0x4ceabea9
+//2.4.0-rc2 0x0c897c37
+//2.4.0-rc1 0xf6d232f1
+
 #include <Arduino.h>
-#if ARDUINO_ESP8266_GIT_VER == 0xbb28d4a3 || ARDUINO_ESP8266_GIT_VER == 0x614f7c32 || ARDUINO_ESP8266_GIT_VER == 0x4ceabea9 //2.4.0, 2.4.1, 2.4.2
+#include <core_version.h>
+
+#ifndef ARDUINO_ESP8266_GIT_VER
+#error Your ESP8266 Arduino Core SDK is outdated, please update. From Arduino IDE go to Boards Manager and search 'esp8266' then select version 2.4.0 or above.
+#endif
+
+#if ARDUINO_ESP8266_GIT_VER != 0xf6d232f1 && ARDUINO_ESP8266_GIT_VER != 0x0c897c37 && ARDUINO_ESP8266_GIT_VER != 0x4ceabea9 && ARDUINO_ESP8266_GIT_VER != 0x614f7c32 && ARDUINO_ESP8266_GIT_VER != 0xbb28d4a3
 #include <WiFiClientSecure.h>
+#define SSL_CLIENT BearSSL::WiFiClientSecure
 #else
+#define USING_AXTLS
 #include <WiFiClientSecureAxTLS.h>
 using namespace axTLS;
+#define SSL_CLIENT axTLS::WiFiClientSecure
 #endif
 
 /// HTTP client errors
@@ -54,7 +75,6 @@ using namespace axTLS;
 #define FIREBASE_ERROR_BUFFER_OVERFLOW (-13)
 #define FIREBASE_ERROR_DATA_TYPE_MISMATCH (-14)
 #define FIREBASE_ERROR_PATH_NOT_EXIST (-15)
-
 
 /// HTTP codes see RFC7231
 
@@ -90,22 +110,21 @@ using namespace axTLS;
 #define _HTTP_CODE_LOOP_DETECTED 508
 #define _HTTP_CODE_NETWORK_AUTHENTICATION_REQUIRED 511
 
-
 class FirebaseHTTPClient
 {
 public:
   FirebaseHTTPClient();
   ~FirebaseHTTPClient();
 
-  bool http_begin(const std::string host, uint16_t port);
-  bool http_connected(void);
-  int http_sendRequest(const char *header, const char *payload);
-  WiFiClientSecure client;
-  uint16_t netClientTimeout = 5000;
+  bool begin(const std::string host, uint16_t port);
+  bool connected(void);
+  int sendRequest(const char *header, const char *payload);
+  SSL_CLIENT _client;
+  uint16_t timeout = 5000;
 
 protected:
-  bool http_connect(void);
-  bool http_sendHeader(const char *header);
+  bool connect(void);
+  bool sendHeader(const char *header);
   std::string _host = "";
   uint16_t _port = 0;
 };
