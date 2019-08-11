@@ -1,5 +1,5 @@
 /*
- * HTTP Client wrapper v1.0.3
+ * HTTP Client wrapper v1.0.4
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
  * and delete calls. 
@@ -45,6 +45,7 @@
 
 #include <Arduino.h>
 #include <core_version.h>
+#include <time.h>
 
 #ifndef ARDUINO_ESP8266_GIT_VER
 #error Your ESP8266 Arduino Core SDK is outdated, please update. From Arduino IDE go to Boards Manager and search 'esp8266' then select version 2.4.0 or above.
@@ -52,7 +53,9 @@
 
 #if ARDUINO_ESP8266_GIT_VER != 0xf6d232f1 && ARDUINO_ESP8266_GIT_VER != 0x0c897c37 && ARDUINO_ESP8266_GIT_VER != 0x4ceabea9 && ARDUINO_ESP8266_GIT_VER != 0x614f7c32 && ARDUINO_ESP8266_GIT_VER != 0xbb28d4a3
 #include <WiFiClientSecure.h>
+#include <CertStoreBearSSL.h>
 #define SSL_CLIENT BearSSL::WiFiClientSecure
+
 #elif ARDUINO_ESP8266_GIT_VER == 0xbb28d4a3
 #define USING_AXTLS
 #include <WiFiClientSecureAxTLS.h>
@@ -63,6 +66,10 @@ using namespace axTLS;
 #include <WiFiClientSecure.h>
 #define SSL_CLIENT WiFiClientSecure
 #endif
+
+#define FS_NO_GLOBALS
+#include <FS.h>
+#include <SD.h>
 
 /// HTTP client errors
 #define HTTPC_ERROR_CONNECTION_REFUSED (-1)
@@ -123,14 +130,25 @@ public:
   bool begin(const std::string host, uint16_t port);
   bool connected(void);
   int sendRequest(const char *header, const char *payload);
+  void setRootCA(const char *rootCA);
+  void setRootCAFile(std::string &rootCAFile, uint8_t storageType, uint8_t sdPin);
   SSL_CLIENT _client;
+
+  int _certType = -1;
   uint16_t timeout = 5000;
+  uint8_t _sdPin = 15;
+  bool _clockReady = false;
 
 protected:
-  bool connect(void);
+  bool
+  connect(void);
   bool sendHeader(const char *header);
+
   std::string _host = "";
   uint16_t _port = 0;
+#ifndef USING_AXTLS
+  BearSSL::CertStore certStore;
+#endif
 };
 
 #endif /* FirebaseESP8266HTTPClient_H */

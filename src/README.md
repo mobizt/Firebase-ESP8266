@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.3.0
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.3.1
 
 
 ## Global functions
@@ -13,8 +13,20 @@ param **`host`** - Your Firebase database project host e.g. Your_ProjectID.fireb
 
 param **`auth`** - Your database secret.
 
+param **`rootCA`** - Root CA certificate base64 string (PEM file).
+
+param **`rootCAFile`** - Root CA certificate DER file (binary).
+
+param **`storageType`** - Type of storage, StorageType::SD and StorageType::SPIFFS.
+
+Root CA certificate DER file is only support in Core SDK v2.5.x
+
 ```C++
 void begin(const String &host, const String &auth);
+
+void begin(const String &host, const String &auth, const char *rootCA);
+  
+void begin(const String &host, const String &auth, const String &rootCAFile, uint8_t storageType);
 ```
 
 

@@ -1,13 +1,15 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.3.0
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.3.1
  * 
- * August 10, 2019
+ * August 12, 2019
  * 
  * Feature Added:
- * - Add support BearSSL as default SSL provider for Core SDK v2.5.x
+ * - Add support to read Root CA certificate file from SD and SPIFFS.
+ * - FCM message now can be set notification and data separately.
  * 
  * Feature Fixed:
- * 
+ * - Connection refuse for FCM.
+ * - Stream is not resume when timeout while WiFi is still connected.
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
  * and delete calls. 
@@ -84,7 +86,12 @@ struct FirebaseESP8266::FCMMessageType
 };
 
 FirebaseESP8266::FirebaseESP8266() {}
-FirebaseESP8266::~FirebaseESP8266() {}
+FirebaseESP8266::~FirebaseESP8266()
+{
+    std::string().swap(_host);
+    std::string().swap(_auth);
+    _rootCA = nullptr;
+}
 
 void FirebaseESP8266::begin(const String &host, const String &auth)
 {
@@ -99,6 +106,8 @@ void FirebaseESP8266::begin(const String &host, const String &auth)
 
     _host.clear();
     _auth.clear();
+    _rootCA = nullptr;
+    _rootCAFile.clear();
     _host.reserve(100);
     _auth.reserve(100);
 
@@ -137,6 +146,29 @@ void FirebaseESP8266::begin(const String &host, const String &auth)
     delete[] h;
     delete[] _h;
     delete[] tmp;
+}
+
+void FirebaseESP8266::begin(const String &host, const String &auth, const char *rootCA)
+{
+    begin(host, auth);
+    if (rootCA)
+    {
+        setClock();
+        _rootCA = std::shared_ptr<const char>(rootCA);
+    }
+}
+
+void FirebaseESP8266::begin(const String &host, const String &auth, const String &rootCAFile, uint8_t storageType)
+{
+    begin(host, auth);
+    if (rootCAFile.length() > 0)
+    {
+        setClock();
+        _rootCAFile = rootCAFile.c_str();
+        _rootCAFileStoreageType = storageType;
+        if (storageType == StorageType::SD && !_sdOk)
+            _sdOk = sdTest();
+    }
 }
 
 void FirebaseESP8266::reconnectWiFi(bool reconnect)
@@ -180,6 +212,9 @@ bool FirebaseESP8266::buildRequest(FirebaseData &dataObj, uint8_t firebaseMethod
         maxRetry = 1;
 
     unsigned long lastTime = millis();
+
+    if (_reconnectWiFi && WiFi.status() != WL_CONNECTED)
+        WiFi.reconnect();
 
     if (dataObj._streamCall || dataObj._fcmCall)
         while ((dataObj._streamCall || dataObj._fcmCall) && millis() - lastTime < 1000)
@@ -236,6 +271,9 @@ bool FirebaseESP8266::buildRequestFile(FirebaseData &dataObj, uint8_t storageTyp
         maxRetry = 1;
 
     unsigned long lastTime = millis();
+
+    if (_reconnectWiFi && WiFi.status() != WL_CONNECTED)
+        WiFi.reconnect();
 
     if (dataObj._streamCall || dataObj._fcmCall)
         while ((dataObj._streamCall || dataObj._fcmCall) && millis() - lastTime < 1000)
@@ -1410,6 +1448,8 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const std::string &p
     }
     delete[] slash;
 
+    setSecure(dataObj);
+
     httpConnected = dataObj._net.begin(_host, _port);
 
     if (!httpConnected)
@@ -1720,6 +1760,9 @@ bool FirebaseESP8266::sendRequest(FirebaseData &dataObj, uint8_t storageType, co
     bool flag = false;
     dataObj._firebaseError.clear();
 
+    if (_reconnectWiFi && WiFi.status() != WL_CONNECTED)
+        WiFi.reconnect();
+
     if (dataObj._pause || dataObj._file_transfering)
         return true;
 
@@ -1736,18 +1779,7 @@ bool FirebaseESP8266::sendRequest(FirebaseData &dataObj, uint8_t storageType, co
     }
 
     //Try to reconnect WiFi if lost connection
-    if (_reconnectWiFi && WiFi.status() != WL_CONNECTED)
-    {
-        uint8_t tryCount = 0;
-        WiFi.reconnect();
-        while (WiFi.status() != WL_CONNECTED)
-        {
-            tryCount++;
-            delay(50);
-            if (tryCount > 20)
-                break;
-        }
-    }
+    reconnect();
 
     //If WiFi is not connected, return false
     if (!apConnected(dataObj))
@@ -1894,14 +1926,9 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
     if (!handleNetClientNotConnected(dataObj) || !dataObj._httpConnected)
         return false;
 
-    if (dataObj._processResponse)
-        return false;
-
     bool flag = false;
 
     dataObj._data.clear();
-
-    dataObj._processResponse = true;
 
     std::string jsonRes = "";
 
@@ -1943,15 +1970,15 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
         while (dataObj._net._client.connected() && !dataObj._net._client.available() && millis() - dataTime < dataObj._net.timeout)
         {
             if (!apConnected(dataObj))
-            {
-                dataObj._processResponse = false;
                 return false;
-            }
 
             delay(1);
         }
 
     dataTime = millis();
+
+    if (dataObj._net._client.connected() && !dataObj._net._client.available())
+        dataObj._httpCode = HTTPC_ERROR_READ_TIMEOUT;
 
     if (dataObj._net._client.connected() && dataObj._net._client.available())
     {
@@ -1964,10 +1991,7 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
                 return cancelCurrentResponse(dataObj);
 
             if (!apConnected(dataObj))
-            {
-                dataObj._processResponse = false;
                 return false;
-            }
 
             res = dataObj._net._client.read();
 
@@ -2464,7 +2488,7 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
         goto EXIT_2;
     }
 
-    if (dataObj._httpCode == -1000)
+    if (dataObj._httpCode == -1000 && dataObj._r_method == FirebaseMethod::STREAM)
         flag = true;
 
     dataObj._httpConnected = false;
@@ -2474,7 +2498,6 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
     delete[] eventType;
     std::string().swap(jsonRes);
     delete[] fstr;
-    dataObj._processResponse = false;
 
     return flag;
 
@@ -2485,11 +2508,11 @@ EXIT_2:
     delete[] eventType;
     std::string().swap(jsonRes);
     delete[] fstr;
-    dataObj._processResponse = false;
 
     if (dataObj._httpCode == HTTPC_ERROR_READ_TIMEOUT)
         return false;
-    return dataObj._httpCode == _HTTP_CODE_OK || dataObj._httpCode == -1000;
+
+    return dataObj._httpCode == _HTTP_CODE_OK || (dataObj._r_method == FirebaseMethod::STREAM && dataObj._httpCode == -1000);
 
 EXIT_3:
 
@@ -2498,7 +2521,7 @@ EXIT_3:
     delete[] eventType;
     std::string().swap(jsonRes);
     delete[] fstr;
-    dataObj._processResponse = false;
+
     return true;
 
 EXIT_4:
@@ -2507,7 +2530,6 @@ EXIT_4:
     delete[] eventType;
     std::string().swap(jsonRes);
     delete[] fstr;
-    dataObj._processResponse = false;
     return getServerResponse(dataObj);
 }
 
@@ -2941,7 +2963,7 @@ bool FirebaseESP8266::firebaseConnectStream(FirebaseData &dataObj, const std::st
 
     dataObj._streamStop = false;
 
-    if (dataObj._isStream && path == dataObj._streamPath)
+    if (!dataObj._isStreamTimeout && dataObj._isStream && path == dataObj._streamPath)
         return true;
 
     if (path.length() == 0 || _host.length() == 0 || _auth.length() == 0)
@@ -3006,18 +3028,7 @@ bool FirebaseESP8266::getServerStreamResponse(FirebaseData &dataObj)
             dataObj._isStreamTimeout = true;
             path = dataObj._streamPath;
 
-            if (_reconnectWiFi && WiFi.status() != WL_CONNECTED)
-            {
-                uint8_t tryCount = 0;
-                WiFi.reconnect();
-                while (WiFi.status() != WL_CONNECTED)
-                {
-                    tryCount++;
-                    delay(50);
-                    if (tryCount > 20)
-                        break;
-                }
-            }
+            reconnect();
 
             if (!apConnected(dataObj))
                 return false;
@@ -3565,7 +3576,6 @@ bool FirebaseESP8266::cancelCurrentResponse(FirebaseData &dataObj)
     dataObj._dataAvailable = false;
     dataObj._isStreamTimeout = false;
     dataObj._httpCode = HTTPC_ERROR_CONNECTION_REFUSED;
-    dataObj._processResponse = false;
     return false;
 }
 
@@ -3661,6 +3671,29 @@ void FirebaseESP8266::setDataType(FirebaseData &dataObj, const char *data)
     delete[] temp;
 }
 
+void FirebaseESP8266::setSecure(FirebaseData &dataObj)
+{
+    if (dataObj._net._certType == -1)
+    {
+        if (!_clockReady)
+            setClock();
+
+        dataObj._net._clockReady = _clockReady;
+
+        if (_rootCAFile.length() == 0)
+        {
+            if (_rootCA)
+                dataObj._net.setRootCA(_rootCA.get());
+            else
+                dataObj._net.setRootCA(nullptr);
+        }
+        else
+        {
+            dataObj._net.setRootCAFile(_rootCAFile, _rootCAFileStoreageType, _sdPin);
+        }
+    }
+}
+
 bool FirebaseESP8266::commError(FirebaseData &dataObj)
 {
     return dataObj._httpCode == HTTPC_ERROR_CONNECTION_REFUSED || dataObj._httpCode == HTTPC_ERROR_CONNECTION_LOST ||
@@ -3689,6 +3722,21 @@ bool FirebaseESP8266::handleNetClientNotConnected(FirebaseData &dataObj)
         return false;
     }
     return true;
+}
+void FirebaseESP8266::reconnect()
+{
+    if (_reconnectWiFi && WiFi.status() != WL_CONNECTED)
+    {
+        uint8_t tryCount = 0;
+        WiFi.reconnect();
+        while (WiFi.status() != WL_CONNECTED)
+        {
+            tryCount++;
+            delay(50);
+            if (tryCount > 20)
+                break;
+        }
+    }
 }
 
 void FirebaseESP8266::errorToString(int httpCode, std::string &buff)
@@ -3847,18 +3895,7 @@ bool FirebaseESP8266::sendFCMMessage(FirebaseData &dataObj, uint8_t messageType)
     }
 
     //Try to reconnect WiFi if lost connection
-    if (_reconnectWiFi && WiFi.status() != WL_CONNECTED)
-    {
-        uint8_t tryCount = 0;
-        WiFi.reconnect();
-        while (WiFi.status() != WL_CONNECTED)
-        {
-            tryCount++;
-            delay(50);
-            if (tryCount > 20)
-                break;
-        }
-    }
+    reconnect();
 
     //If WiFi is not connected, return false
     if (!apConnected(dataObj))
@@ -3898,17 +3935,20 @@ bool FirebaseESP8266::sendFCMMessage(FirebaseData &dataObj, uint8_t messageType)
 
 bool FirebaseESP8266::sendMessage(FirebaseData &dataObj, uint16_t index)
 {
+    setSecure(dataObj);
     dataObj.fcm._index = index;
     return sendFCMMessage(dataObj, FirebaseESP8266::FCMMessageType::SINGLE);
 }
 
 bool FirebaseESP8266::broadcastMessage(FirebaseData &dataObj)
 {
+    setSecure(dataObj);
     return sendFCMMessage(dataObj, FirebaseESP8266::FCMMessageType::MULTICAST);
 }
 
 bool FirebaseESP8266::sendTopic(FirebaseData &dataObj)
 {
+    setSecure(dataObj);
     return sendFCMMessage(dataObj, FirebaseESP8266::FCMMessageType::TOPIC);
 }
 
@@ -4280,7 +4320,7 @@ void FirebaseESP8266::processFirebaseStream()
             if (firebaseDataObject[id].get().streamTimeout() && firebaseDataObject[id].get()._timeoutCallback)
                 firebaseDataObject[id].get()._timeoutCallback(true);
 
-            if (!firebaseDataObject[id].get()._processResponse && firebaseDataObject[id].get().streamAvailable() && firebaseDataObject[id].get()._dataAvailableCallback)
+            if (firebaseDataObject[id].get().streamAvailable() && firebaseDataObject[id].get()._dataAvailableCallback)
             {
 
                 StreamData s;
@@ -4342,6 +4382,7 @@ bool FirebaseESP8266::sdTest()
     p_memCopy(filepath, ESP8266_FIREBASE_STR_73, true);
 
     SD.begin(SD_CS_PIN);
+    _sdPin = SD_CS_PIN;
 
     file = SD.open(filepath.c_str(), FILE_WRITE);
     if (!file)
@@ -4835,6 +4876,28 @@ char *FirebaseESP8266::rstrstr(const char *haystack, const char *needle)
     next:;
     }
     return 0;
+}
+
+void FirebaseESP8266::setClock()
+{
+    reconnect();
+    configTime(3 * 3600, 0, "pool.ntp.org", "time.nist.gov");
+    time_t now = time(nullptr);
+    uint8_t tryCount = 0;
+    while (now < 8 * 3600 * 2)
+    {
+        delay(100);
+        now = time(nullptr);
+        tryCount++;
+        if (tryCount > 50)
+            break;
+    }
+
+    if (tryCount <= 50)
+        _clockReady = true;
+
+    struct tm timeinfo;
+    gmtime_r(&now, &timeinfo);
 }
 
 FirebaseData::FirebaseData() {}
@@ -5694,12 +5757,13 @@ String FCMObject::getSendResult()
     return _sendResult.c_str();
 }
 
-bool FCMObject::fcm_connect(FirebaseHTTPClient &netClient)
+bool FCMObject::fcm_connect(FirebaseHTTPClient &net)
 {
     char *host = new char[100];
     memset(host, 0, 100);
     strcpy_P(host, ESP8266_FIREBASE_STR_120);
-    int httpConnected = netClient.begin(host, _port);
+
+    int httpConnected = net.begin(host, _port);
 
     delete[] host;
 
@@ -5743,42 +5807,73 @@ void FCMObject::fcm_buildHeader(char *header, size_t payloadSize)
 
 void FCMObject::fcm_buildPayload(char *msg, uint8_t messageType)
 {
+    bool noti = _notify_title.length() > 0 || _notify_body.length() > 0 || _notify_icon.length() > 0 || _notify_click_action.length() > 0;
+    size_t c = 0;
 
-    if (_notify_title.length() > 0 || _notify_body.length() > 0)
-    {
+    strcat_P(msg, ESP8266_FIREBASE_STR_169);
+
+    if (noti)
         strcat_P(msg, ESP8266_FIREBASE_STR_122);
+
+    if (noti && _notify_title.length() > 0)
+    {
         strcat_P(msg, ESP8266_FIREBASE_STR_123);
         strcat(msg, _notify_title.c_str());
+        strcat_P(msg, ESP8266_FIREBASE_STR_3);
+        c++;
+    }
+
+    if (noti && _notify_body.length() > 0)
+    {
+        if (c > 0)
+            strcat_P(msg, ESP8266_FIREBASE_STR_132);
         strcat_P(msg, ESP8266_FIREBASE_STR_124);
         strcat(msg, _notify_body.c_str());
         strcat_P(msg, ESP8266_FIREBASE_STR_3);
-
-        if (_notify_icon.length() > 0)
-        {
-            strcat_P(msg, ESP8266_FIREBASE_STR_125);
-            strcat(msg, _notify_icon.c_str());
-            strcat_P(msg, ESP8266_FIREBASE_STR_3);
-        }
-
-        if (_notify_click_action.length() > 0)
-        {
-            strcat_P(msg, ESP8266_FIREBASE_STR_126);
-            strcat(msg, _notify_click_action.c_str());
-            strcat_P(msg, ESP8266_FIREBASE_STR_3);
-        }
-
-        strcat_P(msg, ESP8266_FIREBASE_STR_127);
+        c++;
     }
+
+    if (noti && _notify_icon.length() > 0)
+    {
+        if (c > 0)
+            strcat_P(msg, ESP8266_FIREBASE_STR_132);
+        strcat_P(msg, ESP8266_FIREBASE_STR_125);
+        strcat(msg, _notify_icon.c_str());
+        strcat_P(msg, ESP8266_FIREBASE_STR_3);
+        c++;
+    }
+
+    if (noti && _notify_click_action.length() > 0)
+    {
+        if (c > 0)
+            strcat_P(msg, ESP8266_FIREBASE_STR_132);
+        strcat_P(msg, ESP8266_FIREBASE_STR_126);
+        strcat(msg, _notify_click_action.c_str());
+        strcat_P(msg, ESP8266_FIREBASE_STR_3);
+        c++;
+    }
+
+    if (noti)
+        strcat_P(msg, ESP8266_FIREBASE_STR_127);
+
+    c = 0;
+
     if (messageType == FirebaseESP8266::FCMMessageType::SINGLE)
     {
+        if (noti)
+            strcat_P(msg, ESP8266_FIREBASE_STR_132);
+
         strcat_P(msg, ESP8266_FIREBASE_STR_128);
-
         strcat(msg, _deviceToken[_index].c_str());
-
         strcat_P(msg, ESP8266_FIREBASE_STR_3);
+
+        c++;
     }
     else if (messageType == FirebaseESP8266::FCMMessageType::MULTICAST)
     {
+        if (noti)
+            strcat_P(msg, ESP8266_FIREBASE_STR_132);
+
         strcat_P(msg, ESP8266_FIREBASE_STR_130);
 
         for (uint16_t i = 0; i < _deviceToken.size(); i++)
@@ -5792,50 +5887,69 @@ void FCMObject::fcm_buildPayload(char *msg, uint8_t messageType)
         }
 
         strcat_P(msg, ESP8266_FIREBASE_STR_133);
+
+        c++;
     }
     else if (messageType == FirebaseESP8266::FCMMessageType::TOPIC)
     {
+        if (noti)
+            strcat_P(msg, ESP8266_FIREBASE_STR_132);
+
         strcat_P(msg, ESP8266_FIREBASE_STR_128);
-
         strcat(msg, _topic.c_str());
-
         strcat_P(msg, ESP8266_FIREBASE_STR_3);
+
+        c++;
     }
 
     if (_data_msg.length() > 0)
     {
+        if (c > 0)
+            strcat_P(msg, ESP8266_FIREBASE_STR_132);
+
         strcat_P(msg, ESP8266_FIREBASE_STR_135);
         strcat(msg, _data_msg.c_str());
+        c++;
     }
 
     if (_priority.length() > 0)
     {
+        if (c > 0)
+            strcat_P(msg, ESP8266_FIREBASE_STR_132);
+
         strcat_P(msg, ESP8266_FIREBASE_STR_136);
         strcat(msg, _priority.c_str());
         strcat_P(msg, ESP8266_FIREBASE_STR_3);
+        c++;
     }
 
     if (_ttl > -1)
     {
+        if (c > 0)
+            strcat_P(msg, ESP8266_FIREBASE_STR_132);
         char *ttl = new char[20];
         memset(ttl, 0, 20);
         strcat_P(msg, ESP8266_FIREBASE_STR_137);
         itoa(_ttl, ttl, 10);
         strcat(msg, ttl);
         delete[] ttl;
+        c++;
     }
 
     if (_collapse_key.length() > 0)
     {
+        if (c > 0)
+            strcat_P(msg, ESP8266_FIREBASE_STR_132);
         strcat_P(msg, ESP8266_FIREBASE_STR_138);
         strcat(msg, _collapse_key.c_str());
         strcat_P(msg, ESP8266_FIREBASE_STR_3);
+        c++;
     }
 
     strcat_P(msg, ESP8266_FIREBASE_STR_127);
 }
 
-bool FCMObject::getFCMServerResponse(FirebaseHTTPClient &netClient, int &httpcode)
+bool FCMObject::getFCMServerResponse(FirebaseHTTPClient &net, int &httpcode)
 {
     if (WiFi.status() != WL_CONNECTED)
     {
@@ -5843,7 +5957,7 @@ bool FCMObject::getFCMServerResponse(FirebaseHTTPClient &netClient, int &httpcod
         return false;
     }
 
-    if (!netClient._client)
+    if (!net._client)
     {
         httpcode = HTTPC_ERROR_CONNECTION_LOST;
         return false;
@@ -5873,7 +5987,7 @@ bool FCMObject::getFCMServerResponse(FirebaseHTTPClient &netClient, int &httpcod
 
     unsigned long dataTime = millis();
 
-    while (netClient._client.connected() && !netClient._client.available() && millis() - dataTime < 5000)
+    while (net._client.connected() && !net._client.available() && millis() - dataTime < 5000)
     {
         if (WiFi.status() != WL_CONNECTED)
         {
@@ -5884,10 +5998,10 @@ bool FCMObject::getFCMServerResponse(FirebaseHTTPClient &netClient, int &httpcod
     }
 
     dataTime = millis();
-    if (netClient._client.connected() && netClient._client.available())
+    if (net._client.connected() && net._client.available())
     {
 
-        while (netClient._client.available())
+        while (net._client.available())
         {
 
             if (WiFi.status() != WL_CONNECTED)
@@ -5896,7 +6010,7 @@ bool FCMObject::getFCMServerResponse(FirebaseHTTPClient &netClient, int &httpcod
                 return false;
             }
 
-            c = netClient._client.read();
+            c = net._client.read();
 
             if (c != '\r' && c != '\n')
                 strcat_c(lineBuf, c);
@@ -5968,7 +6082,7 @@ EXIT_5:
     return httpcode == _HTTP_CODE_OK;
 }
 
-bool FCMObject::fcm_send(FirebaseHTTPClient &netClient, int &httpcode, uint8_t messageType)
+bool FCMObject::fcm_send(FirebaseHTTPClient &net, int &httpcode, uint8_t messageType)
 {
 
     char *msg = new char[400];
@@ -5988,20 +6102,20 @@ bool FCMObject::fcm_send(FirebaseHTTPClient &netClient, int &httpcode, uint8_t m
     }
 
     uint8_t retryCount = 0;
-    httpcode = netClient.sendRequest(header, "");
+    httpcode = net.sendRequest(header, "");
     while (httpcode != 0)
     {
         retryCount++;
         if (retryCount > 5)
             break;
 
-        httpcode = netClient.sendRequest(header, "");
+        httpcode = net.sendRequest(header, "");
     }
 
     if (httpcode != 0)
         return false;
 
-    httpcode = netClient.sendRequest("", msg);
+    httpcode = net.sendRequest("", msg);
 
     delete[] msg;
     delete[] header;
@@ -6009,7 +6123,7 @@ bool FCMObject::fcm_send(FirebaseHTTPClient &netClient, int &httpcode, uint8_t m
     if (httpcode != 0)
         return false;
 
-    bool res = getFCMServerResponse(netClient, httpcode);
+    bool res = getFCMServerResponse(net, httpcode);
 
     return res;
 }

@@ -1,5 +1,5 @@
 /*
- * HTTP Client wrapper v1.0.3
+ * HTTP Client wrapper v1.0.4
  * 
  * The MIT License (MIT)
  * Copyright (c) 2019 K. Suwatchai (Mobizt)
@@ -37,15 +37,97 @@ FirebaseHTTPClient::~FirebaseHTTPClient()
   _client.stop();
 }
 
+void FirebaseHTTPClient::setRootCA(const char *rootCA)
+{
+  if (_clockReady)
+  {
+#ifndef USING_AXTLS
+    _client.setBufferSizes(512, 512);
+
+    if (rootCA)
+      _client.setTrustAnchors(new X509List(rootCA));
+
+#else
+    if (rootCA)
+      _client.setCACert_P(rootCA, strlen_P(rootCA));
+#endif
+
+    _certType = 1;
+  }
+
+
+  if (rootCA == nullptr){
+#ifndef USING_AXTLS
+    _client.setInsecure();
+#endif
+    _certType = 0;
+  }
+  
+  _client.setNoDelay(true);
+}
+
+void FirebaseHTTPClient::setRootCAFile(std::string &rootCAFile, uint8_t storageType, uint8_t sdPin)
+{
+
+#ifndef USING_AXTLS
+  _sdPin = sdPin;
+  _client.setBufferSizes(512, 512);
+
+  if (_clockReady && rootCAFile.length() > 0)
+  {
+
+    if (storageType == 0)
+    {
+      bool t = SPIFFS.begin();
+      if (t)
+      {
+        fs::File f;
+        if (SPIFFS.exists(rootCAFile.c_str()))
+        {
+          f = SPIFFS.open(rootCAFile.c_str(), "r");
+          size_t len = f.size();
+          uint8_t *der = new uint8_t[len];
+
+          if (f.available())
+            f.read(der, len);
+
+          f.close();
+          _client.setTrustAnchors(new X509List(der, len));
+          delete[] der;
+        }
+      }
+    }
+    else
+    {
+      bool t = SD.begin(_sdPin);
+      if (t)
+      {
+        File f;
+        if (SD.exists(rootCAFile.c_str()))
+        {
+          f = SD.open(rootCAFile.c_str(), FILE_READ);
+          size_t len = f.size();
+          uint8_t *der = new uint8_t[len];
+          if (f.available())
+            f.read(der, len);
+
+          f.close();
+          _client.setTrustAnchors(new X509List(der, len));
+          delete[] der;
+        }
+      }
+    }
+    _certType = 2;
+  }
+#endif
+
+  _client.setNoDelay(true);
+}
+
 bool FirebaseHTTPClient::begin(const std::string host, uint16_t port)
 {
   _host = host;
   _port = port;
-#ifndef USING_AXTLS
-  _client.setBufferSizes(512, 512);
-  _client.setInsecure();
-#endif
-  _client.setNoDelay(true);
   return true;
 }
 
