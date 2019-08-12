@@ -1,18 +1,14 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.3.1
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.3.2
  * 
  * August 12, 2019
  * 
  * Feature Added:
- * - Add support to read Root CA certificate file from SD and SPIFFS.
- * - FCM message now can be set notification and data separately.
+ * 
  * 
  * Feature Fixed:
- * - Connection refuse for FCM.
- * - Stream is not resume when timeout while WiFi is still connected.
+ * - Missing header file time.h 
  * 
- * Feature Fixed:
- * - Connection refuse for FCM.
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
  * and delete calls. 
@@ -46,6 +42,7 @@
 
 #include <Arduino.h>
 #include <SPI.h>
+#include <time.h>
 #define FS_NO_GLOBALS
 #include <FS.h>
 #include <SD.h>
