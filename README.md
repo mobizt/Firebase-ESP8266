@@ -24,7 +24,7 @@ This library supports ESP8266 MCU from Espressif. The following are platforms wh
 ## Features
 
 
-* **Not Required Fingerprint and Certificate. (root CA cert can be added for more secure)**
+* **Not Required Fingerprint and Certificate, CA certificate can be set for more secure connection**
 
 * **Completed Google's Firebase RTDB REST APIs Implementation.**
 
@@ -64,9 +64,8 @@ This library supports ESP8266 MCU from Espressif. The following are platforms wh
 
 * **Supports Firebase Cloud Messaging.**
 
-* **Supports read Root CA certificate file from SD and SPIFFS (for Core SDK v2.5.x).**
+* **Supports SD and SPIFFS's CA certificate file (for Core SDK v2.5.x).**
 
-* **Lower memory usage with BearSSL for ESP8266 Arduino Core SDK v2.5.x**
 
 
 

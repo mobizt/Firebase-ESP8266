@@ -3108,7 +3108,6 @@ bool FirebaseESP8266::apConnected(FirebaseData &dataObj)
 
 void FirebaseESP8266::forceEndHTTP(FirebaseData &dataObj)
 {
-    return;
     if (!apConnected(dataObj))
         return;
 
@@ -3870,6 +3869,7 @@ void FirebaseESP8266::errorToString(int httpCode, std::string &buff)
 
 bool FirebaseESP8266::sendFCMMessage(FirebaseData &dataObj, uint8_t messageType)
 {
+   
     if (dataObj.fcm._server_key.length() == 0)
     {
         dataObj._httpCode = HTTPC_NO_FCM_SERVER_KEY_PROVIDED;
@@ -5802,6 +5802,7 @@ void FCMObject::fcm_buildHeader(char *header, size_t payloadSize)
     strcat_P(header, ESP8266_FIREBASE_STR_21);
     strcat_P(header, ESP8266_FIREBASE_STR_34);
     strcat_P(header, ESP8266_FIREBASE_STR_21);
+
     delete[] len;
 }
 
