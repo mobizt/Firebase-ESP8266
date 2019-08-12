@@ -24,7 +24,7 @@ This library supports ESP8266 MCU from Espressif. The following are platforms wh
 ## Features
 
 
-* **Not Required Fingerprint and Certificate, CA certificate can be set for more secure connection**
+* **Not Required Fingerprint and Certificate, CA certificate can be set for more secure connection.**
 
 * **Completed Google's Firebase RTDB REST APIs Implementation.**
 
