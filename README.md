@@ -853,6 +853,11 @@ See [Full Examples](/examples) for complete usages.
 
 See [Function Description](/src/README.md) for all available functions.
 
+[ESP8266 (ESP32) with Firebase realtime database: IoT Controlled RGB LEDs](https://www.javacodegeeks.com/2019/07/esp8266-esp32-firebase-realtime-database-iot.html)
+
+[Serverless IoTs with Firebase Realtime Database and ESP8266 - Part 1](https://medium.com/@vibrologic/serverless-iots-with-firebase-realtime-database-and-esp8266-9937d98d1ae0)
+
+[Serverless IoTs with Firebase Realtime Database and ESP8266 - Part 2](https://medium.com/@vibrologic/serverless-iots-with-firebase-realtime-database-and-esp8266-e624304c3197)
 
 ## License
 
