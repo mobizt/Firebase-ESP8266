@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.3.2
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.4.0
 
 
 ## Global functions
@@ -411,10 +411,36 @@ bool pushJSON(FirebaseData &dataObj, const String &path, const String &jsonStrin
 
 
 
+
+#### Append new child nodes's key and value (using JSON data) to the defined database path.
+
+param **`dataObj`** - Firebase Data Object to hold data and instances.
+
+param **`path`** - Target database path which key and value in JSON data will be appended.
+
+param **`json`** - The appended FirebaseJson object.
+
+return **`Boolean`** type status indicates the success of operation.
+
+The new appended node's key will be stored in Firebase Data object, 
+which its value can be accessed via function [FirebaseData object].pushName().
+
+```C++
+bool pushJSON(FirebaseData &dataObj, const String &path, FirebaseJson &json);
+```
+
+
+
+
+
+
+
 #### Append new child nodes's key and value (using JSON data) and the virtual child ".priority" to the defined database path.
 
 ```C++
   bool pushJSON(FirebaseData &dataObj, const String &path, const String &jsonString, float priority);
+
+  bool pushJSON(FirebaseData &dataObj, const String &path, FirebaseJson &json, float priority);
 ```
 
 
@@ -910,10 +936,43 @@ bool setJSON(FirebaseData &dataObj, const String &path, const String &jsonString
 
 
 
+
+
+#### Set child nodes's key and value (using JSON data) to the defined database path
+
+This will replace any child nodes inside the defined path with node' s key
+and value defined in JSON data.
+
+param **`dataObj`** - Firebase Data Object to hold data and instances.
+
+param **`path`** - Target database path which key and value in JSON data will be replaced or set.
+
+param **`json`** - The FirebaseJson object.
+
+return **`Boolean`** type status indicates the success of operation.
+
+Call [FirebaseData object].dataType to determine what type of data that successfully
+stores in database. 
+ 
+Call [FirebaseData object].jsonData will return the JSON string value of
+payload returned from server.
+
+```C++
+bool setJSON(FirebaseData &dataObj, const String &path, FirebaseJson &json);
+```
+
+
+
+
+
+
+
 #### Set JSON data and virtual child ".priority" at the defined database path.
 
 ```C++
 bool setJSON(FirebaseData &dataObj, const String &path, const String &jsonString, float priority);
+
+bool setJSON(FirebaseData &dataObj, const String &path, FirebaseJson &json, float priority);
 ```
 
 
@@ -953,6 +1012,8 @@ Also call [FirebaseData object].jsonData to get the current JSON string value.
 
 ```C++
 bool setJSON(FirebaseData &dataObj, const String &path, const String &jsonString, const String &ETag);
+
+bool setJSON(FirebaseData &dataObj, const String &path, FirebaseJson &json, const String &ETag);
 ```
 
 
@@ -964,6 +1025,8 @@ bool setJSON(FirebaseData &dataObj, const String &path, const String &jsonString
 
 ```C++
 bool setJSON(FirebaseData &dataObj, const String &path, const String &jsonString, float priority, const String &ETag);
+
+bool setJSON(FirebaseData &dataObj, const String &path, FirebaseJson &json, float priority, const String &ETag);
 ```
 
 
@@ -1165,10 +1228,43 @@ bool updateNode(FirebaseData &dataObj, const String &path, const String &jsonStr
 
 
 
+
+
+
+#### Update child nodes's key or exising key's value (using JSON data) under the defined database path
+
+param **`dataObj`** - Firebase Data Object to hold data and instances.
+
+param **`path`** - Target database path which key and value in JSON data will be update.
+
+param **`json`** - The FirebaseJson object used for update.
+
+return **`Boolean`** type status indicates the success of operation.
+
+Call [FirebaseData object].dataType to determine what type of data that successfully
+stores in database. 
+ 
+Call [FirebaseData object].jsonData will return the json string value of
+payload returned from server.
+
+To reduce the network data usage, use updateNodeSilent instead.
+
+```C++
+bool updateNode(FirebaseData &dataObj, const String &path, FirebaseJson &json);
+```
+
+
+
+
+
+
+
 #### Update child nodes's key or exising key's value and virtual child ".priority" (using JSON data) under the defined database path.
 
 ```C++
 bool updateNode(FirebaseData &dataObj, const String &path, const String &jsonString, float priority);
+
+bool updateNode(FirebaseData &dataObj, const String &path, FirebaseJson &json, float priority);
 ```
 
 
@@ -1195,10 +1291,35 @@ bool updateNodeSilent(FirebaseData &dataObj, const String &path, const String &j
 
 
 
+
+
+#### Update child nodes's key or exising key's value (using JSON data) under the defined database path
+
+param **`dataObj`** - Firebase Data Object to hold data and instances.
+
+param **`path`** - Target database path which key and value in JSON data will be update.
+
+param **`json`** - The FirebaseJson object used for update.
+
+return **`Boolean`** type status indicates the success of operation.
+
+Owing to the objective of this function to reduce the netwok data usage, 
+no payload will be returned from server.
+
+```C++
+bool updateNodeSilent(FirebaseData &dataObj, const String &path, FirebaseJson &json);
+```
+
+
+
+
+
 #### Update child nodes's key and virtual child ".priority" (using JSON data) under the defined database path.
 
 ```C++
 bool updateNodeSilent(FirebaseData &dataObj, const String &path, const String &jsonString, float priority);
+
+bool updateNodeSilent(FirebaseData &dataObj, const String &path, FirebaseJson &json, float priority);
 ```
 
 
@@ -2627,6 +2748,27 @@ param **`jsonString`** - The JSON structured data string.
 
 ```C++
 void setDataMessage(const String &jsonString);
+```
+
+
+
+#### Set the custom data message type information
+    
+param **`json`** - The FirebaseJson object.
+
+```C++
+void setDataMessage(FirebaseJson &json);
+```
+
+
+
+
+#### Set the custom data message type information
+    
+param **`json`** - The FirebaseJson object.
+
+```C++
+void setDataMessage(FirebaseJson &json);
 ```
 
 

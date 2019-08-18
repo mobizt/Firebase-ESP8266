@@ -33,7 +33,6 @@ unsigned long sendDataPrevMillis1;
 
 uint16_t count1;
 
-String json;
 
 String path = "";
 

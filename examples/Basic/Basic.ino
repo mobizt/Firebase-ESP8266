@@ -58,7 +58,7 @@ void setup()
 
   String path = "/ESP8266_Test";
 
-  String jsonStr = "";
+  FirebaseJson json;
  
   Serial.println("------------------------------------");
   Serial.println("Set double test...");
@@ -165,9 +165,10 @@ void setup()
   for (uint8_t i = 5; i < 10; i++)
   {
 
-    jsonStr = "{\"Data" + String(i + 1) + "\":" + String(i + 1) + "}";
+    json.clear().addInt("Data" + String(i + 1),i + 1);
 
-    if (Firebase.pushJSON(firebaseData, path + "/Push/Int", jsonStr))
+
+    if (Firebase.pushJSON(firebaseData, path + "/Push/Int", json))
     {
       Serial.println("PASSED");
       Serial.println("PATH: " + firebaseData.dataPath());
@@ -192,9 +193,10 @@ void setup()
   for (uint8_t i = 0; i < 5; i++)
   {
 
-    jsonStr = "{\"Data" + String(i + 1) + "\":" + String(i + 5.5) + "}";
+    json.clear().addDouble("Data" + String(i + 1),i + 5.5);
 
-    if (Firebase.updateNode(firebaseData, path + "/Int", jsonStr))
+
+    if (Firebase.updateNode(firebaseData, path + "/float", json))
     {
       Serial.println("PASSED");
       Serial.println("PATH: " + firebaseData.dataPath());

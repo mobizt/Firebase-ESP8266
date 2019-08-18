@@ -47,17 +47,16 @@ void setup()
   Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
   Firebase.reconnectWiFi(true);
 
-  String jsonStr = "";
+ FirebaseJson json;
 
   Serial.println("------------------------------------");
   Serial.println("Push JSON test...");
 
   for (uint8_t i = 0; i < 30; i++)
   {
+    json.clear().addInt("Data1",i + 1).addInt("Data2",i + 100);
 
-    jsonStr = "{\"Data1\":" + String(i + 1) + ",\"Data2\":\"" + String(i + 100) + "\"}";
-
-    if (Firebase.pushJSON(firebaseData, "/Test/Int", jsonStr))
+    if (Firebase.pushJSON(firebaseData, "/Test/Int", json))
     {
       Serial.println("PASSED");
       Serial.println("PATH: " + firebaseData.dataPath());

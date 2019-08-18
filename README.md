@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.3.2
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.4.0
 
 
 This library supports ESP8266 MCU from Espressif. The following are platforms which library are also available.
@@ -65,6 +65,8 @@ This library supports ESP8266 MCU from Espressif. The following are platforms wh
 * **Supports Firebase Cloud Messaging.**
 
 * **Supports SD and SPIFFS's CA certificate file (for Core SDK v2.5.x).**
+
+* **Built-in JSON parser and builder.**
 
 
 
@@ -298,9 +300,13 @@ The following example showed how to append new data (using JSON) to "/test/appen
 
 
 ```C++
-String jsonData = "{\"parent_001\":\"parent 001 text\", \"parent 002\":{\"child_of_002\":123.456}}";
 
-if (Firebase.pushJSON(firebaseData, "/test/append", jsonData)) {
+FirebaseJson json;
+FirebaseJson json2;
+json2.addDouble("child_of_002",123.456);
+json.addString("parent_001","parent 001 text").addJson("parent 002", &json2);
+
+if (Firebase.pushJSON(firebaseData, "/test/append", json)) {
 
   Serial.println(firebaseData.dataPath());
 
@@ -332,7 +338,11 @@ The following example showed how to patch data at "/test".
 
 
 ```C++
-String updateData = "{\"data1\":\"value1\", \"data2\":{\"_data2\":\"_value2\"}}";
+
+FirebaseJson updateData;
+FirebaseJson json;
+json.addString("_data2","_value2");
+updateData.addString("data1","value1").addJson("data2", &json);
 
 if (Firebase.updateNode(firebaseData, "/test/update", updateData)) {
 
@@ -807,7 +817,7 @@ For the notification message, title, body, icon (optional), and click_action (op
 
 And clear these notify message data with `firebaseData.fcm.clearNotifyMessage`.
 
-For the data message, provide your custom data as JSON object (string) to `firebaseData.fcm.setDataMessage` which can be clear with `firebaseData.fcm.clearDataMessage`.
+For the data message, provide your custom data as JSON object (FirebaseJson object or string) to `firebaseData.fcm.setDataMessage` which can be clear with `firebaseData.fcm.clearDataMessage`.
 
 The other options are `priority`, `collapse key`, `Time to Live` of message and `topic` to send message to, can be set from the following functions.
 

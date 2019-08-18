@@ -26,6 +26,8 @@
 //Define Firebase Data object
 FirebaseData firebaseData;
 
+FirebaseJson json;
+
 void setup()
 {
 
@@ -57,7 +59,7 @@ void setup()
     {
 
         float priority = 15 - i;
-        String json = "{\"item_" + String(i + 1) + "\":\"value_" + String(i + 1) + "\"}";
+        json.clear().addString("item_" + String(i + 1),"value_" + String(i + 1));
         String Path = path + "/Items/priority_" + String(15 - i);
 
         if (Firebase.setJSON(firebaseData, Path, json, priority))

@@ -16,14 +16,13 @@
 #include "FirebaseESP8266.h"
 #include <ESP8266WiFi.h>
 
-//Required ArduinoJson version 5 (the ArduinoJson syntaxes used in this example are not compattible with v6)
-//https://github.com/bblanchon/ArduinoJson/releases
-#include <ArduinoJson.h>
+
 
 #define FIREBASE_HOST "YOUR_FIREBASE_PROJECT.firebaseio.com"
 #define FIREBASE_AUTH "YOUR_FIREBASE_DATABASE_SECRET"
 #define WIFI_SSID "YOUR_WIFI_AP"
 #define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
+
 
 //Define Firebase Data object
 FirebaseData firebaseData;
@@ -104,14 +103,19 @@ void getNode(String &key)
     else
     {
 
-      DynamicJsonBuffer jsonBuffer;
+      FirebaseJson json;
 
-      JsonObject &root = jsonBuffer.parseObject(firebaseData.jsonData());
+      json.setJsonData(firebaseData.jsonData());
 
-      for (JsonObject::iterator it = root.begin(); it != root.end(); ++it)
+      json.parse();
+      size_t count =json.getJsonObjectIteratorCount();
+      String _key;
+      String _val;
+
+      for (size_t i = 0; i< count; i++)
       {
-        String _key = it->key;
-        String _val = root[_key];
+        
+        json.jsonObjectiterator(i,_key,_val);
 
         if (_val == "true")
         {

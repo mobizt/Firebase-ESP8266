@@ -1,5 +1,5 @@
 /*
- * HTTP Client wrapper v1.0.4
+ * HTTP Client wrapper v1.0.5
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
  * and delete calls. 
@@ -48,7 +48,7 @@
 #include <time.h>
 
 #ifndef ARDUINO_ESP8266_GIT_VER
-#error Your ESP8266 Arduino Core SDK is outdated, please update. From Arduino IDE go to Boards Manager and search 'esp8266' then select version 2.4.0 or above.
+#error Your ESP8266 Arduino Core SDK is outdated, please update. From Arduino IDE go to Boards Manager and search 'esp8266' then select the latest version.
 #endif
 
 #if ARDUINO_ESP8266_GIT_VER != 0xf6d232f1 && ARDUINO_ESP8266_GIT_VER != 0x0c897c37 && ARDUINO_ESP8266_GIT_VER != 0x4ceabea9 && ARDUINO_ESP8266_GIT_VER != 0x614f7c32 && ARDUINO_ESP8266_GIT_VER != 0xbb28d4a3
@@ -132,7 +132,10 @@ public:
   int sendRequest(const char *header, const char *payload);
   void setRootCA(const char *rootCA);
   void setRootCAFile(std::string &rootCAFile, uint8_t storageType, uint8_t sdPin);
-  SSL_CLIENT _client;
+  
+
+  std::unique_ptr<SSL_CLIENT> _client = std::unique_ptr<SSL_CLIENT>(new SSL_CLIENT());
+
 
   int _certType = -1;
   uint16_t timeout = 5000;
@@ -146,9 +149,7 @@ protected:
 
   std::string _host = "";
   uint16_t _port = 0;
-#ifndef USING_AXTLS
-  BearSSL::CertStore certStore;
-#endif
+
 };
 
 #endif /* FirebaseESP8266HTTPClient_H */

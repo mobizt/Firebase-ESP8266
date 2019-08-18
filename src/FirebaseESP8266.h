@@ -1,13 +1,12 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.3.2
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.4.0
  * 
- * August 12, 2019
+ * August 19, 2019
  * 
  * Feature Added:
+ * JSON object and JSON array builder and parser
  * 
- * 
- * Feature Fixed:
- * - Missing header file time.h 
+ * Feature Fixed: 
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -52,6 +51,7 @@
 #include <ets_sys.h>
 #include <ESP8266WiFi.h>
 #include "FirebaseESP8266HTTPClient.h"
+#include "FirebaseJson.h"
 
 #define FIEBASE_PORT 443
 #define FIREBASE_RESPONSE_SIZE 400
@@ -236,6 +236,10 @@ static const char ESP8266_FIREBASE_STR_167[] PROGMEM = "update";
 static const char ESP8266_FIREBASE_STR_168[] PROGMEM = "delete";
 
 static const char ESP8266_FIREBASE_STR_169[] PROGMEM = "{";
+static const char ESP8266_FIREBASE_STR_170[] PROGMEM = "%d";
+static const char ESP8266_FIREBASE_STR_171[] PROGMEM = "%f";
+static const char ESP8266_FIREBASE_STR_172[] PROGMEM = "[";
+static const char ESP8266_FIREBASE_STR_173[] PROGMEM = "]";
 
 static const unsigned char ESP8266_FIREBASE_base64_table[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -332,6 +336,14 @@ public:
 
   */
   void setDataMessage(const String &jsonString);
+
+  /*
+    Set the custom data message type information.
+    
+    @param json - The FirebaseJson object.
+
+  */
+  void setDataMessage(FirebaseJson &json);
 
   /*
     Clear custom data message type information.
@@ -805,12 +817,29 @@ public:
   */
   bool pushJSON(FirebaseData &dataObj, const String &path, const String &jsonString);
 
+    /*
+    Append new child nodes's key and value (using JSON data) to the defined database path.
+
+    @param dataObj - Firebase Data Object to hold data and instances.
+    @param path - Target database path which key and value in JSON data will be appended.
+    @param json - The appended FirebaseJson object.
+
+    @return - Boolean type status indicates the success of operation.
+
+    The new appended node's key will be stored in Firebase Data object,
+    which its value can be accessed via function [FirebaseData object].pushName().
+
+  */
+  bool pushJSON(FirebaseData &dataObj, const String &path, FirebaseJson &json);
+
   /*
 
     Append new child nodes's key and value (using JSON data) and the virtual child ".priority" to the defined database path.
 
   */
   bool pushJSON(FirebaseData &dataObj, const String &path, const String &jsonString, float priority);
+
+  bool pushJSON(FirebaseData &dataObj, const String &path, FirebaseJson &json, float priority);
 
   /*
     Append new blob (binary data) to the defined database path.
@@ -1182,10 +1211,36 @@ public:
 
   /*
 
+    Set child nodes's key and value (using JSON data) to the defined database path.
+
+    This will replace any child nodes inside the defined path with node' s key
+    and value defined in JSON data.
+
+    @param dataObj - Firebase Data Object to hold data and instances.
+    @param path - Target database path which key and value in JSON data will be replaced or set.
+    @param json - The FirebaseJson object.
+
+    @return - Boolean type status indicates the success of operation.
+
+    Call [FirebaseData object].dataType to determine what type of data that successfully
+    stores in database.
+
+    Call [FirebaseData object].jsonData will return the JSON string value of
+    payload returned from server.
+
+  */
+  bool setJSON(FirebaseData &dataObj, const String &path, FirebaseJson &json);
+
+  /*
+
     Set JSON data and virtual child ".priority" at the defined database path.
 
   */
   bool setJSON(FirebaseData &dataObj, const String &path, const String &jsonString, float priority);
+
+  bool setJSON(FirebaseData &dataObj, const String &path, FirebaseJson &json, float priority);
+
+  
 
   /*
 
@@ -1216,12 +1271,17 @@ public:
    */
   bool setJSON(FirebaseData &dataObj, const String &path, const String &jsonString, const String &ETag);
 
+  bool setJSON(FirebaseData &dataObj, const String &path, FirebaseJson &json, const String &ETag);
+
   /*
 
     Set JSON data and the virtual child ".priority" if defined ETag matches at the defined database path 
 
   */
   bool setJSON(FirebaseData &dataObj, const String &path, const String &jsonString, float priority, const String &ETag);
+
+  bool setJSON(FirebaseData &dataObj, const String &path, FirebaseJson &json, float priority, const String &ETag);
+
 
   /*
     Set blob (binary data) at the defined database path.
@@ -1345,7 +1405,7 @@ public:
 
     @param dataObj - Firebase Data Object to hold data and instances.
     @param path - Target database path which key and value in JSON data will be update.
-    @param jsonString - The JSON string use for update.
+    @param jsonString - The JSON string used for update.
 
     @return - Boolean type status indicates the success of operation.
 
@@ -1358,7 +1418,28 @@ public:
     To reduce the network data usage, use updateNodeSilent instead.
 
   */
-  bool updateNode(FirebaseData &dataObj, const String path, const String jsonString);
+  bool updateNode(FirebaseData &dataObj, const String path, const String &jsonString);
+
+  /*
+    Update child nodes's key or exising key's value (using JSON data) under the defined database path.
+
+    @param dataObj - Firebase Data Object to hold data and instances.
+    @param path - Target database path which key and value in JSON data will be update.
+    @param json - The FirebaseJson object used for update.
+
+    @return - Boolean type status indicates the success of operation.
+
+    Call [FirebaseData object].dataType to determine what type of data that successfully
+    stores in database.
+
+    Call [FirebaseData object].jsonData will return the json string value of
+    payload returned from server.
+
+    To reduce the network data usage, use updateNodeSilent instead.
+
+  */
+  bool updateNode(FirebaseData &dataObj, const String path, FirebaseJson &json);
+
 
   /*
 
@@ -1367,12 +1448,14 @@ public:
   */
   bool updateNode(FirebaseData &dataObj, const String &path, const String &jsonString, float priority);
 
+  bool updateNode(FirebaseData &dataObj, const String &path, FirebaseJson &json, float priority);
+
   /*
     Update child nodes's key or exising key's value (using JSON data) under the defined database path.
 
     @param dataObj - Firebase Data Object to hold data and instances.
     @param path - Target database path which key and value in JSON data will be update.
-    @param jsonString - The JSON string use for update.
+    @param jsonString - The JSON string used for update.
 
     @return - Boolean type status indicates the success of operation.
 
@@ -1383,11 +1466,28 @@ public:
   bool updateNodeSilent(FirebaseData &dataObj, const String &path, const String &jsonString);
 
   /*
+    Update child nodes's key or exising key's value (using JSON data) under the defined database path.
+
+    @param dataObj - Firebase Data Object to hold data and instances.
+    @param path - Target database path which key and value in JSON data will be update.
+    @param json - The FirebaseJson object used for update.
+
+    @return - Boolean type status indicates the success of operation.
+
+    Owing to the objective of this function to reduce the netwok data usage,
+    no payload will be returned from server.
+
+  */
+  bool updateNodeSilent(FirebaseData &dataObj, const String &path, FirebaseJson &json);
+
+  /*
 
     Update child nodes's key or exising key's value and virtual child ".priority" (using JSON data) under the defined database path.
 
   */
   bool updateNodeSilent(FirebaseData &dataObj, const String &path, const String &jsonString, float priority);
+
+  bool updateNodeSilent(FirebaseData &dataObj, const String &path, FirebaseJson &json, float priority);
 
   /*
     Read the integer value at the defined database path.
@@ -2081,7 +2181,7 @@ protected:
   void createDirs(std::string dirs, uint8_t storageType);
   bool replace(std::string &str, const std::string &from, const std::string &to);
   std::string base64_encode_string(const unsigned char *src, size_t len);
-  void send_base64_encode_file(SSL_CLIENT &ssl_client, const std::string &filePath, uint8_t storageType);
+  void send_base64_encode_file(SSL_CLIENT *ssl_client, const std::string &filePath, uint8_t storageType);
   bool base64_decode_string(const std::string src, std::vector<uint8_t> &out);
   bool base64_decode_file(File &file, const char *src, size_t len);
   bool base64_decode_SPIFFS(fs::File &file, const char *src, size_t len);
