@@ -2842,6 +2842,313 @@ String getSendResult();
 
 
 
+## JSON object Functions
+
+
+#### Clear buffer data and tokens pointer.
+    
+return **`instance of an object.`** 
+
+```C++
+FirebaseJson &clear();
+```
+
+
+
+
+#### Set JSON data to buffer.
+
+param **`data`** - The JSON object string. 
+    
+return **`instance of an object.`** 
+
+The internal buffer will be overwritten by add functions.
+
+```C++
+FirebaseJson &setJsonData(const String &data);
+```
+
+
+
+
+#### Add the string to JSON object.
+
+param **`key`** - Key string of data. 
+
+param **`value`** - The String data. 
+    
+return **`instance of an object.`** 
+
+
+```C++
+FirebaseJson &addString(const String &key, const String &value);
+```
+
+
+
+
+#### Add the array of objects to JSON object.
+
+param **`key`** - Key string of data. 
+
+param **`arr`** - The FirebaseJsonArray object. 
+    
+return **`instance of an object.`** 
+
+
+```C++
+FirebaseJson &addString(const String &key, const String &value);FirebaseJson &addArray(const String &key, FirebaseJsonArray *arr);
+```
+
+
+
+
+
+#### Add the integer value to JSON object.
+    
+param **`key`** - Key string of data.
+
+param **`value`** - Integer data.    
+
+return **`instance of an object.`**
+
+```C++
+FirebaseJson &addInt(const String &key, int value);
+```
+
+
+
+
+#### Add the double value to JSON object.
+    
+param **`key`** - Key string of data.
+
+param **`value`** - Double data.    
+
+return **`instance of an object.`**
+
+```C++
+FirebaseJson &addDouble(const String &key, double value);
+```
+ 
+
+
+
+#### Add the boolean value to JSON object.
+    
+param **`key`** - Key string of data.
+
+param **`value`** - Boolean data.    
+
+return **`instance of an object.`**
+
+```C++
+FirebaseJson &addBool(const String &key, bool value);
+```
+
+
+
+
+
+#### Add the JSON data to JSON object.
+    
+param **`key`** - Key string of data.
+
+param **`json`** - FirebaseJson object that hold the data to be added to this JSON object.    
+
+return **`instance of an object.`**
+
+```C++
+FirebaseJson &addJson(const String &key, FirebaseJson *json);
+```
+
+
+#### Get the JSON object's string. 
+
+return **`serialized string of JSON object.`**
+
+```C++
+String toString();
+```
+
+
+
+
+
+#### Parse the internal buffer JSON object.
+    
+param **`skipChild`** - Flag to skip any children nodes under root or array.
+
+param **`len`** - Optional. The expected number of JSON tokens (key and value). Should be number of keys and values + 1.
+
+Default value is 50. If object parse failed, increase this value.     
+
+return **`instance of an object.`**
+
+```C++
+FirebaseJson &parse(bool skipChild = true, size_t len = 0);
+```
+
+
+
+
+
+
+####  Get the value from key of JSON object.
+    
+param **`key`** - Key string of data to get.
+
+return **`instance of an object.`**
+
+This should call after parse().
+
+```C++
+FirebaseJson &get(const String &key);
+```
+
+
+
+
+#### Set the numbers of JSON tokens (keys + values + 1) to be available for read from jsonObjectIterator.  
+
+return **`numbers of tokens.`**
+
+```C++
+size_t getJsonObjectIteratorCount();
+```
+
+
+
+
+
+#### Read data from JSON objects by providing tokens ID.
+    
+param **`index`** - The referenced token index. This will auto increase to the next token index after read.
+
+param **`key`** - The referenced key data string. This provided the key data output.
+
+param **`value`** - The referenced value string. This provided the value of current key output.   
+
+return **`instance of an object.`**
+
+```C++
+FirebaseJson &jsonObjectiterator(size_t &index,String &key, String &value);
+```
+
+
+
+
+
+
+#### Get the parse result of JSON object.   
+
+return **`FirebaseJsonObject.`**
+
+The properties available are: stringValue, intValue, doubleValue, boolValue, type, success.
+
+The type property provides the types of value string e.g. string, int, double, boolean, array, object, null and undefined.
+
+The success property provides the success status of get or parse functions.
+
+```C++
+FirebaseJsonObject parseResult();
+```
+
+
+## JSON Array Functions
+
+
+
+#### Add the string value to JSON Array object.
+
+param **`value`** - String data.    
+
+return **`instance of an object.`**
+
+```C++
+FirebaseJsonArray &addString(const String &value);
+```
+
+
+
+
+#### Add the integer value to JSON Array object.
+
+param **`value`** - Integer data.    
+
+return **`instance of an object.`**
+
+```C++
+FirebaseJsonArray &addInt(int value);
+```
+
+
+
+
+
+#### Add the double value to JSON Array object.
+
+param **`value`** - double data.    
+
+return **`instance of an object.`**
+
+```C++
+FirebaseJsonArray &addDouble(double value);
+```
+
+
+
+
+
+#### Add the boolean value to JSON Array object.
+
+param **`value`** - Boolean data.    
+
+return **`instance of an object.`**
+
+```C++
+FirebaseJsonArray &addBool(bool value);
+```
+
+
+
+
+#### Add the JSON object to JSON Array object.
+
+param **`json`** - FirebaseJson object that holds data to be added to array.    
+
+return **`instance of an object.`**
+
+```C++
+FirebaseJsonArray &addJson(FirebaseJson *json);
+```
+
+
+
+
+#### Add the JSON arrat object to JSON Array object.
+
+param **`arr`** - JSON array object that holds data to be added to this JSON array.    
+
+return **`instance of an object.`**
+
+```C++
+FirebaseJsonArray &addArray(FirebaseJsonArray *arr);
+```
+
+
+
+
+
+#### Get the JSON Array object's string.  
+
+return **`string of an object.`**
+
+```C++
+String toString();
+```
+
+
 
 ## License
 
