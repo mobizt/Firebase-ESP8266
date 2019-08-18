@@ -13,6 +13,8 @@ QueryFilter KEYWORD1
 QueueManager	KEYWORD1
 QueueInfo	KEYWORD1
 fcm	KEYWORD1
+FirebaseJson	KEYWORD1
+FirebaseJsonArray	KEYWORD1
 
 ###############################################
 # Methods and Functions for Firebase (KEYWORD2)
@@ -160,3 +162,21 @@ FirebaseDataType	LITERAL1
 FirebaseMethod	LITERAL1
 QueueStorageType	LITERAL1
 QueueItem	LITERAL1
+
+###########################################################
+# Methods for FirebaseJSON and FirebaseJsonArray (KEYWORD2)
+###########################################################
+setJsonData	KEYWORD2
+clear	KEYWORD2
+addString	KEYWORD2
+addArray	KEYWORD2
+addInt	KEYWORD2
+addDouble	KEYWORD2
+addBool	KEYWORD2
+addJson	KEYWORD2
+toString	KEYWORD2
+parse	KEYWORD2
+get	KEYWORD2
+getJsonObjectIteratorCount	KEYWORD2
+jsonObjectiterator  KEYWORD2
+parseResult KEYWORD2
