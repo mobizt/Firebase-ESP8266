@@ -3126,7 +3126,7 @@ FirebaseJsonArray &addJson(FirebaseJson *json);
 
 
 
-#### Add the JSON arrat object to JSON Array object.
+#### Add the JSON array object to JSON Array object.
 
 param **`arr`** - JSON array object that holds data to be added to this JSON array.    
 
