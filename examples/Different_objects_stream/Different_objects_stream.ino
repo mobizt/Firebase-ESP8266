@@ -29,6 +29,8 @@
 FirebaseData firebaseData1;
 FirebaseData firebaseData2;
 
+void printJsonObjectContent(FirebaseData &data);
+
 unsigned long sendDataPrevMillis1;
 
 uint16_t count1;
@@ -110,7 +112,7 @@ void loop()
     else if (firebaseData2.dataType() == "string")
       Serial.println(firebaseData2.stringData());
     else if (firebaseData2.dataType() == "json")
-      Serial.println(firebaseData2.jsonData());
+      printJsonObjectContent(firebaseData2);
     else if (firebaseData2.dataType() == "blob")
     {
       std::vector<uint8_t> blob = firebaseData2.blobData();
@@ -165,5 +167,28 @@ void loop()
     Serial.print("Free Heap: ");
     Serial.println(ESP.getFreeHeap());
     Serial.println();
+  }
+}
+
+
+void printJsonObjectContent(FirebaseData &data){
+  size_t tokenCount = data.jsonObject().parse(false).getJsonObjectIteratorCount();
+  String key;
+  String value;
+  FirebaseJsonObject jsonParseResult;
+  Serial.println();
+  for (size_t i = 0; i < tokenCount; i++)
+  {
+    data.jsonObject().jsonObjectiterator(i,key,value);
+    jsonParseResult = data.jsonObject().parseResult();
+    Serial.print("KEY: ");
+    Serial.print(key);
+    Serial.print(", ");
+    Serial.print("VALUE: ");
+    Serial.print(value); 
+    Serial.print(", ");
+    Serial.print("TYPE: ");
+    Serial.println(jsonParseResult.type);        
+
   }
 }

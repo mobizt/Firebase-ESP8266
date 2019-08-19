@@ -47,6 +47,8 @@ const char root_ca[] PROGMEM = "-----BEGIN CERTIFICATE-----\n"
 //Define FirebaseESP8266 data object
 FirebaseData firebaseData;
 
+void printJsonObjectContent(FirebaseData &data);
+
 void setup()
 {
 
@@ -120,7 +122,7 @@ void setup()
       else if (firebaseData.dataType() == "string")
         Serial.println(firebaseData.stringData());
       else if (firebaseData.dataType() == "json")
-        Serial.println(firebaseData.jsonData());
+        printJsonObjectContent(firebaseData);
       Serial.println("------------------------------------");
       Serial.println();
     }
@@ -157,7 +159,7 @@ void setup()
       else if (firebaseData.dataType() == "string")
         Serial.println(firebaseData.stringData());
       else if (firebaseData.dataType() == "json")
-        Serial.println(firebaseData.jsonData());
+        printJsonObjectContent(firebaseData);
       Serial.println("------------------------------------");
       Serial.println();
     }
@@ -248,7 +250,7 @@ void setup()
       else if (firebaseData.dataType() == "string")
         Serial.println(firebaseData.stringData());
       else if (firebaseData.dataType() == "json")
-        Serial.println(firebaseData.jsonData());
+        printJsonObjectContent(firebaseData);
       Serial.println("------------------------------------");
       Serial.println();
     }
@@ -264,4 +266,26 @@ void setup()
 
 void loop()
 {
+}
+
+void printJsonObjectContent(FirebaseData &data){
+  size_t tokenCount = data.jsonObject().parse(false).getJsonObjectIteratorCount();
+  String key;
+  String value;
+  FirebaseJsonObject jsonParseResult;
+  Serial.println();
+  for (size_t i = 0; i < tokenCount; i++)
+  {
+    data.jsonObject().jsonObjectiterator(i,key,value);
+    jsonParseResult = data.jsonObject().parseResult();
+    Serial.print("KEY: ");
+    Serial.print(key);
+    Serial.print(", ");
+    Serial.print("VALUE: ");
+    Serial.print(value); 
+    Serial.print(", ");
+    Serial.print("TYPE: ");
+    Serial.println(jsonParseResult.type);        
+
+  }
 }

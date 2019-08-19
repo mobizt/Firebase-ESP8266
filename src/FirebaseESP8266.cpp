@@ -5308,6 +5308,16 @@ String FirebaseData::jsonData()
         return String();
 }
 
+FirebaseJson &FirebaseData::jsonObject()
+{
+    if (_data.length() > 0 && _dataType == FirebaseESP8266::FirebaseDataType::JSON){
+        _json.setJsonData(_data);
+        return _json;;
+    } else{
+        return _json;
+    }
+}
+
 std::vector<uint8_t> FirebaseData::blobData()
 {
     if (_blob.size() > 0 && _dataType == FirebaseESP8266::FirebaseDataType::BLOB)
@@ -5420,6 +5430,7 @@ int FirebaseData::httpCode()
 StreamData::StreamData()
 {
 }
+
 StreamData::~StreamData()
 {
     empty();
@@ -5485,11 +5496,26 @@ String StreamData::stringData()
 
 String StreamData::jsonData()
 {
+    
     if (_dataType == FirebaseESP8266::FirebaseDataType::JSON)
         return _data.c_str();
     else
         return std::string().c_str();
 }
+
+
+FirebaseJson &StreamData::jsonObject()
+{
+    if (_dataType == FirebaseESP8266::FirebaseDataType::JSON)
+    {
+        _json->setJsonData(_data);
+        return *_json;
+    } else{
+        return *_json;
+    }
+}
+
+
 
 String StreamData::dataType()
 {

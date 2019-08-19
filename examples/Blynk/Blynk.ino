@@ -34,6 +34,8 @@
 FirebaseData firebaseData1;
 FirebaseData firebaseData2;
 
+void printJsonObjectContent(FirebaseData &data);
+
 String path = "/Blynk_Test/Int";
 
 //D4 or GPIO2 on Wemos D1 mini
@@ -138,7 +140,7 @@ void loop()
     else if (firebaseData1.dataType() == "string")
       Serial.println(firebaseData1.stringData());
     else if (firebaseData1.dataType() == "json")
-      Serial.println(firebaseData1.jsonData());
+      printJsonObjectContent(firebaseData1);
     Serial.println("------------------------------------");
     Serial.println();
   }
@@ -167,7 +169,7 @@ BLYNK_WRITE(V1)
     else if (firebaseData2.dataType() == "string")
       Serial.println(firebaseData2.stringData());
     else if (firebaseData2.dataType() == "json")
-      Serial.println(firebaseData2.jsonData());
+      printJsonObjectContent(firebaseData2);
     Serial.println("------------------------------------");
     Serial.println();
   }
@@ -177,5 +179,28 @@ BLYNK_WRITE(V1)
     Serial.println("REASON: " + firebaseData2.errorReason());
     Serial.println("------------------------------------");
     Serial.println();
+  }
+}
+
+
+void printJsonObjectContent(FirebaseData &data){
+  size_t tokenCount = data.jsonObject().parse(false).getJsonObjectIteratorCount();
+  String key;
+  String value;
+  FirebaseJsonObject jsonParseResult;
+  Serial.println();
+  for (size_t i = 0; i < tokenCount; i++)
+  {
+    data.jsonObject().jsonObjectiterator(i,key,value);
+    jsonParseResult = data.jsonObject().parseResult();
+    Serial.print("KEY: ");
+    Serial.print(key);
+    Serial.print(", ");
+    Serial.print("VALUE: ");
+    Serial.print(value); 
+    Serial.print(", ");
+    Serial.print("TYPE: ");
+    Serial.println(jsonParseResult.type);        
+
   }
 }

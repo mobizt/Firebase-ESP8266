@@ -2368,6 +2368,16 @@ public:
   */
   String jsonData();
 
+
+  /*
+
+    Return the Firebase JSON object of server returned payload.
+
+    @return FirebaseJson object.
+
+  */
+  FirebaseJson &jsonObject();
+
   /*
 
     Return the blob data (uint8_t) array of server returned payload.
@@ -2565,6 +2575,7 @@ protected:
   std::string _etag = "";
   std::string _etag2 = "";
   std::string _priority = "";
+  FirebaseJson _json;
 
   uint16_t _maxBlobSize = 1024;
 
@@ -2614,6 +2625,7 @@ protected:
 
 class StreamData
 {
+
 public:
   StreamData();
   ~StreamData();
@@ -2625,12 +2637,14 @@ public:
   bool boolData();
   String stringData();
   String jsonData();
+  FirebaseJson &jsonObject();
   String dataType();
   String eventType();
   void empty();
   friend FirebaseESP8266;
+  FirebaseJson *_json = new FirebaseJson();
 
-protected:
+private:
   std::string _streamPath = "";
   std::string _path = "";
   std::string _data = "";
@@ -2638,6 +2652,7 @@ protected:
   std::string _dataTypeStr = "";
   std::string _eventTypeStr = "";
   uint8_t _dataType = 0;
+  
 };
 
 extern FirebaseESP8266 Firebase;

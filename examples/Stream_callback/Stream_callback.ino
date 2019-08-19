@@ -24,6 +24,9 @@
 FirebaseData firebaseData1;
 FirebaseData firebaseData2;
 
+void printJsonObjectContent(FirebaseData &data);
+void printJsonObjectContent2(StreamData &data);
+
 unsigned long sendDataPrevMillis = 0;
 
 String path = "/ESP8266_Test/Stream";
@@ -50,7 +53,7 @@ void streamCallback(StreamData data)
   else if (data.dataType() == "string")
     Serial.println(data.stringData());
   else if (data.dataType() == "json")
-    Serial.println(data.jsonData());
+    printJsonObjectContent2(data);
   else if (data.dataType() == "blob")
   {
     //See blob examples
@@ -109,8 +112,11 @@ void loop()
     count++;
 
     Serial.println("------------------------------------");
-    Serial.println("Set string...");
-    if (Firebase.setString(firebaseData2, path + "/String", "Hello World! " + String(count)))
+    Serial.println("Set JSON...");
+
+    FirebaseJson json;
+    json.addString("data","hello").addInt("num", count);
+    if (Firebase.setJSON(firebaseData2, path + "/Json", json))
     {
       Serial.println("PASSED");
       Serial.println("PATH: " + firebaseData2.dataPath());
@@ -127,7 +133,7 @@ void loop()
       else if (firebaseData2.dataType() == "string")
         Serial.println(firebaseData2.stringData());
       else if (firebaseData2.dataType() == "json")
-        Serial.println(firebaseData2.jsonData());
+        printJsonObjectContent(firebaseData2);
       Serial.println("------------------------------------");
       Serial.println();
     }
@@ -141,3 +147,50 @@ void loop()
 
   }
 }
+
+void printJsonObjectContent(FirebaseData &data){
+
+  size_t tokenCount = data.jsonObject().parse(false).getJsonObjectIteratorCount();
+  Serial.println(data.jsonData());
+  String key;
+  String value;
+  FirebaseJsonObject jsonParseResult;
+  Serial.println();
+  for (size_t i = 0; i < tokenCount; i++)
+  {
+    data.jsonObject().jsonObjectiterator(i,key,value);
+    jsonParseResult = data.jsonObject().parseResult();
+    Serial.print("KEY: ");
+    Serial.print(key);
+    Serial.print(", ");
+    Serial.print("VALUE: ");
+    Serial.print(value); 
+    Serial.print(", ");
+    Serial.print("TYPE: ");
+    Serial.println(jsonParseResult.type);        
+
+  }
+}
+
+void printJsonObjectContent2(StreamData &data){
+  size_t tokenCount = data.jsonObject().parse(false).getJsonObjectIteratorCount();
+  String key;
+  String value;
+  FirebaseJsonObject jsonParseResult;
+  Serial.println();
+  for (size_t i = 0; i < tokenCount; i++)
+  {
+    data.jsonObject().jsonObjectiterator(i,key,value);
+    jsonParseResult = data.jsonObject().parseResult();
+    Serial.print("KEY: ");
+    Serial.print(key);
+    Serial.print(", ");
+    Serial.print("VALUE: ");
+    Serial.print(value); 
+    Serial.print(", ");
+    Serial.print("TYPE: ");
+    Serial.println(jsonParseResult.type);        
+
+  }
+}
+

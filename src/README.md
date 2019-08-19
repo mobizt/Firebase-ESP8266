@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.4.0
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.4.1
 
 
 ## Global functions
@@ -161,6 +161,10 @@ Call **[FirebaseData object].boolData** to get boolean data.
 Call **[FirebaseData object].stringData** to get string data.
 
 Call **[FirebaseData object].jsonData** to get JSON string data.
+
+Call **[FirebaseData object].jsonObject** to get FirebaseJson object.
+
+
 
 
 ```C++
@@ -929,6 +933,9 @@ stores in database.
 Call [FirebaseData object].jsonData will return the JSON string value of
 payload returned from server.
 
+Call [FirebaseData object].jsonObject will return the FirebaseJson object of
+payload returned from server.
+
 ```C++
 bool setJSON(FirebaseData &dataObj, const String &path, const String &jsonString);
 ```
@@ -955,6 +962,9 @@ Call [FirebaseData object].dataType to determine what type of data that successf
 stores in database. 
  
 Call [FirebaseData object].jsonData will return the JSON string value of
+payload returned from server.
+
+Call [FirebaseData object].jsonObject will return the FirebaseJson object of
 payload returned from server.
 
 ```C++
@@ -1002,12 +1012,16 @@ stores in database.
 Call [FirebaseData object].jsonData will return the JSON string value of
 payload returned from server.
 
+Call [FirebaseData object].jsonObject will return the FirebaseJson object of
+payload returned from server.
+
 
 If ETag at the defined database path is not match the provided ETag parameter,
 the operation will failed with HTTP code 412, Precondition Failed (ETag is not match).
 
 If operation failed due to ETag is not match, call [FirebaseData object].ETag() to get the current ETag value.
-Also call [FirebaseData object].jsonData to get the current JSON string value.
+Also call [FirebaseData object].jsonData to get the current JSON string value [FirebaseData object].jsonObject 
+to get the FirebaseJson object.
 
 
 ```C++
@@ -1219,6 +1233,9 @@ stores in database.
 Call [FirebaseData object].jsonData will return the json string value of
 payload returned from server.
 
+Call [FirebaseData object].jsonObject will return the FirebaseJson object of
+payload returned from server.
+
 To reduce the network data usage, use updateNodeSilent instead.
 
 ```C++
@@ -1245,6 +1262,9 @@ Call [FirebaseData object].dataType to determine what type of data that successf
 stores in database. 
  
 Call [FirebaseData object].jsonData will return the json string value of
+payload returned from server.
+
+Call [FirebaseData object].jsonObject will return the FirebaseJson object of
 payload returned from server.
 
 To reduce the network data usage, use updateNodeSilent instead.
@@ -1589,8 +1609,13 @@ stores in database.
 Call [FirebaseData object].jsonData will return the JSON string value of
 payload returned from server.
 
+Call [FirebaseData object].jsonObject will return the FirebaseJson object of
+payload returned from server.
+
 If the payload returned from server is not json type, 
-the function [FirebaseData object].jsonData will return empty string (String object).
+the function [FirebaseData object].jsonData will return empty string (String object), the function
+[FirebaseData object].jsonOject will fail to parse the data.
+
 
 ```C++
 bool getJSON(FirebaseData &dataObj, const String &path);
@@ -1670,8 +1695,12 @@ stores in database.
 Call [FirebaseData object].jsonData will return the JSON string value of
 payload returned from server.
 
+Call [FirebaseData object].jsonObject will return the FirebaseJson object of
+payload returned from server.
+
 If the payload returned from server is not json type, 
-the function [FirebaseData object].jsonData will return empty string (String object).
+the function [FirebaseData object].jsonData will return empty string (String object), the function
+[FirebaseData object].jsonOject will fail to parse the data.
 
 [FirebaseData object].jsonData will return null when the filtered data is empty.
 
@@ -2444,6 +2473,15 @@ String jsonData();
 
 
 
+
+
+#### Return the Firebase JSON object of server returned payload.
+
+return **`FirebaseJson object.`**
+
+```C++
+FirebaseJson &jsonObject();
+```
 
 
 

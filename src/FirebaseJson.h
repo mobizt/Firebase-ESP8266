@@ -1,6 +1,6 @@
 
 /*
- * FirebaseJSON, version 1.0.0
+ * FirebaseJSON, version 1.0.1
  * 
  * The library for create and pares JSON object.
  * 
@@ -94,9 +94,12 @@ class FirebaseJson
     friend class FirebaseJsonObject;
     friend class FCMObject;
     friend class FirebaseESP8266;
+    friend class FirebaseData;
+    friend class StreamData;
 
 public:
     FirebaseJson();
+    FirebaseJson(std::string &data);
     ~FirebaseJson();
 
     /*
@@ -272,6 +275,7 @@ private:
     std::unique_ptr<jsmn_parser> _parser = std::unique_ptr<jsmn_parser>(new jsmn_parser());
     std::unique_ptr<jsmntok_t> _tokens = nullptr;
     std::string toStdString(bool isJson = true);
+    FirebaseJson &setJsonData(std::string &data);
     FirebaseJson &_add(const char *key, const char *value, size_t klen, size_t vlen, bool isString = true, bool isJson = true);
     FirebaseJson &addArrayStr(const char *value, size_t len, bool isString);
     uint32_t getCount();

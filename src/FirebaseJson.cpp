@@ -1,5 +1,5 @@
 /*
- * FirebaseJSON, version 1.0.0
+ * FirebaseJSON, version 1.0.1
  * 
  * The library for create and pares JSON object.
  * 
@@ -35,6 +35,10 @@
 
 FirebaseJson::FirebaseJson(){};
 
+FirebaseJson::FirebaseJson(std::string &data){
+    setJsonData(data);
+}
+
 FirebaseJson::~FirebaseJson()
 {
     clear();
@@ -42,6 +46,11 @@ FirebaseJson::~FirebaseJson()
     _parser.release();
     _parser = nullptr;
 };
+
+FirebaseJson &FirebaseJson::setJsonData(std::string &data)
+{
+   return setJsonData(data.c_str());
+}
 
 FirebaseJson &FirebaseJson::setJsonData(const String &data)
 {
