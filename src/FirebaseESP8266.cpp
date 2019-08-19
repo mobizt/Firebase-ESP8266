@@ -1,10 +1,11 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.4.0
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.4.1
  * 
  * August 19, 2019
  * 
  * Feature Added:
- * JSON object and JSON array builder and parser
+ * - Update FirebaseJson
+ * - Add FirebaseJson to FirebaseData and StreamData
  * 
  * Feature Fixed: 
  * 
