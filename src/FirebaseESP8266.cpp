@@ -5138,7 +5138,6 @@ String FirebaseData::dataType()
         return FPSTR(ESP8266_FIREBASE_STR_78);
     default:
         return std::string().c_str();
-        ;
     }
 }
 
