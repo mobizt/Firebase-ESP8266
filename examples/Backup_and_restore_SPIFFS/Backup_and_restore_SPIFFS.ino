@@ -12,7 +12,7 @@
 //This example shows how to backup and restore database data
 
 //FirebaseESP8266.h must be included before ESP8266WiFi.h
-#include "FirebaseESP8266.h"
+#include <FirebaseESP8266.h>
 #include <ESP8266WiFi.h>
 
 #define FIREBASE_HOST "YOUR_FIREBASE_PROJECT.firebaseio.com" //Without http:// or https://

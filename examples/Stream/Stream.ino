@@ -62,10 +62,7 @@ void setup()
 
 void loop()
 {
-  //This example uses the same Firebase Data object to read/store data (get, set, update, push and delete) and stream.
-  //This causes some delay (for start new SSL connection) for swiching between read/store and stream operation.
-  //For no delay, see Different_objects_stream.ino example which uses different Firebase Data object for read/store and stream data.
-
+  
   if (millis() - sendDataPrevMillis > 15000)
   {
     sendDataPrevMillis = millis();

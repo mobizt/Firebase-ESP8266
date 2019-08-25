@@ -123,6 +123,11 @@ using namespace axTLS;
 
 class FirebaseHTTPClient
 {
+
+  friend class FirebaseESP8266;
+  friend class FirebaseData;
+  friend class FCMObject;
+
 public:
   FirebaseHTTPClient();
   ~FirebaseHTTPClient();
@@ -134,13 +139,6 @@ public:
   void setRootCAFile(std::string &rootCAFile, uint8_t storageType, uint8_t sdPin);
   
 
-  std::unique_ptr<SSL_CLIENT> _client = std::unique_ptr<SSL_CLIENT>(new SSL_CLIENT());
-
-
-  int _certType = -1;
-  uint16_t timeout = 5000;
-  uint8_t _sdPin = 15;
-  bool _clockReady = false;
 
 protected:
   bool
@@ -149,7 +147,11 @@ protected:
 
   std::string _host = "";
   uint16_t _port = 0;
-
+  std::unique_ptr<SSL_CLIENT> _client = std::unique_ptr<SSL_CLIENT>(new SSL_CLIENT());
+  int _certType = -1;
+  uint16_t timeout = 5000;
+  uint8_t _sdPin = 15;
+  bool _clockReady = false;
 };
 
 #endif /* FirebaseESP8266HTTPClient_H */

@@ -1,15 +1,9 @@
 /*
- * FirebaseJSON, version 1.0.1
+ * FirebaseJSON, version 1.0.3
  * 
  * The library for create and pares JSON object.
  * 
- * August 18, 2019
- * 
- * 
- * This library was implement the zserge's JSON object parser library, jasmine JSMN which available here https://zserge.com/jsmn.html
- * 
- * The MIT License (MIT)
- * Copyright (c) 2019 K. Suwatchai (Mobizt)
+ * August 25, 2019
  * 
  * 
  * Permission is hereby granted, free of charge, to any person returning a copy of
@@ -71,6 +65,7 @@ FirebaseJson &FirebaseJson::setJsonData(const String &data)
         _cCnt = 0;
     }
 
+    delete[] tmp;
     return *this;
 }
 
@@ -244,8 +239,9 @@ uint32_t FirebaseJson::getCount()
 
 FirebaseJson &FirebaseJson::parse(bool skipChild, size_t len)
 {
+   
 
-    int bufLen = toStdString().length();
+    int bufLen = toStdString().length() + 1;
 
     char *buf = new char[bufLen];
     memset(buf, 0, bufLen);
@@ -283,7 +279,7 @@ FirebaseJson &FirebaseJson::get(const String &key)
 {
     if (_paresRes)
     {
-        int bufLen = toStdString().length();
+        int bufLen = toStdString().length() + 1;
         char *k = new char[500];
         char *v = new char[bufLen];
         char *buf = new char[bufLen];
@@ -408,15 +404,15 @@ FirebaseJson &FirebaseJson::jsonObjectiterator(size_t &index,String &key, String
 {
     if (_paresRes)
     {
-        int bufLen = toStdString().length();
+        int bufLen = toStdString().length() + 1;
         char *k = new char[200];
         char *v = new char[bufLen];
         char *buf = new char[bufLen];
         memset(buf, 0, bufLen);
         strcpy(buf, toStdString().c_str());
-        if(index==0) index=1;
+        if(index == 0) index = 1;
 
-        if(index>=1){
+        if(index >= 1){
 
             _jsonObj.success = false;
             resetParseResult();
@@ -445,8 +441,7 @@ FirebaseJson &FirebaseJson::jsonObjectiterator(size_t &index,String &key, String
             else
                 index++;
 
-             setParseResultType();
-        
+             setParseResultType();        
         }
         
         delete[] buf;
@@ -563,22 +558,28 @@ void FirebaseJson::setParseResultType()
 
 int FirebaseJson::strpos(const char *haystack, const char *needle, int offset)
 {
-    char _haystack[strlen(haystack)];
+    size_t len =strlen(haystack);
+    char *_haystack = new char[len];
+    memset(_haystack,0, len);
     strncpy(_haystack, haystack + offset, strlen(haystack) - offset);
     char *p = strstr(_haystack, needle);
-    if (p)
-        return p - _haystack + offset;
-    return -1;
+    int r =-1;    
+    if (p) r = p - _haystack + offset;
+    delete[] _haystack;
+    return r;
 }
 
 int FirebaseJson::rstrpos(const char *haystack, const char *needle, int offset)
 {
-    char _haystack[strlen(haystack)];
-    strncpy(_haystack, haystack + offset, strlen(haystack) - offset);
+    size_t len =strlen(haystack);
+    char *_haystack = new char[len];
+    memset(_haystack,0, len);
+    strncpy(_haystack, haystack + offset, len - offset);
     char *p = rstrstr(_haystack, needle);
-    if (p)
-        return p - _haystack + offset;
-    return -1;
+    int r =-1;    
+    if (p) r = p - _haystack + offset;
+    delete[] _haystack;
+    return r;
 }
 
 char *FirebaseJson::rstrstr(const char *haystack, const char *needle)

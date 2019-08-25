@@ -83,10 +83,10 @@ void setup()
   Firebase.reconnectWiFi(true);
 
   //Open and retore Firebase Error Queues from file.
-  if (Firebase.errorQueueCount(firebaseData, "/test.txt", QueueStorageType::SPIFFS) > 0)
+  if (Firebase.errorQueueCount(firebaseData, "/test.txt", StorageType::SPIFFS) > 0)
   {
-    Firebase.restoreErrorQueue(firebaseData, "/test.txt", QueueStorageType::SPIFFS);
-    Firebase.deleteStorageFile("/test.txt", QueueStorageType::SPIFFS);
+    Firebase.restoreErrorQueue(firebaseData, "/test.txt", StorageType::SPIFFS);
+    Firebase.deleteStorageFile("/test.txt", StorageType::SPIFFS);
   }
 
   //Set maximum Firebase read/store retry operation (0 - 255) in case of network problems and buffer overflow
@@ -285,7 +285,7 @@ void setup()
     Serial.println();
 
     //Save Error Queues to file
-    Firebase.saveErrorQueue(firebaseData, "/test.txt", QueueStorageType::SPIFFS);
+    Firebase.saveErrorQueue(firebaseData, "/test.txt", StorageType::SPIFFS);
   }
 
   //Stop error queue auto run process

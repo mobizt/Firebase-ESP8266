@@ -10,12 +10,6 @@
 */
 
 
-//This example shows how to use different Firebase Data objects to handle to streaming and other for store, read, update data.
-//Pros - No delay streaming
-//     - Always connected stream, no stream data missing or interrupt
-//Cons - Use more memory
-//     - Unexpected error
-
 //FirebaseESP8266.h must be included before ESP8266WiFi.h
 #include "FirebaseESP8266.h"
 #include <ESP8266WiFi.h>
@@ -140,7 +134,6 @@ void loop()
   if (millis() - sendDataPrevMillis1 > 15000)
   {
     sendDataPrevMillis1 = millis();
-    count1++;
 
     //Create demo data
     uint8_t data[256];
@@ -164,10 +157,47 @@ void loop()
       Serial.println();
     }
 
+    FirebaseJson json;
+    json.addInt("data1-1",count1).addInt("data1-2",count1 + 1).addInt("data1-3",count1 + 2);
+    Serial.println("------------------------------------");
+    Serial.println("Update Data 1...");
+    if (Firebase.updateNode(firebaseData1, path + "/Stream/data1", json))
+    {
+      Serial.println("PASSED");
+      Serial.println("PATH: " + firebaseData1.dataPath());
+      Serial.println("TYPE: " + firebaseData1.dataType());
+      Serial.print("VALUE: ");
+      if (firebaseData1.dataType() == "int")
+        Serial.println(firebaseData1.intData());
+      else if (firebaseData1.dataType() == "float")
+        Serial.println(firebaseData1.floatData(), 5);
+      else if (firebaseData1.dataType() == "double")
+        printf("%.9lf\n", firebaseData1.doubleData());
+      else if (firebaseData1.dataType() == "boolean")
+        Serial.println(firebaseData1.boolData() == 1 ? "true" : "false");
+      else if (firebaseData1.dataType() == "string")
+        Serial.println(firebaseData1.stringData());
+      else if (firebaseData1.dataType() == "json")
+        Serial.println(firebaseData1.jsonData());
+      Serial.println("------------------------------------");
+      Serial.println();
+    }
+    else
+    {
+      Serial.println("FAILED");
+      Serial.println("REASON: " + firebaseData1.errorReason());
+      Serial.println("------------------------------------");
+      Serial.println();
+    }
+
     Serial.print("Free Heap: ");
     Serial.println(ESP.getFreeHeap());
     Serial.println();
+
+    count1+=3;
   }
+
+  
 }
 
 

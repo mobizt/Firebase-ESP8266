@@ -15,7 +15,7 @@
 //FirebaseESP8266.h must be included before ESP8266WiFi.h
 #include "FirebaseESP8266.h"
 #include <ESP8266WiFi.h>
-#include "SD.h"
+#include <SD.h>
 
 
 #define FIREBASE_HOST "YOUR_FIREBASE_PROJECT.firebaseio.com" //Do not include https:// in FIREBASE_HOST
@@ -97,7 +97,7 @@ void setup()
     else if (firebaseData.dataType() == "string")
       Serial.println(firebaseData.stringData());
     else if (firebaseData.dataType() == "json")
-      Serial.println(firebaseData.jsonData());
+      printJsonObjectContent(firebaseData);
     else if (firebaseData.dataType() == "blob")
     {
 

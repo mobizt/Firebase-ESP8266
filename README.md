@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.4.1
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.4.2
 
 
 This library supports ESP8266 MCU from Espressif. The following are platforms which library are also available.
@@ -189,7 +189,9 @@ The database data's payload (response) can be read through the following Firebas
 
 * `firebaseData.stringData`
 
-* `firebaseData.jsonData` and 
+* `firebaseData.jsonData`
+
+* `firebaseData.jsonObject` and
 
 * `firebaseData.blobData`
 
@@ -258,7 +260,7 @@ The following example showed how to store file data to Flash memory at "/test/fi
 
 ```C++
 
-if (Firebase.setFile(firebaseData,StorateType::SPIFFS, "/test/file_data", "/test.txt"))
+if (Firebase.setFile(firebaseData, StorateType::SPIFFS, "/test/file_data", "/test.txt"))
 {
   //SPIFFS.begin(); //not need to begin again due to it has been called in function.
   File file = SPIFFS.open("/test.txt", "r");
@@ -296,7 +298,7 @@ The server's **Timestamp** can be append in database through `Firebase.pushTimes
 The unique key of Timestamp was available after push the Timestamp.
 
 
-The following example showed how to append new data (using JSON) to "/test/append.
+The following example showed how to append new data (using FirebaseJson object) to "/test/append.
 
 
 ```C++
@@ -325,7 +327,7 @@ if (Firebase.pushJSON(firebaseData, "/test/append", json)) {
 
 Firebase's update functions used to pach or update new or existing database path.
 
-These functions, `updateNode` and `updateNodeSilent` are available and work with JSON object (string)
+These functions, `updateNode` and `updateNodeSilent` are available and work with JSON object (FirebaseJson object and string)
 
 If any key provided in JSON object was not existed at defined database path, new key will be created.
 
@@ -478,7 +480,9 @@ After new stream data was available, it can be accessed with the following Fireb
 
 * `firebaseData.stringData`
 
-* `firebaseData.jsonData` and 
+* `firebaseData.jsonData` 
+
+* `firebaseData.jsonObject` and
 
 * `firebaseData.blobData`
 
@@ -766,7 +770,7 @@ Error Queus can be saved as file in SD card or Flash memory with function `saveE
 
 Error Queues store as file can be restored to Error Queue collection with function `restoreErrorQueue`.
 
-Two types of storage can be assigned with these functions, `QueueStorageType::SPIFFS` and `QueueStorageType::SD`.
+Two types of storage can be assigned with these functions, `StorageType::SPIFFS` and `StorageType::SD`.
 
 Read data (get) operation is not support queues restore
 
@@ -775,14 +779,14 @@ The following example showed how to restore and save Error Queues in /test.txt f
 ```C++
 //To restore Error Queues
 
-if (Firebase.errorQueueCount(firebaseData, "/test.txt", QueueStorageType::SPIFFS) > 0)
+if (Firebase.errorQueueCount(firebaseData, "/test.txt", StorageType::SPIFFS) > 0)
 {
-    Firebase.restoreErrorQueue(firebaseData, "/test.txt", QueueStorageType::SPIFFS);
-    Firebase.deleteStorageFile("/test.txt", QueueStorageType::SPIFFS);
+    Firebase.restoreErrorQueue(firebaseData, "/test.txt", StorageType::SPIFFS);
+    Firebase.deleteStorageFile("/test.txt", StorageType::SPIFFS);
 }
 
 //To save Error Queues to file
-Firebase.saveErrorQueue(firebaseData, "/test.txt", QueueStorageType::SPIFFS);
+Firebase.saveErrorQueue(firebaseData, "/test.txt", StorageType::SPIFFS);
 
 ```
 

@@ -98,9 +98,7 @@ void setup()
     //Qury child nodes under "/ESP32_Test/Item" with priority between 3.0 and 8.0
     //Since data ordering is not supported in Firebase's REST APIs, then the query result will not sorted.
     QueryFilter query;
-    query.orderBy("$priority");
-    query.startAt(3.0);
-    query.endAt(8.0);
+    query.orderBy("$priority").startAt(3.0).endAt(8.0);
 
     Serial.println("------------------------------------");
     Serial.println("Filtering based on priority test...");

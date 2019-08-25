@@ -1,13 +1,13 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.4.1
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.4.2
  * 
- * August 19, 2019
+ * August 25, 2019
  * 
  * Feature Added:
- * - Update FirebaseJson
- * - Add FirebaseJson to FirebaseData and StreamData
+ * 
  * 
  * Feature Fixed: 
+ * - Fixed memory leak.
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -432,16 +432,16 @@ class QueryFilter
 public:
   QueryFilter();
   ~QueryFilter();
-  void orderBy(const String &);
-  void limitToFirst(int);
-  void limitToLast(int);
-  void startAt(float);
-  void endAt(float);
-  void startAt(const String &);
-  void endAt(const String &);
-  void equalTo(int);
-  void equalTo(const String &);
-  void clear();
+  QueryFilter &orderBy(const String &);
+  QueryFilter &limitToFirst(int);
+  QueryFilter &limitToLast(int);
+  QueryFilter &startAt(float);
+  QueryFilter &endAt(float);
+  QueryFilter &startAt(const String &);
+  QueryFilter &endAt(const String &);
+  QueryFilter &equalTo(int);
+  QueryFilter &equalTo(const String &);
+  QueryFilter &clear();
   friend FirebaseESP8266;
   friend FirebaseData;
 
@@ -455,12 +455,6 @@ protected:
 };
 
 struct StorageType
-{
-  static const uint8_t SPIFFS = 0;
-  static const uint8_t SD = 1;
-};
-
-struct QueueStorageType
 {
   static const uint8_t SPIFFS = 0;
   static const uint8_t SD = 1;
@@ -818,11 +812,11 @@ public:
   */
   bool pushJSON(FirebaseData &dataObj, const String &path, const String &jsonString);
 
-    /*
-    Append new child nodes's key and value (using JSON data) to the defined database path.
+  /*
+    Append new child nodes's key and value (using FirebaseJson object) to the defined database path.
 
     @param dataObj - Firebase Data Object to hold data and instances.
-    @param path - Target database path which key and value in JSON data will be appended.
+    @param path - Target database path which key and value in FirebaseJson object will be appended.
     @param json - The appended FirebaseJson object.
 
     @return - Boolean type status indicates the success of operation.
@@ -835,7 +829,7 @@ public:
 
   /*
 
-    Append new child nodes's key and value (using JSON data) and the virtual child ".priority" to the defined database path.
+    Append new child nodes's key and value (using JSON data or FirebaseJson object) and the virtual child ".priority" to the defined database path.
 
   */
   bool pushJSON(FirebaseData &dataObj, const String &path, const String &jsonString, float priority);
@@ -1212,13 +1206,13 @@ public:
 
   /*
 
-    Set child nodes's key and value (using JSON data) to the defined database path.
+    Set child nodes's key and value (using FirebaseJson object) to the defined database path.
 
     This will replace any child nodes inside the defined path with node' s key
-    and value defined in JSON data.
+    and value defined in FirebaseJson object.
 
     @param dataObj - Firebase Data Object to hold data and instances.
-    @param path - Target database path which key and value in JSON data will be replaced or set.
+    @param path - Target database path which key and value in FirebaseJson object will be replaced or set.
     @param json - The FirebaseJson object.
 
     @return - Boolean type status indicates the success of operation.
@@ -1234,25 +1228,24 @@ public:
 
   /*
 
-    Set JSON data and virtual child ".priority" at the defined database path.
+    Set JSON data or FirebaseJson object and virtual child ".priority" at the defined database path.
 
   */
   bool setJSON(FirebaseData &dataObj, const String &path, const String &jsonString, float priority);
 
   bool setJSON(FirebaseData &dataObj, const String &path, FirebaseJson &json, float priority);
 
-  
-
   /*
 
-    Set child nodes's key and value (using JSON data) to the defined database path if defined database path's ETag matched the ETag value.
+    Set child nodes's key and value (using JSON data or FirebaseJson object) to the defined database path if defined database path's ETag matched the ETag value.
 
     This will replace any child nodes inside the defined path with node' s key
-    and value defined in JSON data.
+    and value defined in JSON data or FirebaseJson object.
 
     @param dataObj - Firebase Data Object to hold data and instances.
     @param path - Target database path which key and value in JSON data will be replaced or set.
     @param jsonString - The JSON string to set (should be valid JSON data).
+    @param json - The FirebaseJson object.
     @param ETag - Known unique identifier string (ETag) of defined database path.
 
     @return - Boolean type status indicates the success of operation.
@@ -1276,13 +1269,12 @@ public:
 
   /*
 
-    Set JSON data and the virtual child ".priority" if defined ETag matches at the defined database path 
+    Set JSON data or FirebaseJson object and the virtual child ".priority" if defined ETag matches at the defined database path 
 
   */
   bool setJSON(FirebaseData &dataObj, const String &path, const String &jsonString, float priority, const String &ETag);
 
   bool setJSON(FirebaseData &dataObj, const String &path, FirebaseJson &json, float priority, const String &ETag);
-
 
   /*
     Set blob (binary data) at the defined database path.
@@ -1422,10 +1414,10 @@ public:
   bool updateNode(FirebaseData &dataObj, const String path, const String &jsonString);
 
   /*
-    Update child nodes's key or exising key's value (using JSON data) under the defined database path.
+    Update child nodes's key or exising key's value (using FirebaseJson object) under the defined database path.
 
     @param dataObj - Firebase Data Object to hold data and instances.
-    @param path - Target database path which key and value in JSON data will be update.
+    @param path - Target database path which key and value in FirebaseJson object will be update.
     @param json - The FirebaseJson object used for update.
 
     @return - Boolean type status indicates the success of operation.
@@ -1441,10 +1433,9 @@ public:
   */
   bool updateNode(FirebaseData &dataObj, const String path, FirebaseJson &json);
 
-
   /*
 
-    Update child nodes's key or exising key's value and virtual child ".priority" (using JSON data) under the defined database path.
+    Update child nodes's key or exising key's value and virtual child ".priority" (using JSON data or FirebaseJson object) under the defined database path.
 
   */
   bool updateNode(FirebaseData &dataObj, const String &path, const String &jsonString, float priority);
@@ -1467,10 +1458,10 @@ public:
   bool updateNodeSilent(FirebaseData &dataObj, const String &path, const String &jsonString);
 
   /*
-    Update child nodes's key or exising key's value (using JSON data) under the defined database path.
+    Update child nodes's key or exising key's value (using FirebaseJson object) under the defined database path.
 
     @param dataObj - Firebase Data Object to hold data and instances.
-    @param path - Target database path which key and value in JSON data will be update.
+    @param path - Target database path which key and value in FirebaseJson object will be update.
     @param json - The FirebaseJson object used for update.
 
     @return - Boolean type status indicates the success of operation.
@@ -1483,7 +1474,7 @@ public:
 
   /*
 
-    Update child nodes's key or exising key's value and virtual child ".priority" (using JSON data) under the defined database path.
+    Update child nodes's key or exising key's value and virtual child ".priority" (using JSON data or FirebaseJson object) under the defined database path.
 
   */
   bool updateNodeSilent(FirebaseData &dataObj, const String &path, const String &jsonString, float priority);
@@ -1802,14 +1793,14 @@ public:
   /*
     Download file data in database at defined database path and save to SD card/Flash memory.
 
-    The downloaded data will be decoded to binary and save to SD card, then
+    The downloaded data will be decoded to binary and save to SD card/Flash memory, then
     please make sure that data at the defined database path is file type.
 
     @param dataObj - Firebase Data Object to hold data and instances.
     @param storageType - Type of storage to write file data, StorageType::SPIFS or StorageType::SD.
     @param nodePath - Database path that file data will be downloaded.
     @param fileName - File name included its path in SD card/Flash memory.
-    to save in SD card.
+    to save in SD card/Flash memory.
 
     @return Boolean type status indicates the success of operation.
 
@@ -1918,11 +1909,11 @@ public:
     Backup (download) database at defined database path to SD card/Flash memory.
 
     @param dataObj - Firebase Data Object to hold data and instances.
-    @param storageType - Type of storage to save file, QueueStorageType::SPIFS or QueueStorageType::SD.
+    @param storageType - Type of storage to save file, StorageType::SPIFS or StorageType::SD.
     @param nodePath - Database path to be backuped.
     @param fileName - File name to save.
     
-    Only 8.3 DOS format (max. 8 bytes file name and 3 bytes file extension) can be saved to SD card.
+    Only 8.3 DOS format (max. 8 bytes file name and 3 bytes file extension) can be saved to SD card/Flash memory.
 
     @return Boolean type status indicates the success of operation.
 
@@ -1934,7 +1925,7 @@ public:
     Restore database at defined path usin backup file saved on SD card/Flash memory.
 
     @param dataObj - Firebase Data Object to hold data and instances.
-    @param storageType - Type of storage to read file, QueueStorageType::SPIFS or QueueStorageType::SD.
+    @param storageType - Type of storage to read file, StorageType::SPIFS or StorageType::SD.
     @param nodePath - Database path to  be restored.
     @param fileName - File name to read
 
@@ -1972,7 +1963,7 @@ public:
 
    @param dataObj - Firebase Data Object to hold data and instances.
    @param filename - File name to be saved.
-   @param storageType - Type of storage to save file, QueueStorageType::SPIFS or QueueStorageType::SD.
+   @param storageType - Type of storage to save file, StorageType::SPIFS or StorageType::SD.
     
   */
   bool saveErrorQueue(FirebaseData &dataObj, const String &filename, uint8_t storageType);
@@ -1982,7 +1973,7 @@ public:
    Delete file in Flash (SPIFFS) or SD card.
 
    @param filename - File name to delete.
-   @param storageType - Type of storage to save file, QueueStorageType::SPIFS or QueueStorageType::SD.
+   @param storageType - Type of storage to save file, StorageType::SPIFS or StorageType::SD.
     
   */
   bool deleteStorageFile(const String &filename, uint8_t storageType);
@@ -1993,7 +1984,7 @@ public:
 
    @param dataObj - Firebase Data Object to hold data and instances.
    @param filename - File name to be read and restore queues.
-   @param storageType - Type of storage to read file, QueueStorageType::SPIFS or QueueStorageType::SD.
+   @param storageType - Type of storage to read file, StorageType::SPIFS or StorageType::SD.
     
   */
   bool restoreErrorQueue(FirebaseData &dataObj, const String &filename, uint8_t storageType);
@@ -2003,7 +1994,7 @@ public:
 
     @param dataObj - Firebase Data Object to hold data and instances.
     @param filename - File name to be read and count for queues.
-    @param storageType - Type of storage to read file, QueueStorageType::SPIFS or QueueStorageType::SD.
+    @param storageType - Type of storage to read file, StorageType::SPIFS or StorageType::SD.
 
     @return Number (0-255) of queues store in defined SPIFFS file.
 
@@ -2369,7 +2360,6 @@ public:
   */
   String jsonData();
 
-
   /*
 
     Return the Firebase JSON object of server returned payload.
@@ -2643,7 +2633,7 @@ public:
   String eventType();
   void empty();
   friend FirebaseESP8266;
-  FirebaseJson *_json = new FirebaseJson();
+  FirebaseJson *_json;
 
 private:
   std::string _streamPath = "";
@@ -2653,7 +2643,6 @@ private:
   std::string _dataTypeStr = "";
   std::string _eventTypeStr = "";
   uint8_t _dataType = 0;
-  
 };
 
 extern FirebaseESP8266 Firebase;

@@ -1,10 +1,10 @@
 
 /*
- * FirebaseJSON, version 1.0.1
+ * FirebaseJSON, version 1.0.3
  * 
  * The library for create and pares JSON object.
  * 
- * August 18, 2019
+ * August 25, 2019
  * 
  * 
  * This library was implement the zserge's JSON object parser library, jasmine JSMN which available here https://zserge.com/jsmn.html
@@ -93,7 +93,6 @@ class FirebaseJson
     friend class FirebaseJsonArray;
     friend class FirebaseJsonObject;
     friend class FCMObject;
-    friend class FirebaseESP8266;
     friend class FirebaseData;
     friend class StreamData;
 
@@ -263,6 +262,7 @@ public:
    */
     FirebaseJsonObject parseResult();
 
+    std::string toStdString(bool isJson = true);
 
 private:
     std::string _jstr = "";
@@ -274,7 +274,6 @@ private:
     FirebaseJsonObject _jsonObj;
     std::unique_ptr<jsmn_parser> _parser = std::unique_ptr<jsmn_parser>(new jsmn_parser());
     std::unique_ptr<jsmntok_t> _tokens = nullptr;
-    std::string toStdString(bool isJson = true);
     FirebaseJson &setJsonData(std::string &data);
     FirebaseJson &_add(const char *key, const char *value, size_t klen, size_t vlen, bool isString = true, bool isJson = true);
     FirebaseJson &addArrayStr(const char *value, size_t len, bool isString);
