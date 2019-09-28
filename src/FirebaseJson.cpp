@@ -494,6 +494,7 @@ void FirebaseJson::setParseResultType()
         if (strcmp(_jsonObj.stringValue.c_str(), tmp) == 0)
         {
             typeSet = true;
+            _jsonObj.boolValue = true;
             strcpy_P(buf, FirebaseJson_STR_15);
         }
         else
@@ -503,6 +504,7 @@ void FirebaseJson::setParseResultType()
             if (strcmp(_jsonObj.stringValue.c_str(), tmp) == 0)
             {
                 typeSet = true;
+                _jsonObj.boolValue = false;
                 strcpy_P(buf, FirebaseJson_STR_15);
             }
         }
