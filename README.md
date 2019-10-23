@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.4.2
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.6.0
 
 
 This library supports ESP8266 MCU from Espressif. The following are platforms which library are also available.
@@ -69,8 +69,11 @@ This library supports ESP8266 MCU from Espressif. The following are platforms wh
 * **Built-in JSON parser and builder.**
 
 
+## Changes from earlier version of library and Compattibilities
 
+For library v 2.6.0 (comes with FirebaseJson v 2.2.0) and later, FirebaseJson object will be used to handle JSON data instead of JSON string which, the following functions are affected:
 
+getJson, setJson, pushJson, updateNode and updateNodeSilent.
 
 
 
@@ -166,7 +169,7 @@ Firebase.enableClassicRequest(firebaseData, true);
 
 Various types of data can be read through Firebase's get functions.
 
-These functions are `getInt`, `getFlot`, `getDouble`, `getBool`, `getString`, `getJSON`, `getBlob` and `getFile`
+These functions are `getInt`, `getFlot`, `getDouble`, `getBool`, `getString`, `getJSON`, `getArray`, `getBlob`, `getFile` and generic function `get`
 
 
 These functions return boolean indicates the success of operation which will be `true` if all of the following conditions matched.
@@ -189,9 +192,19 @@ The database data's payload (response) can be read through the following Firebas
 
 * `firebaseData.stringData`
 
-* `firebaseData.jsonData`
+* `firebaseData.jsonString`
 
-* `firebaseData.jsonObject` and
+* `firebaseData.jsonObject`
+
+* `firebaseData.jsonObjectPtr`
+
+* `firebaseData.jsonArray` 
+
+* `firebaseData.jsonArrayPtr`
+
+* `firebaseData.jsonData` (for keeping parse/get result)
+
+and
 
 * `firebaseData.blobData`
 
@@ -229,7 +242,7 @@ The following example showed how to read integer value from "/test/int".
 
 Various types of data can be store through Firebase's set functions.
 
-These functions are `setInt`, `setFlot`, `setDouble`, `setBool`, `setString`, `setJSON`, `setBlob` and `setFile`.
+These functions are `setInt`, `setFlot`, `setDouble`, `setBool`, `setString`, `setJSON`, `setArray`, `setBlob`, `setFile` and generic function `set`
 
 
 These functions return boolean indicates the success of operation which will be `true` if all of the following conditions matched.
@@ -283,7 +296,7 @@ if (Firebase.setFile(firebaseData, StorateType::SPIFFS, "/test/file_data", "/tes
 
 Various types of data can be appened through Firebase's push functions.
 
-These functions are `pushInt`, `pushFlot`, `pushDouble`, `pushBool`, `pushString`, `pushJSON`, `pushBlob` and `pushFile`.
+These functions are `pushInt`, `pushFlot`, `pushDouble`, `pushBool`, `pushString`, `pushJSON`, `pushArray`, `pushBlob`, `pushFile` and generic function `push`.
 
 These functions return boolean indicates the success of operation.
 
@@ -305,8 +318,9 @@ The following example showed how to append new data (using FirebaseJson object) 
 
 FirebaseJson json;
 FirebaseJson json2;
-json2.addDouble("child_of_002",123.456);
-json.addString("parent_001","parent 001 text").addJson("parent 002", &json2);
+json2.set("child_of_002", 123.456);
+json.set("parent_001", "parent 001 text");
+json.set("parent 002", json2);
 
 if (Firebase.pushJSON(firebaseData, "/test/append", json)) {
 
@@ -343,8 +357,9 @@ The following example showed how to patch data at "/test".
 
 FirebaseJson updateData;
 FirebaseJson json;
-json.addString("_data2","_value2");
-updateData.addString("data1","value1").addJson("data2", &json);
+json.set("_data2","_value2");
+updateData.set("data1","value1");
+updateData.set("data2", json);
 
 if (Firebase.updateNode(firebaseData, "/test/update", updateData)) {
 
@@ -352,7 +367,7 @@ if (Firebase.updateNode(firebaseData, "/test/update", updateData)) {
 
   Serial.println(firebaseData.dataType());
 
-  Serial.println(firebaseData.jsonData()); 
+  Serial.println(firebaseData.jsonString()); 
 
 } else {
   Serial.println(firebaseData.errorReason());
@@ -432,7 +447,7 @@ query.limitToLast(5);
 if (Firebase.getJSON(firebaseData, "/test/data", query))
 {
   //Success, then try to read the JSON payload value
-  Serial.println(firebaseData.jsonData());
+  Serial.println(firebaseData.jsonString());
 }
 else
 {
@@ -470,6 +485,7 @@ Function `firebaseData.streamAvailable` returned true when new stream data was a
 
 After new stream data was available, it can be accessed with the following Firebase Data object functions.
 
+
 * `firebaseData.intData`
 
 * `firebaseData.floatData`
@@ -480,9 +496,19 @@ After new stream data was available, it can be accessed with the following Fireb
 
 * `firebaseData.stringData`
 
-* `firebaseData.jsonData` 
+* `firebaseData.jsonString`
 
-* `firebaseData.jsonObject` and
+* `firebaseData.jsonObject`
+
+* `firebaseData.jsonObjectPtr`
+
+* `firebaseData.jsonArray` 
+
+* `firebaseData.jsonArrayPtr`
+
+* `firebaseData.jsonData` (for keeping parse/get result)
+
+and
 
 * `firebaseData.blobData`
 
@@ -534,7 +560,7 @@ void streamCallback(StreamData data)
   else if (data.dataType() == "string")
     Serial.println(data.stringData());
   else if (data.dataType() == "json")
-    Serial.println(data.jsonData());
+    Serial.println(data.jsonString());
 
 }
 
@@ -585,7 +611,7 @@ if (firebaseData.streamAvailable())
   else if (firebaseData.dataType() == "string")
     Serial.println(firebaseData.stringData());
   else if (firebaseData.dataType() == "json")
-    Serial.println(firebaseData.jsonData());
+    Serial.println(firebaseData.jsonString());
     
 }
 ```
