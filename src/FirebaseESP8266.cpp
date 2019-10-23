@@ -378,7 +378,6 @@ bool FirebaseESP8266::getPriority(FirebaseData &dataObj, const String &path)
     delete[] p;
     return flag;
 }
-////////////////////////////////////////
 
 bool FirebaseESP8266::push(FirebaseData &dataObj, const String &path, int intValue)
 {
