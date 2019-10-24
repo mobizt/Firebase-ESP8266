@@ -2782,7 +2782,6 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
 
                     if (dataObj._httpCode == _HTTP_CODE_NO_CONTENT)
                     {
-
                         memset(lineBuf, 0, FIREBASE_RESPONSE_SIZE);
                         continue;
                     }
@@ -2918,9 +2917,8 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
 
                 p1 = strpos(lineBuf, fstr, 0);
                 if (p1 != -1)
-                {
                     memset(lineBuf, 0, FIREBASE_RESPONSE_SIZE);
-                }
+                
             }
 
             //JSON stream data?
@@ -3477,7 +3475,6 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
     }
 
     delete[] tmp;
-
     return true;
 }
 
@@ -4351,7 +4348,7 @@ void FirebaseESP8266::setDataType(FirebaseData &dataObj, const char *data)
             }
         }
 
-        if (!typeSet && data[0] == '"')
+        if (!typeSet && data[p1] == '"' && data[p2] == '"')
         {
             typeSet = true;
             dataObj._dataType = FirebaseDataType::STRING;
@@ -5739,6 +5736,8 @@ void FirebaseData::addQueue(uint8_t FirebaseMethod,
         item.floatPtr = floatTarget;
         item.doublePtr = doubleTarget;
         item.boolPtr = boolTarget;
+        item.jsonPtr = jsonTarget;
+        item.arrPtr = arrTarget;
         item.blobPtr = blobTarget;
         item.storageType = storageType;
         item.qID = random(100000, 200000);
@@ -6486,6 +6485,8 @@ void QueueManager::clear()
         item.floatPtr = nullptr;
         item.doublePtr = nullptr;
         item.boolPtr = nullptr;
+        item.jsonPtr = nullptr;
+        item.arrPtr = nullptr;
         item.blobPtr = nullptr;
         item.queryFilter.clear();
     }
