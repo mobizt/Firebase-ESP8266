@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.6.0
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.6.1
 
 
 This library supports ESP8266 MCU from Espressif. The following are platforms which library are also available.
@@ -48,7 +48,7 @@ This library supports ESP8266 MCU from Espressif. The following are platforms wh
 
 ## Changes from earlier version
 
-For library v 2.6.0 (comes with FirebaseJson v 2.2.0) and later, FirebaseJson object will be used to handle JSON data instead of JSON string which, the following functions are affected:
+For library v 2.6.0 (comes with FirebaseJson v 2.2.0) or later, FirebaseJson object will be used to handle JSON data instead of JSON string which, the following functions are affected:
 
 getJson, setJson, pushJson, updateNode and updateNodeSilent.
 
@@ -72,7 +72,7 @@ For PlatfoemIO IDE, ESP8266 Core SDK can be installed through **PIO Home** > **P
 ### Using Library Manager
 
 
-At Arduino IDE goto menu **Sketch** -> **Include Library** -> **Manage Libraries...**
+At Arduino IDE, go to menu **Sketch** -> **Include Library** -> **Manage Libraries...**
 
 In Library Manager Window, search **"firebase"** in the search form then select **"Firebase ESP8266 Client"**. 
 
@@ -92,7 +92,7 @@ Or at **PIO Home** -> **Library** -> **Registry** then search **Firebase ESP8266
 ### Manual installation
 
 
-For Arduino IDE, select **Clone or download** dropdown at the top of repository, select **Download ZIP** 
+For Arduino IDE, download zip file from repository (Github page) by select **Clone or download** dropdown at the top of repository, select **Download ZIP** 
 
 From Arduino IDE, select menu **Sketch** -> **Include Library** -> **Add .ZIP Library...**.
 

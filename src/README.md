@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.6.0
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.6.1
 
 
 ## Global functions
@@ -160,7 +160,7 @@ Call **[FirebaseData object].boolData** to get boolean data.
 
 Call **[FirebaseData object].stringData** to get string data.
 
-Call **[FirebaseData object].jsonData** to get JSON string data.
+Call **[FirebaseData object].jsonString** to get JSON string data.
 
 Call **[FirebaseData object].jsonObject** to get FirebaseJson object.
 
@@ -345,6 +345,8 @@ bool push(FirebaseData &dataObj, const String &path, double doubleValue, float p
 
 
 
+
+
 #### Append new Boolean value to the defined database path.
 
 param **`dataObj`** - Firebase Data Object to hold data and instances.
@@ -374,6 +376,8 @@ bool pushBool(FirebaseData &dataObj, const String &path, bool boolValue, float p
 
 bool push(FirebaseData &dataObj, const String &path, bool boolValue, float priority);
 ```
+
+
 
 
 
@@ -565,6 +569,8 @@ bool push(FirebaseData &dataObj, uint8_t storageType, const String &path, const 
 
 
 
+
+
 #### Append new binary data from file store on SD card/Flash memory and the virtual child ".priority" to the defined database path.
 
 ```C++
@@ -572,6 +578,8 @@ bool pushFile(FirebaseData &dataObj, uint8_t storageType, const String &path, co
 
 bool push(FirebaseData &dataObj, uint8_t storageType, const String &path, const String &fileName, float priority);
 ```
+
+
 
 
 
@@ -591,6 +599,7 @@ which its value can be accessed via function [FirebaseData object].pushName().
 ```C++
 bool pushTimestamp(FirebaseData &dataObj, const String &path);
 ```
+
 
 
 
@@ -1996,7 +2005,7 @@ return - **`Boolean`** type status indicates the success of operation.
 If the type of payload returned from server is not array,
 the target FirebaseJsonArray object will contain empty array.
 
-```C+
+```C++
 bool getArray(FirebaseData &dataObj, const String &path, QueryFilter &query, FirebaseJsonArray *target);
 ```
 

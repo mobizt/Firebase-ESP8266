@@ -1,9 +1,9 @@
 /*
- * FirebaseJson, version 2.2.0
+ * FirebaseJson, version 2.2.1
  * 
  * The Easiest ESP8266/ESP32 Arduino library for parse, create and edit JSON object using relative path.
  * 
- * October 22, 2019
+ * October 24, 2019
  * 
  * Features
  * - None recursive operations
@@ -835,7 +835,7 @@ void FirebaseJson::_addArrNodes(std::string &str, std::string &str2, int index, 
 {
     char *brk3 = new char[3];
     char *brk4 = new char[3];
-    char *tab = new char[3];
+    char *tab = new char[6];
     char *nl = new char[3];
     char *nll = new char[5];
     char *cm = new char[3];
@@ -897,7 +897,7 @@ void FirebaseJson::_addObjNodes(std::string &str, std::string &str2, int index, 
 {
     char *brk1 = new char[3];
     char *brk2 = new char[3];
-    char *tab = new char[3];
+    char *tab = new char[6];
     char *nl = new char[3];
     char *qt = new char[3];
     char *pr = new char[4];
@@ -1302,7 +1302,7 @@ void FirebaseJson::_compileToken(uint16_t &i, char *buf, int &depth, char *qt, c
                             _remFirstTk = tk.oindex == 0;
                             _remLastTk = tk.oindex + 1 == tk.olen;
                         }
-                    }                    
+                    }
                 }
             }
             else
@@ -1373,7 +1373,7 @@ void FirebaseJson::_compileToken(uint16_t &i, char *buf, int &depth, char *qt, c
                 _insertChilds(replace, printMode);
                 _nextToken = i + 1;
                 _nextDepth = 0;
-               _parseCompleted = _pathTk.size();
+                _parseCompleted = _pathTk.size();
                 _tokenMatch = true;
                 ex = true;
             }
