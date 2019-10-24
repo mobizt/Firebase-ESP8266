@@ -2702,14 +2702,6 @@ float doubleData();
 
 
 
-#### Return the long data of server returned payload.
-
-return **`double value.`**
-
-```C++
-int longData();
-```
-
 
 
 #### Return the Boolean data of server returned payload

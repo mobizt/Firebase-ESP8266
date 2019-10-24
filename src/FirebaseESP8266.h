@@ -2623,15 +2623,6 @@ public:
 
   /*
 
-    Return the long data of server returned payload.
-
-    @return double value.
-
-  */
-  int longData();
-
-  /*
-
     Return the Boolean data of server returned payload.
 
     @return Boolean value.
