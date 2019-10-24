@@ -837,7 +837,7 @@ void FirebaseJson::_addArrNodes(std::string &str, std::string &str2, int index, 
     char *brk4 = new char[3];
     char *tab = new char[6];
     char *nl = new char[3];
-    char *nll = new char[5];
+    char *nll = new char[6];
     char *cm = new char[3];
     memset(brk3, 0, 3);
     memset(brk4, 0, 3);
@@ -1382,6 +1382,7 @@ void FirebaseJson::_compileToken(uint16_t &i, char *buf, int &depth, char *qt, c
     }
     if (ex)
         return;
+
     h = &_tokens.get()[i];
     if (h->type == JSMN_OBJECT || h->type == JSMN_ARRAY)
     {
