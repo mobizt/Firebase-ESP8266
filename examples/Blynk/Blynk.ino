@@ -34,7 +34,7 @@
 FirebaseData firebaseData1;
 FirebaseData firebaseData2;
 
-void printJsonObjectContent(FirebaseData &data);
+
 
 String path = "/Blynk_Test/Int";
 
@@ -133,14 +133,6 @@ void loop()
         led.on();
       }
     }
-    else if (firebaseData1.dataType() == "float")
-      Serial.println(firebaseData1.floatData());
-    else if (firebaseData1.dataType() == "boolean")
-      Serial.println(firebaseData1.boolData() == 1 ? "true" : "false");
-    else if (firebaseData1.dataType() == "string")
-      Serial.println(firebaseData1.stringData());
-    else if (firebaseData1.dataType() == "json")
-      printJsonObjectContent(firebaseData1);
     Serial.println("------------------------------------");
     Serial.println();
   }
@@ -152,6 +144,7 @@ BLYNK_WRITE(V1)
 
   Serial.println("------------------------------------");
   Serial.println("Set integer...");
+  //Also can use Firebase.set instead of Firebase.setInt
   if (Firebase.setInt(firebaseData2, path, pinValue))
   {
     Serial.println("PASSED");
@@ -160,16 +153,6 @@ BLYNK_WRITE(V1)
     Serial.print("VALUE: ");
     if (firebaseData2.dataType() == "int")
       Serial.println(firebaseData2.intData());
-    else if (firebaseData2.dataType() == "float")
-      Serial.println(firebaseData2.floatData(), 5);
-    else if (firebaseData2.dataType() == "double")
-      printf("%.9lf\n", firebaseData2.doubleData());
-    else if (firebaseData2.dataType() == "boolean")
-      Serial.println(firebaseData2.boolData() == 1 ? "true" : "false");
-    else if (firebaseData2.dataType() == "string")
-      Serial.println(firebaseData2.stringData());
-    else if (firebaseData2.dataType() == "json")
-      printJsonObjectContent(firebaseData2);
     Serial.println("------------------------------------");
     Serial.println();
   }
@@ -182,25 +165,3 @@ BLYNK_WRITE(V1)
   }
 }
 
-
-void printJsonObjectContent(FirebaseData &data){
-  size_t tokenCount = data.jsonObject().parse(false).getJsonObjectIteratorCount();
-  String key;
-  String value;
-  FirebaseJsonObject jsonParseResult;
-  Serial.println();
-  for (size_t i = 0; i < tokenCount; i++)
-  {
-    data.jsonObject().jsonObjectiterator(i,key,value);
-    jsonParseResult = data.jsonObject().parseResult();
-    Serial.print("KEY: ");
-    Serial.print(key);
-    Serial.print(", ");
-    Serial.print("VALUE: ");
-    Serial.print(value); 
-    Serial.print(", ");
-    Serial.print("TYPE: ");
-    Serial.println(jsonParseResult.type);        
-
-  }
-}

@@ -12,8 +12,7 @@
  *
 */
 
-//This example shows how to set and delete data with checking the matching between node path ETag (unique identifier string)
-//and provided Etag
+//This example shows how to set array data through FirebaseJsonArray object then read the data back and parse them.
 
 //FirebaseESP8266.h must be included before ESP8266WiFi.h
 #include "FirebaseESP8266.h"
@@ -24,18 +23,26 @@
 #define FIREBASE_HOST "YOUR_FIREBASE_PROJECT.firebaseio.com" //Do not include https:// in FIREBASE_HOST
 #define FIREBASE_AUTH "YOUR_FIREBASE_DATABASE_SECRET"
 
-//Define Firebase Data object
+
+//Define Firebase Data Object
 FirebaseData firebaseData;
+
+
+FirebaseJsonArray arr;
 
 void printResult(FirebaseData &data);
 
+
+unsigned long sendDataPrevMillis = 0;
+
+String path = "/Test/Array";
+
+uint16_t count = 0;
 
 void setup()
 {
 
     Serial.begin(115200);
-    Serial.println();
-    Serial.println();
 
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
     Serial.print("Connecting to Wi-Fi");
@@ -52,108 +59,95 @@ void setup()
     Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
     Firebase.reconnectWiFi(true);
 
-    String path = "/Test";
-
-    String ETag = "";
-    String wrong_ETag = "ANY_WRONG_ETag";
-
-    Serial.println("------------------------------------");
-    Serial.println("Set integer without ETag test...");
-
-    if (Firebase.setInt(firebaseData, path + "/Int/Data", 100))
+    if (!Firebase.beginStream(firebaseData, path))
     {
-        Serial.println("PASSED");
-        Serial.println("PATH: " + firebaseData.dataPath());
-        Serial.println("TYPE: " + firebaseData.dataType());
-        Serial.println("CURRENT ETag: " + firebaseData.ETag());
-        ETag = firebaseData.ETag();
-        Serial.print("VALUE: ");
-        printResult(firebaseData);
         Serial.println("------------------------------------");
-        Serial.println();
-    }
-    else
-    {
-        Serial.println("FAILED");
+        Serial.println("Can't begin stream connection...");
         Serial.println("REASON: " + firebaseData.errorReason());
         Serial.println("------------------------------------");
         Serial.println();
     }
+}
 
-    Serial.println("------------------------------------");
-    Serial.println("Set integer with valid ETag test...");
+void loop()
+{
 
-    if (Firebase.setInt(firebaseData, path + "/Int/Data", 200))
+    if (millis() - sendDataPrevMillis > 15000)
     {
-        Serial.println("PASSED");
-        Serial.println("PATH: " + firebaseData.dataPath());
-        Serial.println("TYPE: " + firebaseData.dataType());
-        Serial.println("CURRENT ETag: " + firebaseData.ETag());
-        ETag = firebaseData.ETag();
-        Serial.print("VALUE: ");
-        printResult(firebaseData);
+        sendDataPrevMillis = millis();
+        count++;
+
         Serial.println("------------------------------------");
-        Serial.println();
-    }
-    else
-    {
-        Serial.println("FAILED");
-        Serial.println("REASON: " + firebaseData.errorReason());
-        Serial.println("------------------------------------");
-        Serial.println();
-    }
+        Serial.println("Set Array...");
 
-    Serial.println("------------------------------------");
-    Serial.println("Set integer with wrong ETag test...");
-
-    if (Firebase.setInt(firebaseData, path + "/Int/Data", 300, wrong_ETag))
-    {
-        Serial.println("PASSED");
-        Serial.println("PATH: " + firebaseData.dataPath());
-        Serial.println("TYPE: " + firebaseData.dataType());
-        Serial.println("ETag: " + firebaseData.ETag());
-        ETag = firebaseData.ETag();
-        Serial.print("VALUE: ");
-        printResult(firebaseData);
-        Serial.println("------------------------------------");
-        Serial.println();
-    }
-    else
-    {
-        Serial.println("FAILED");
-        Serial.println("REASON: " + firebaseData.errorReason());
-
-        //If provided ETag is not match to current ETag (httpCode 412)
-        if (firebaseData.httpCode() == 412)
+        arr.clear();
+        arr.set("/[0]", count);
+        arr.set("/[1]", "hello");
+        arr.set("/[4]", 76.54);
+        if (Firebase.set(firebaseData, path + "/Data", arr))
         {
+            Serial.println("PASSED");
             Serial.println("PATH: " + firebaseData.dataPath());
             Serial.println("TYPE: " + firebaseData.dataType());
-            Serial.println("PROVIDED ETag: " + wrong_ETag);
-            Serial.println("CURRENT ETag: " + firebaseData.ETag());
-            ETag = firebaseData.ETag();
-            Serial.print("CURRENT VALUE: ");
+            Serial.print("VALUE: ");
             printResult(firebaseData);
+            Serial.println("------------------------------------");
+            Serial.println();
+        }
+        else
+        {
+            Serial.println("FAILED");
+            Serial.println("REASON: " + firebaseData.errorReason());
+            Serial.println("------------------------------------");
+            Serial.println();
         }
 
         Serial.println("------------------------------------");
-        Serial.println();
+        Serial.println("Get Array...");
+        if (Firebase.get(firebaseData,  path + "/Data"))
+        {   
+            Serial.println("PASSED");
+            Serial.println("PATH: " + firebaseData.dataPath());
+            Serial.println("TYPE: " + firebaseData.dataType());
+            Serial.print("VALUE: ");
+            printResult(firebaseData);               
+            Serial.println("------------------------------------");
+            Serial.println();
+        }
+        else
+        {
+            Serial.println("FAILED");
+            Serial.println("REASON: " + firebaseData.errorReason());
+            Serial.println("------------------------------------");
+            Serial.println();
+        }
     }
 
-    Serial.println("------------------------------------");
-    Serial.println("Delete node with wrong ETag test...");
-    if (Firebase.deleteNode(firebaseData, path + "/Int/Data", wrong_ETag))
+    if (!Firebase.readStream(firebaseData))
     {
-
-        Serial.println("PASSED");
-        Serial.println("CURRENT ETag: " + firebaseData.ETag());
+        Serial.println("------------------------------------");
+        Serial.println("Can't read stream data...");
+        Serial.println("REASON: " + firebaseData.errorReason());
         Serial.println("------------------------------------");
         Serial.println();
     }
-    else
-    {
 
-        Serial.println("FAILED");
-        Serial.println("REASON: " + firebaseData.errorReason());
+    if (firebaseData.streamTimeout())
+    {
+        Serial.println("Stream timeout, resume streaming...");
+        Serial.println();
+    }
+
+    if (firebaseData.streamAvailable())
+    {
+        Serial.println("------------------------------------");
+        Serial.println("Stream Data available...");
+        Serial.println("STREAM PATH: " + firebaseData.streamPath());
+        Serial.println("EVENT PATH: " + firebaseData.dataPath());
+        Serial.println("DATA TYPE: " + firebaseData.dataType());
+        Serial.println("EVENT TYPE: " + firebaseData.eventType());
+        Serial.print("VALUE: ");
+        printResult(firebaseData);
         Serial.println("------------------------------------");
         Serial.println();
     }
@@ -161,6 +155,7 @@ void setup()
 
 void printResult(FirebaseData &data)
 {
+
     if (data.dataType() == "int")
         Serial.println(data.intData());
     else if (data.dataType() == "float")
@@ -178,7 +173,7 @@ void printResult(FirebaseData &data)
         //Print all object data
         Serial.println("Pretty printed JSON data:");
         String jsonStr;
-        json.toString(jsonStr,true);
+        json.toString(jsonStr, true);
         Serial.println(jsonStr);
         Serial.println();
         Serial.println("Iterate JSON data:");
@@ -211,7 +206,7 @@ void printResult(FirebaseData &data)
         //Print all array values
         Serial.println("Pretty printed Array:");
         String arrStr;
-        arr.toString(arrStr,true);
+        arr.toString(arrStr, true);
         Serial.println(arrStr);
         Serial.println();
         Serial.println("Iterate array values:");
@@ -238,9 +233,3 @@ void printResult(FirebaseData &data)
         }
     }
 }
-
-void loop()
-{
-}
-
-

@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.4.2
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.6.3
 
 
 This library supports ESP8266 MCU from Espressif. The following are platforms which library are also available.
@@ -24,11 +24,6 @@ This library supports ESP8266 MCU from Espressif. The following are platforms wh
 ## Features
 
 
-* **Not Required Fingerprint and Certificate, CA certificate can be set for more secure connection.**
-
-* **Completed Google's Firebase RTDB REST APIs Implementation.**
-
-* **No Delay for Contiuous Read and Store Data.**
 
 * **Supports Read (get), Store (set), Append (push), Patch (update) and Delete Data**
 
@@ -38,27 +33,9 @@ This library supports ESP8266 MCU from Espressif. The following are platforms wh
 
 * **Support Read and Write Database Rules.**
 
-* **Supports Conditional Requests (ETag).**
-
-* **Supports Set and Get Data Priority.**
-
-* **Supports Read and Store Data Limits.**
-
-* **Supports Set and Push Server's Timestamp.**
-
-* **Supports Classic HTTP requests Override.**
-
-* **Supports Error Retry and Restorable Queues.** 
-
-* **Supports Query or Data Filtering.**
-
-* **Supports Automatic Stream Resuming.** 
-
-* **Supports Multiple Streamings.**
+* **Supports ETag, Priority, Data Limits, Timestamp, Filtering, etc.**
 
 * **Supports Stream Event Callbacks**
-
-* **Supports Pause and Resume Firebase Operations.**
 
 * **Supports Data Backup and Restore.**
 
@@ -66,11 +43,14 @@ This library supports ESP8266 MCU from Espressif. The following are platforms wh
 
 * **Supports SD and SPIFFS's CA certificate file (for Core SDK v2.5.x).**
 
-* **Built-in JSON parser and builder.**
+* **Built-in easiest JSON parser and builder.**
 
 
+## Changes from earlier version
 
+For library v 2.6.3 (comes with FirebaseJson v 2.2.3) or later, FirebaseJson object will be used to handle JSON data instead of JSON string which, the following functions are affected:
 
+getJson, setJson, pushJson, updateNode and updateNodeSilent.
 
 
 
@@ -92,7 +72,7 @@ For PlatfoemIO IDE, ESP8266 Core SDK can be installed through **PIO Home** > **P
 ### Using Library Manager
 
 
-At Arduino IDE goto menu **Sketch** -> **Include Library** -> **Manage Libraries...**
+At Arduino IDE, go to menu **Sketch** -> **Include Library** -> **Manage Libraries...**
 
 In Library Manager Window, search **"firebase"** in the search form then select **"Firebase ESP8266 Client"**. 
 
@@ -109,19 +89,19 @@ Or at **PIO Home** -> **Library** -> **Registry** then search **Firebase ESP8266
 [More on PlatformIO...](https://platformio.org/lib/show/6247/Firebase%20ESP8266%20Client)
 
 
-### Manual installing
+### Manual installation
 
 
-For Arduino IDE, click on **Clone or download** dropdown at the top of repository, select **Download ZIP** 
+For Arduino IDE, download zip file from repository (Github page) by select **Clone or download** dropdown at the top of repository, select **Download ZIP** 
 
-From Arduino IDE, goto menu **Sketch** -> **Include Library** -> **Add .ZIP Library...**.
+From Arduino IDE, select menu **Sketch** -> **Include Library** -> **Add .ZIP Library...**.
 
 Choose **Firebase-ESP8266-master.zip** that previously downloaded.
 
 Go to menu **Files** -> **Examples** -> **Firebase-ESP8266-master** and choose one from examples.
 
 
-For PlatformIO, create folder **"Firebase-ESP8266"** in folder **"lib"** and save **[these files](https://github.com/mobizt/Firebase-ESP8266/tree/master/src)** in there.
+For PlatformIO, in folder **"lib"**, create new folder named **"Firebase-ESP8266"** and add **[these files](https://github.com/mobizt/Firebase-ESP8266/tree/master/src)** in that folder.
 
 
 
@@ -164,12 +144,12 @@ Firebase.enableClassicRequest(firebaseData, true);
 ### Read Data
 
 
-Various types of data can be read through Firebase's get functions.
+Data at specific node in Firebase RTDB can be read through these get functions.
 
-These functions are `getInt`, `getFlot`, `getDouble`, `getBool`, `getString`, `getJSON`, `getBlob` and `getFile`
+The functions included `get`, `getInt`, `getFlot`, `getDouble`, `getBool`, `getString`, `getJSON`, `getArray`, `getBlob`, `getFile`.
 
 
-These functions return boolean indicates the success of operation which will be `true` if all of the following conditions matched.
+These functions return boolean value indicates the success of operation which will be `true` if all of the following conditions were met.
 
 * Server returns HTTP status 200
 
@@ -177,7 +157,7 @@ These functions return boolean indicates the success of operation which will be 
 
 
 
-The database data's payload (response) can be read through the following Firebase Data object's functions.
+The database data's payload (response) can be read or access through the following Firebase Data object's functions.
 
 * `firebaseData.intData`
 
@@ -189,17 +169,27 @@ The database data's payload (response) can be read through the following Firebas
 
 * `firebaseData.stringData`
 
-* `firebaseData.jsonData`
+* `firebaseData.jsonString`
 
-* `firebaseData.jsonObject` and
+* `firebaseData.jsonObject`
+
+* `firebaseData.jsonObjectPtr`
+
+* `firebaseData.jsonArray` 
+
+* `firebaseData.jsonArrayPtr`
+
+* `firebaseData.jsonData` (for keeping parse/get result)
+
+and
 
 * `firebaseData.blobData`
 
 
-Read the data which its type is not match the data type in database from above functions will return empty string or zero.
+Read the data which its type is not match the data type in database from above functions will return empty (string, object or array).
 
 
-The data type of returned payload data can be read through `firebaseData.getDataType`.
+The data type of returning payload can be determined by `firebaseData.getDataType`.
 
 
 BLOB and file stream data are store as special base64 encode string which only supported and implemented by this library.
@@ -227,12 +217,12 @@ The following example showed how to read integer value from "/test/int".
 
 ### Store Data
 
-Various types of data can be store through Firebase's set functions.
+To store data at specific node in Firebase RTDB, use these set functions.
 
-These functions are `setInt`, `setFlot`, `setDouble`, `setBool`, `setString`, `setJSON`, `setBlob` and `setFile`.
+The function included `set`, `setInt`, `setFlot`, `setDouble`, `setBool`, `setString`, `setJSON`, `setArray`, `setBlob` and `setFile`. 
 
 
-These functions return boolean indicates the success of operation which will be `true` if all of the following conditions matched.
+The above functions return boolean value indicates the success of operation which will be `true` if all of the following conditions matched.
 
 * Server returns HTTP status 200
 
@@ -281,21 +271,21 @@ if (Firebase.setFile(firebaseData, StorateType::SPIFFS, "/test/file_data", "/tes
 
 ### Append Data
 
-Various types of data can be appened through Firebase's push functions.
+To append new data to specific node in Firebase RTDB, use these push functions.
 
-These functions are `pushInt`, `pushFlot`, `pushDouble`, `pushBool`, `pushString`, `pushJSON`, `pushBlob` and `pushFile`.
+The function included `push`, `pushInt`, `pushFlot`, `pushDouble`, `pushBool`, `pushString`, `pushJSON`, `pushArray`, `pushBlob`, and `pushFile`.
 
-These functions return boolean indicates the success of operation.
+These functions return boolean value indicates the success of operation.
 
-The **unique key** of new appended node can get through `firebaseData.pushName`.
+The **unique key** of new appended node can be determined from `firebaseData.pushName`.
 
 As get functions, the Firebase's push functions support **priority**.
 
-**ETag** was not available after push unless read **ETag** at that new unique key later through `Firebase.getETag`.
+**ETag** was not available after push unless read the **ETag** at that new appended unique key later with `Firebase.getETag`.
 
 The server's **Timestamp** can be append in database through `Firebase.pushTimestamp`.
 
-The unique key of Timestamp was available after push the Timestamp.
+The unique key of Timestamp can be determined after Timestamp was appended.
 
 
 The following example showed how to append new data (using FirebaseJson object) to "/test/append.
@@ -305,8 +295,10 @@ The following example showed how to append new data (using FirebaseJson object) 
 
 FirebaseJson json;
 FirebaseJson json2;
-json2.addDouble("child_of_002",123.456);
-json.addString("parent_001","parent 001 text").addJson("parent 002", &json2);
+
+json2.set("child_of_002", 123.456);
+json.set("parent_001", "parent 001 text");
+json.set("parent 002", json2);
 
 if (Firebase.pushJSON(firebaseData, "/test/append", json)) {
 
@@ -325,15 +317,15 @@ if (Firebase.pushJSON(firebaseData, "/test/append", json)) {
 
 ### Patch Data
 
-Firebase's update functions used to pach or update new or existing database path.
+Firebase's update functions used to pach or update new or existing data at defined database path.
 
-These functions, `updateNode` and `updateNodeSilent` are available and work with JSON object (FirebaseJson object and string)
+These functions, `updateNode` and `updateNodeSilent` are available and work with JSON object (FirebaseJson object only)
 
-If any key provided in JSON object was not existed at defined database path, new key will be created.
+If any key provided at defined database path in JSON object was not existed, new key will be created.
 
 The server returns JSON data payload which was successfully patched.
 
-Return of large JSON payload will cost the network data, use `updateNodeSilent` instead to save the network data.
+Return of large JSON payload will cost the network data, alternative function `updateNodeSilent` should be used to save the network data.
 
 
 The following example showed how to patch data at "/test".
@@ -343,8 +335,9 @@ The following example showed how to patch data at "/test".
 
 FirebaseJson updateData;
 FirebaseJson json;
-json.addString("_data2","_value2");
-updateData.addString("data1","value1").addJson("data2", &json);
+json.set("_data2","_value2");
+updateData.set("data1","value1");
+updateData.set("data2", json);
 
 if (Firebase.updateNode(firebaseData, "/test/update", updateData)) {
 
@@ -352,7 +345,7 @@ if (Firebase.updateNode(firebaseData, "/test/update", updateData)) {
 
   Serial.println(firebaseData.dataType());
 
-  Serial.println(firebaseData.jsonData()); 
+  Serial.println(firebaseData.jsonString()); 
 
 } else {
   Serial.println(firebaseData.errorReason());
@@ -378,7 +371,7 @@ Firebase.deleteNode(firebaseData, "/test/append");
 
 ### Filtering Data
 
-The quey parameters that can be set through the QueryFilter class.
+To filter or query the data, the following quey parameters are available through the QueryFilter class.
 
 These parameters are `orderBy`, `limitToFirst`, `limitToLast`, `startAt`, `endAt`, and `equalTo`.
 
@@ -408,7 +401,7 @@ The above `orderBy` parameter can be combined with the following parameters for 
 
 
 
-The following example showed how to using queries parameter in QueryFilter class to filter the data at "/test/data"
+The following example showed how to use queries parameter in QueryFilter class to filter the data at "/test/data"
 
 ```C++
 //Assume that children that have key "sensor" are under "/test/data"
@@ -432,7 +425,7 @@ query.limitToLast(5);
 if (Firebase.getJSON(firebaseData, "/test/data", query))
 {
   //Success, then try to read the JSON payload value
-  Serial.println(firebaseData.jsonData());
+  Serial.println(firebaseData.jsonString());
 }
 else
 {
@@ -450,17 +443,17 @@ query.clear();
 
 
 
-This library uses HTTP GET request with stream header to request the stream event and data at defined database path.
+This library uses HTTP GET request with stream header to connect the stream.
 
-The Firebase's functions that handle the stream are `beginStream`, `setStreamCallback` and/or `readStream`.
+The Firebase's functions that involved the stream operation are `beginStream`, `setStreamCallback` and/or `readStream`.
 
-Function `beginStream` used to subscribe the stream changes at defined database path.
+Function `beginStream` is to subscribe the stream changes at defined database path.
 
-Function `setStreamCallback` used to assign the callback function that accept the **StreamData** class as parameter.
+Function `setStreamCallback` is to assign the callback function that accept the **StreamData** class as parameter.
 
 The **StreamData** contains stream event and data and interface function calls are similar to Firebase Data object.
 
-To check the stream manually, use function `readStream`.
+To check the stream manually, use `readStream`.
 
 Function `readStream` used in loop() task to continuous read the stream changes event and data.
 
@@ -468,7 +461,8 @@ After `readStream`, determine the availability of stream with Firebase Data obje
 
 Function `firebaseData.streamAvailable` returned true when new stream data was available. 
 
-After new stream data was available, it can be accessed with the following Firebase Data object functions.
+When new stream data was available, its data and event can be accessed from Firebase Data object functions.
+
 
 * `firebaseData.intData`
 
@@ -480,14 +474,26 @@ After new stream data was available, it can be accessed with the following Fireb
 
 * `firebaseData.stringData`
 
-* `firebaseData.jsonData` 
+* `firebaseData.jsonString`
 
-* `firebaseData.jsonObject` and
+* `firebaseData.jsonObject`
+
+* `firebaseData.jsonObjectPtr`
+
+* `firebaseData.jsonArray` 
+
+* `firebaseData.jsonArrayPtr`
+
+* `firebaseData.jsonData` (for keeping parse/get result)
+
+and
 
 * `firebaseData.blobData`
 
 
 Function `endStream` ends the stream operation.
+
+
 
 The following example showed how to subscribe the stream changes at "/test/data" with callback function.
 
@@ -534,7 +540,7 @@ void streamCallback(StreamData data)
   else if (data.dataType() == "string")
     Serial.println(data.stringData());
   else if (data.dataType() == "json")
-    Serial.println(data.jsonData());
+    Serial.println(data.jsonString());
 
 }
 
@@ -585,7 +591,7 @@ if (firebaseData.streamAvailable())
   else if (firebaseData.dataType() == "string")
     Serial.println(firebaseData.stringData());
   else if (firebaseData.dataType() == "json")
-    Serial.println(firebaseData.jsonData());
+    Serial.println(firebaseData.jsonString());
     
 }
 ```
@@ -861,6 +867,392 @@ else
   Serial.println(firebaseData.errorReason());
 }
 ```
+
+
+
+## Parse, Create and Edit JSON Objects
+
+
+This library includes FirebaseJson Arduino library, the easiest JSON parser, builder and editor.
+
+FirebaseJson usages are so simple as you read, store and update(edit) the JSON node in Firebase RTDB.
+
+Since you declare the FirebaseJson (object) or FirebaseJsonArray, use the functions `setJsonData`, `add`, `set` and `remove`
+to build or edit JSON object and use `get` to parse the node's contents. 
+
+Defined the relative path of the specific node to `add`, `set`, `remove` and `get` functions to add, set, remove and get its contents.
+
+
+Function `FirebaseJson.setJsonData` is to set the JSON string to JSON object.
+
+
+Function `FirebaseJson.add` is used for add the new node with the contents e.g. String, Number (int and double), Boolean, Array and Object to the defined relative path.
+
+
+Function `FirebaseJson.set` is used for edit, overwrite, create new (if not exist) node with contents e.g. String, Number (int and double), Boolean, Array and Object at the defined relative path.
+
+
+Function `FirebaseJson.remove` is used for remove node and all its children contents at the defined relative path. 
+
+
+Function `FirebaseJson.toString` is used for (pretty or plain) print out the JSON object as Arduino string (this function takes String param).
+
+
+Functions `FirebaseJson.iteratorBegin`, `FirebaseJson.iteratorGet` and `FirebaseJson.iteratorEnd` are used for parse all JSON object contents as list which can be iterated with index.
+
+
+Function `FirebaseJson.clear` is used for clear JSON object contents.
+
+
+Function `FirebaseJsonArray.add` is used for adding the new contents e.g. String, Number (int and double), Boolean, Array and Object to JSON array.
+
+
+Function `FirebaseJsonArray.set` is for edit, overwrite, create new (if not exist) contents e.g. String, Number (int and double), Boolean, Array and Object at the defined relative path or defined index of JSON array.
+
+
+
+Function `FirebaseJsonArray.remove` is used for remove array's contents at the defined relative path or defined index of JSON array.
+
+
+
+Function `FirebaseJsonArray.toString` is used for (pretty or plain) print out the JSON array object as Arduino string (this function takes String param).
+
+
+Function `FirebaseJsonArray.clear` is used for clear JSON object contents.
+
+
+To acquired the JSON object or JSON Array from FirebaseData object which returned from get, set, push operations, these following functions are required.
+
+`FirebaseData.jsonObject`
+
+`FirebaseData.jsonObjectPtr`
+
+`FirebaseData.jsonArray` and
+
+`FirebaseData.jsonArrayPtr`
+
+Function `FirebaseData.jsonObject` and `FirebaseData.jsonObjectPtr` will provide FirebaseJson (object) and FirebaseJson pointer respectively.
+
+Function `FirebaseData.jsonArray` and `FirebaseData.jsonArrayPtr` will provide FirebaseJson Array and FirebaseJson Array pointer respectively.
+
+
+
+The following example shows how to use FirebaseJson.
+
+```C++
+//Declare FirebaseJson object (global or local)
+FirebaseJson json;
+
+//Add key1 with value 100 to JSON object
+json.add("name", "Living Room");
+
+//Add temp1 with value 120 and temp1 with 40 to JSON object
+//Note: temp2 is not the child of temp1 as in previous version.
+json.add("temp1", 120).add("temp2", 40);
+
+//Add nested child contents directly
+json.set("unit/temp1", "Farenheit");
+json.set("unit/temp2", "Celcius");
+
+//To print out as prettify string
+String jsonStr;
+json.toString(jsonStr, true);
+Serial.println(jsonStr);
+
+/*
+This is the result of above code
+
+{
+    "name": "Living Room",
+    "temp1": 120,
+    "temp2": 40,
+    "unit": {
+        "temp1": "Farenheit",
+        "temp2": "Celcius"
+    }
+}
+*/
+
+//To set array to the above JSON using FirebaseJson directly
+//Set (add) array indexes 0,1,2,5,7 under temp1, the original value will be replaced with new one.
+json.set("temp1/[0]", 47);
+json.set("temp1/[1]", 28);
+json.set("temp1/[2]", 34);
+json.set("temp1/[5]", 23); //null will be created at array index 3,4 due to it's not yet assigned
+json.set("temp1/[7]", 25); //null will be created at array index 6
+
+//Print out as prettify string
+json.toString(jsonStr, true);
+Serial.println(jsonStr);
+
+/*
+The result of above code
+
+{
+    "name": "Living Room",
+    "temp1": [
+        47,
+        28,
+        34,
+        null,
+        null,
+         23,
+        null,
+        25
+     ],
+    "temp2": 40,
+    "unit": {
+        "temp1": "Farenheit",
+        "temp2": "Celcius"
+    }
+ }
+*/
+
+//Try to remove temp1 array at index 1
+json.remove("temp1/[1]");
+
+//Try to remove temp2
+json.remove("temp2");
+
+//Print out as prettify string
+json.toString(jsonStr, true);
+Serial.println(jsonStr);
+
+/*
+The result of above code
+
+{
+    "name": "Living Room",
+    "temp1": [
+         47,
+         34,
+         null,
+         null,
+         23,
+         null,
+         25
+    ],
+    "unit": {
+        "temp1": "Farenheit",
+        "temp2": "Celcius"
+    }
+}
+*/
+
+//Now parse/read the contents from specific node unit/temp2
+//FirebaseJsonData is required to keep the parse results which can be access later
+FirebaseJsonData jsonData;
+
+json.get(jsonData, "unit/temp2");
+
+if (jsonData.success)
+{
+  //Print type of parsed data e.g string, int, double, bool, object, array, null and undefined
+  Serial.println(jsonData.type);
+  //Print its content e.g.string, int, double, bool whereas object, array and null also can access as string
+  Serial.println(jsonData.stringValue);
+  //Serial.println(jsonData.intValue);
+  /Serial.println(jsonData.boolValue);
+  //Serial.println(jsonData.doubleValue);
+}
+
+//The above code will show
+/*
+string
+Celcius
+*/
+
+//To get the array temp from FirebaseJson
+
+json.get(jsonData, "temp1");
+
+//Prepare FirebaseJsonArray to take the array from FirebaseJson
+FirebaseJsonArray myArr;
+
+//Get array data
+jsonData.getArray(myArr);
+
+//Call get with FirebaseJsonData to parse the array at defined index i
+for (size_t i = 0; i < myArr.size(); i++)
+{
+  //jsonData now used as temporary object to get the parse results
+  myArr.get(jsonData, i);
+
+  //Print its value
+  Serial.print("Array index: ");
+  Serial.print(i);
+  Serial.print(", type: ");
+  Serial.print(jsonData.type);
+  Serial.print(", value: ");
+  Serial.println(jsonData.stringValue);
+}
+
+/*
+The result of above code
+Array index: 0, type: int, value: 47
+Array index: 1, type: int, value: 34
+Array index: 2, type: null, value: null
+Array index: 3, type: null, value: null
+Array index: 4, type: int, value: 23
+Array index: 5, type: null, value: null
+Array index: 6, type: int, value: 25
+*/
+ 
+
+
+
+```
+
+
+The following example shows how to use FirebaseJsonArray.
+
+```C++
+//Declare FirebaseJsonArray object (global or local)
+FirebaseJsonArray arr;
+
+//Add some data
+arr.add("banana");
+arr.add("mango");
+arr.add("coconut");
+
+
+//Change the array contents
+arr.set("[1]/food", "salad");
+arr.set("[1]/sweet", "cake");
+arr.set("[1]/appetizer", "snack");
+arr.set("[2]", "apple"); // or arr.set(2, "apple");
+arr.set("[4]/[0]/[1]/amount", 20);
+
+//Print out array as prettify string
+String arrStr;
+arr.toString(arrStr, true);
+Serial.println(arrStr);
+
+/*
+This is the result of above code
+
+[
+    "banana",
+    {
+        "food": "salad",
+        "sweet": "cake",
+        "appetizer": "snack"
+    },
+    "apple",
+    null,
+    [
+        [
+            null,
+            {
+                "amount": 20
+            }
+        ]
+    ]
+]
+*/
+
+//Remove array content at /4/0/1/amount
+arr.remove("[4]/[0]/[1]/amount");
+
+//Print out as prettify string
+arr.toString(arrStr, true);
+Serial.println(arrStr);
+
+/*
+The result of above code
+
+[
+    "banana",
+    {
+        "food": "salad",
+        "sweet": "cake",
+        "appetizer": "snack"
+    },
+    "apple",
+    null,
+    [
+        [
+            null
+        ]
+    ]
+]
+
+*/
+
+//Now parse/read the array contents at some index
+
+FirebaseJsonData jsonData;
+
+arr.get(jsonData, "[1]/food");
+
+if(jsonData.success)
+{
+  //Type of parsed data
+  Serial.println(jsonData.type);
+  //Its value
+  Serial.println(jsonData.stringValue);
+  //Serial.println(jsonData.intValue);
+  //Serial.println(jsonData.boolValue);
+  //Serial.println(jsonData.doubleValue);
+
+}
+
+//The above code will show
+/*
+string
+salad
+*/
+
+
+//To get the JSON object at array index 1 from FirebaseJsonArray
+arr.get(jsonData, "[1]");// or arr.get(jsonData, 1);
+
+//Prepare FirebaseJson to take the JSON object from FirebaseJsonArray
+FirebaseJson myJson;
+
+//Get FirebaseJson data
+jsonData.getJSON(myJson);
+
+//Parse the JSON object as list
+//Get the number of items
+size_t len = myJson.iteratorBegin();
+String key, value = "";
+int type = 0;
+for (size_t i = 0; i < len; i++)
+{
+  //Get the item at index i, whereas key and value are the returned data
+  myJson.iteratorGet(i, type, key, value);
+  //Print the data
+  Serial.print(i);
+  Serial.print(", ");
+  Serial.print("Type: ");
+  Serial.print(type == JSON_OBJECT ? "object" : "array");
+  if (type == JSON_OBJECT)
+  {
+    Serial.print(", Key: ");
+    Serial.print(key);
+  }
+  Serial.print(", Value: ");
+  Serial.println(value);
+}
+//Clear all list to free memory
+myJson.iteratorEnd();
+
+
+/*
+The result of above code
+
+0, Type: object, Key: food, Value: salad
+1, Type: object, Key: sweet, Value: cake
+2, Type: object, Key: appetizer, Value: snack
+
+*/
+
+
+```
+
+
+
 
 
 See [Full Examples](/examples) for complete usages.

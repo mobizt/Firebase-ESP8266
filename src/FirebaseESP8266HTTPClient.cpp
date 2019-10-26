@@ -141,7 +141,6 @@ bool FirebaseHTTPClient::connected()
 
 bool FirebaseHTTPClient::sendHeader(const char *header)
 {
-
   if (!connected())
     return false;
  _client->print(header);
@@ -150,7 +149,6 @@ bool FirebaseHTTPClient::sendHeader(const char *header)
 
 int FirebaseHTTPClient::sendRequest(const char *header, const char *payload)
 {
-
   size_t size = strlen(payload);
   if (!connect())
     return HTTPC_ERROR_CONNECTION_REFUSED;

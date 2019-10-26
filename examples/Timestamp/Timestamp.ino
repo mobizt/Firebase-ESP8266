@@ -53,7 +53,7 @@ void setup()
   Firebase.enableClassicRequest(firebaseData, true);
   */
 
-  String path = "/ESP8266_Test";
+  String path = "/Test";
 
   Serial.println("------------------------------------");
   Serial.println("Set Timestamp test...");

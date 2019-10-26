@@ -6,23 +6,20 @@
  * Github: https://github.com/mobizt
  * 
  * Copyright (c) 2019 mobizt
+ * 
+ * This example is for FirebaseESP8266 Arduino library v 2.6.0 and later
  *
 */
 
 //This example shows how to retrieve all database data using shallowed data.
 
-
-//FirebaseESP8266.h must be included before ESP8266WiFi.h
 #include "FirebaseESP8266.h"
 #include <ESP8266WiFi.h>
 
-
-
-#define FIREBASE_HOST "YOUR_FIREBASE_PROJECT.firebaseio.com"
+#define FIREBASE_HOST "YOUR_FIREBASE_PROJECT.firebaseio.com" //Do not include https:// in FIREBASE_HOST
 #define FIREBASE_AUTH "YOUR_FIREBASE_DATABASE_SECRET"
 #define WIFI_SSID "YOUR_WIFI_AP"
 #define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
-
 
 //Define Firebase Data object
 FirebaseData firebaseData;
@@ -104,18 +101,14 @@ void getNode(String &key)
     {
 
       FirebaseJson json;
-
-      json.setJsonData(firebaseData.jsonData());
-
-      json.parse();
-      size_t count =json.getJsonObjectIteratorCount();
+      size_t count = json.iteratorBegin(firebaseData.jsonString().c_str());
       String _key;
       String _val;
+      int _type = 0;
 
       for (size_t i = 0; i< count; i++)
       {
-        
-        json.jsonObjectiterator(i,_key,_val);
+        json.iteratorGet(i,_type, _key,_val);
 
         if (_val == "true")
         {
@@ -129,6 +122,7 @@ void getNode(String &key)
           }
         }
       }
+      json.iteratorEnd();
     }
   }
   else
