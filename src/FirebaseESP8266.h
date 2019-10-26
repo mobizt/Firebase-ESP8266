@@ -838,6 +838,8 @@ public:
     which its value can be accessed via function [FirebaseData object].pushName().
 
   */
+ 
+  bool pushJSON(FirebaseData &dataObj, const String &path, const String &jsonString);
   bool pushJSON(FirebaseData &dataObj, const String &path, FirebaseJson &json);
 
   bool push(FirebaseData &dataObj, const String &path, FirebaseJson &json);
@@ -1305,6 +1307,7 @@ public:
 
   */
   bool setJSON(FirebaseData &dataObj, const String &path, FirebaseJson &json);
+  bool setJSON(FirebaseData &dataObj, const String &path, const String &jsonString);
 
   bool set(FirebaseData &dataObj, const String &path, FirebaseJson &json);
 

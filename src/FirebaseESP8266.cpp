@@ -655,6 +655,11 @@ bool FirebaseESP8266::pushString(FirebaseData &dataObj, const String &path, cons
     return flag;
 }
 
+bool FirebaseESP8266::pushJSON(FirebaseData &dataObj, const String &path, const String &jsonString)
+{
+    bool flag = buildRequest(dataObj, FirebaseMethod::POST, FirebaseDataType::JSON, path.c_str(), jsonString.c_str(), false, "", "");
+    return flag;
+}
 bool FirebaseESP8266::pushJSON(FirebaseData &dataObj, const String &path, FirebaseJson &json)
 {
     std::string s;
@@ -1285,6 +1290,10 @@ bool FirebaseESP8266::setString(FirebaseData &dataObj, const String &path, const
     return flag;
 }
 
+bool FirebaseESP8266::setJSON(FirebaseData &dataObj, const String &path, const String &jsonString)
+{
+    return buildRequest(dataObj, FirebaseMethod::PUT, FirebaseDataType::JSON, path.c_str(), jsonString.c_str(), false, "", "");
+}
 bool FirebaseESP8266::setJSON(FirebaseData &dataObj, const String &path, FirebaseJson &json)
 {
     std::string s;
