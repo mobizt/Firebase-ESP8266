@@ -1,19 +1,13 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.6.2
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.6.3
  * 
- * October 25, 2019
+ * October 26, 2019
  * 
  * Feature Added:
- * - New none recursive FirebaseJson parser and builder.
- * - Add support Json Array object and data type.
- * - Generic function name for set, push and get.
+ * - FirebaseJson optimized for flash string usage.
  * 
  * Feature Fixed: 
- * - Fixed multi-stream data object.
- * - Corrupted Firebase rules data.
- * - Invalid data type parse from payload with white-spaces.
- * - Remove recursive stream operation that may lead to stack overflow
- * - Fixed some flash string bugs in ESP8266 core v 2.5.2 that leads to wdt reset.
+ * - WiFi client unhandle access.
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -2580,6 +2574,26 @@ bool FirebaseESP8266::sendRequest(FirebaseData &dataObj, uint8_t storageType, co
     return flag;
 }
 
+bool FirebaseESP8266::clientAvailable(FirebaseData &dataObj, bool available)
+{
+    if (!reconnect(dataObj))
+    {
+        dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+        return false;
+    }
+
+    if (!dataObj._net._client)
+    {
+        dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
+        return false;
+    }
+
+    if (available)
+        return dataObj._net._client->connected() && dataObj._net._client->available();
+    else
+        return dataObj._net._client->connected() && !dataObj._net._client->available();
+}
+
 bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
 {
 
@@ -2640,30 +2654,30 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
     int res = 0;
 
     if (!dataObj._isStream)
-        while (dataObj._net._client->connected() && !dataObj._net._client->available() && millis() - dataTime < dataObj._net.timeout)
+        while (clientAvailable(dataObj, false) && millis() - dataTime < dataObj._net.timeout)
         {
             if (!apConnected(dataObj))
-            {
-                dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
                 return false;
-            }
             delay(1);
         }
 
     dataTime = millis();
 
-    if (dataObj._net._client->connected() && !dataObj._net._client->available() && !dataObj._isStream)
+    if (clientAvailable(dataObj, false) && !dataObj._isStream)
         dataObj._httpCode = HTTPC_ERROR_READ_TIMEOUT;
 
-    if (dataObj._net._client->connected() && dataObj._net._client->available())
+    if (clientAvailable(dataObj, true))
     {
-        while (dataObj._net._client->available())
+        while (clientAvailable(dataObj, true))
         {
             if (dataObj._interruptRequest)
                 return cancelCurrentResponse(dataObj);
 
-            if (!apConnected(dataObj))
+            if (!reconnect(dataObj))
+            {
+                dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
                 return false;
+            }
 
             res = dataObj._net._client->read();
 
@@ -2918,7 +2932,6 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
                 p1 = strpos(lineBuf, fstr, 0);
                 if (p1 != -1)
                     memset(lineBuf, 0, FIREBASE_RESPONSE_SIZE);
-                
             }
 
             //JSON stream data?
@@ -3248,7 +3261,7 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
 
     unsigned long dataTime = millis();
 
-    while (dataObj._net._client->connected() && !dataObj._net._client->available() && millis() - dataTime < tmo)
+    while (clientAvailable(dataObj, false) && millis() - dataTime < tmo)
     {
         if (!apConnected(dataObj))
             return false;
@@ -3256,16 +3269,19 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
     }
 
     dataTime = millis();
-    if (dataObj._net._client->connected() && dataObj._net._client->available())
+    if (clientAvailable(dataObj, true))
     {
 
-        while (dataObj._net._client->available() || count > 0)
+        while (clientAvailable(dataObj, true) || count > 0)
         {
             if (dataObj._interruptRequest)
                 return cancelCurrentResponse(dataObj);
 
-            if (!apConnected(dataObj))
+            if (!reconnect(dataObj))
+            {
+                dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
                 return false;
+            }
 
             if (!beginPayload)
             {
@@ -3510,7 +3526,7 @@ bool FirebaseESP8266::getUploadResponse(FirebaseData &dataObj)
     unsigned long dataTime = millis();
 
     if (!dataObj._isStream)
-        while (dataObj._net._client->connected() && !dataObj._net._client->available() && millis() - dataTime < tmo)
+        while (clientAvailable(dataObj, false) && millis() - dataTime < tmo)
         {
             if (!apConnected(dataObj))
                 return false;
@@ -3519,16 +3535,19 @@ bool FirebaseESP8266::getUploadResponse(FirebaseData &dataObj)
 
     dataTime = millis();
 
-    if (dataObj._net._client->connected() && dataObj._net._client->available())
+    if (clientAvailable(dataObj, true))
     {
 
-        while (dataObj._net._client->available())
+        while (clientAvailable(dataObj, true))
         {
             if (dataObj._interruptRequest)
                 return cancelCurrentResponse(dataObj);
 
-            if (!apConnected(dataObj))
+            if (!reconnect(dataObj))
+            {
+                dataObj._httpCode = HTTPC_ERROR_CONNECTION_LOST;
                 return false;
+            }
 
             res = dataObj._net._client->read();
 

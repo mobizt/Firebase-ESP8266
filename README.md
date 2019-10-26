@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.6.2
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.6.3
 
 
 This library supports ESP8266 MCU from Espressif. The following are platforms which library are also available.
@@ -48,7 +48,7 @@ This library supports ESP8266 MCU from Espressif. The following are platforms wh
 
 ## Changes from earlier version
 
-For library v 2.6.2 (comes with FirebaseJson v 2.2.2) or later, FirebaseJson object will be used to handle JSON data instead of JSON string which, the following functions are affected:
+For library v 2.6.3 (comes with FirebaseJson v 2.2.3) or later, FirebaseJson object will be used to handle JSON data instead of JSON string which, the following functions are affected:
 
 getJson, setJson, pushJson, updateNode and updateNodeSilent.
 
@@ -1022,7 +1022,7 @@ Serial.println(jsonStr);
 The result of above code
 
 {
-     "name": "Living Room",
+    "name": "Living Room",
     "temp1": [
          47,
          34,
@@ -1047,7 +1047,7 @@ json.get(jsonData, "unit/temp2");
 
 if (jsonData.success)
 {
-  //Print tType of parsed data e.g string, int, double, bool, object, array, null and undefined
+  //Print type of parsed data e.g string, int, double, bool, object, array, null and undefined
   Serial.println(jsonData.type);
   //Print its content e.g.string, int, double, bool whereas object, array and null also can access as string
   Serial.println(jsonData.stringValue);
