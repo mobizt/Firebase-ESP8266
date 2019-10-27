@@ -433,6 +433,7 @@ size_t FirebaseJson::iteratorBegin(const char *data)
     delete[] nbuf;
     return _eltk.size();
 }
+
 void FirebaseJson::iteratorEnd()
 {
     _eltk.clear();
