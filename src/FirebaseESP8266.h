@@ -7,8 +7,8 @@
  * 
  * 
  * Feature Fixed: 
- * - seldom wdt reset issue.
- * - Fix memory leak isue in FirebaseJson.
+ * - Fix seldom wdt reset issue.
+ * - Fix memory leak issue in FirebaseJson.
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
