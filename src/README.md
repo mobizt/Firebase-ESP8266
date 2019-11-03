@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.6.4
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.6.5
 
 
 ## Global functions
@@ -39,6 +39,21 @@ param **`reconnect`** - The boolean to set/unset WiFi AP reconnection.
 
 ```C++
 void reconnectWiFi(bool reconnect);
+```
+
+
+
+
+
+#### Enable low buffer memory for secured mode BearSSL WiFi client.
+
+param **`enable`** - The boolean to enable/disable low buffer memory for secured mode BearSSL.
+
+
+Set this option to false to support get large Blob and File.
+
+```C++
+void lowMemBSSL(bool enable);
 ```
 
 
@@ -2561,7 +2576,7 @@ bool sendTopic(FirebaseData &dataObj);
 return **`WiFi client instance`**.
 
 ```C++
-WiFiClientSecure getWiFiClient();
+WiFiClientSecure *getWiFiClient();
 ```
 
 

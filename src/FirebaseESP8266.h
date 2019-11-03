@@ -1,14 +1,13 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.6.4
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.6.5
  * 
- * October 27, 2019
+ * November 3, 2019
  * 
  * Feature Added:
- * 
+ * - Low memory BearSSL enable/disable.
  * 
  * Feature Fixed: 
- * - Fix seldom wdt reset issue.
- * - Fix memory leak issue in FirebaseJson.
+ * - Large file (SPIFFS and SD) get's truncated data.
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -243,7 +242,6 @@ static const char ESP8266_FIREBASE_STR_171[] PROGMEM = "%f";
 static const char ESP8266_FIREBASE_STR_172[] PROGMEM = "[";
 static const char ESP8266_FIREBASE_STR_173[] PROGMEM = "]";
 static const char ESP8266_FIREBASE_STR_174[] PROGMEM = "array";
-
 
 static const unsigned char ESP8266_FIREBASE_base64_table[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -566,6 +564,16 @@ public:
 
   */
   void reconnectWiFi(bool reconnect);
+
+  /*
+    Enable low buffer memory for secured mode BearSSL WiFi client.
+
+    @param enable - The boolean to enable/disable low buffer memory for secured mode BearSSL.
+
+    Set this option to false to support get large Blob and File.
+
+  */
+  void lowMemBSSL(bool enable);
 
   /*
     Set the timeouts of get function.
@@ -2488,6 +2496,7 @@ private:
   uint8_t _sdPin = 15;
   std::shared_ptr<const char> _rootCA = nullptr;
   bool _reconnectWiFi = false;
+  bool _bsslLowBuf = true;
   bool _sdOk = false;
   bool _sdInUse = false;
   bool _clockReady = false;
@@ -2514,7 +2523,7 @@ public:
     @return - WiFi client instance.
 
   */
-  SSL_CLIENT getWiFiClient();
+  SSL_CLIENT *getWiFiClient();
 
   /*
 
@@ -2910,7 +2919,7 @@ protected:
   std::string _backupNodePath = "";
   std::string _backupDir = "";
   std::string _backupFilename = "";
-  size_t _backupzFileSize = 0;
+  size_t _backupFileSize = 0;
 
   std::string getDataType(uint8_t type);
   std::string getMethod(uint8_t method);

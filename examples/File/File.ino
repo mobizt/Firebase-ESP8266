@@ -6,6 +6,8 @@
  * Github: https://github.com/mobizt
  * 
  * Copyright (c) 2019 mobizt
+ * 
+ * This example is for FirebaseESP8266 Arduino library v 2.6.5 and later
  *
 */
 
@@ -73,10 +75,17 @@ void setup()
 
   //Write demo data to file
   file = SD.open("/file1.txt", FILE_WRITE);
-  for (int i = 0; i < 256; i++)
-    file.write((uint8_t)i);
+  uint8_t v = 0;
+  for (int i = 0; i < 200000; i++)
+  {
+    file.write(v);
+    v++;
+  }
 
   file.close();
+
+  //In case of Root CA was set, set this option to false to disable low memory for secured mode BearSSL to support large file data
+  //Firebase.lowMemBSSL(false);
 
   //Set file (read file from SD card and set to database)
   //File name must be in 8.3 DOS format (max. 8 bytes file name and 3 bytes file extension)
@@ -114,10 +123,12 @@ void setup()
       if (i > 0 && i % 16 == 0)
         Serial.println();
 
-      if (i < 16)
+      v = file.read();
+
+      if (v < 16)
         Serial.print("0");
 
-      Serial.print(file.read(), HEX);
+      Serial.print(v, HEX);
       Serial.print(" ");
       i++;
     }

@@ -6,6 +6,7 @@
  * Github: https://github.com/mobizt
  * 
  * Copyright (c) 2019 mobizt
+ * 
  *
 */
 
@@ -58,6 +59,7 @@ void setup()
   uint8_t data[256];
   for (int i = 0; i < 256; i++)
     data[i] = i;
+
 
   //Set binary data to database (also can use Firebase.set)
   if (Firebase.setBlob(firebaseData, path + "/Binary/Blob/data", data, sizeof(data)))

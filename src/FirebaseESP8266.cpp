@@ -1,14 +1,13 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.6.4
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.6.5
  * 
- * October 27, 2019
+ * November 3, 2019
  * 
  * Feature Added:
- * 
+ * - Low memory BearSSL enable/disable.
  * 
  * Feature Fixed: 
- * - Fix seldom wdt reset issue.
- * - Fix memory leak issue in FirebaseJson.
+ * - Large file (SPIFFS and SD) get's truncated data.
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -180,6 +179,11 @@ void FirebaseESP8266::reconnectWiFi(bool reconnect)
 {
     _reconnectWiFi = reconnect;
     WiFi.setAutoReconnect(reconnect);
+}
+
+void FirebaseESP8266::lowMemBSSL(bool enable)
+{
+    _bsslLowBuf = enable;
 }
 
 void FirebaseESP8266::setReadTimeout(FirebaseData &dataObj, int millisec)
@@ -2062,6 +2066,7 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const std::string &p
     memset(slash, 0, 10);
     strcpy_P(slash, ESP8266_FIREBASE_STR_1);
 
+
     if (method == FirebaseMethod::STREAM)
     {
         //stream path change? reset the current (keep alive) connection
@@ -2251,7 +2256,6 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const std::string &p
             {
                 if (dataObj._storageType == StorageType::SPIFFS)
                 {
-
                     if (SPIFFS.exists(dataObj._fileName.c_str()))
                         _file = SPIFFS.open(dataObj._fileName.c_str(), "r");
                     else
@@ -2412,7 +2416,6 @@ EXIT_1:
 
 bool FirebaseESP8266::sendRequest(FirebaseData &dataObj, uint8_t storageType, const std::string &path, const uint8_t method, uint8_t dataType, const std::string &payload, const std::string &priority, const std::string &etag)
 {
-
     bool flag = false;
     dataObj._firebaseError.clear();
 
@@ -2574,6 +2577,7 @@ bool FirebaseESP8266::sendRequest(FirebaseData &dataObj, uint8_t storageType, co
     dataObj._firebaseCall = false;
     return flag;
 }
+
 
 bool FirebaseESP8266::clientAvailable(FirebaseData &dataObj, bool available)
 {
@@ -3211,7 +3215,6 @@ EXIT_4:
 
 bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
 {
-
     if (dataObj._pause)
     {
         endFileTransfer(dataObj);
@@ -3257,7 +3260,6 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
     size_t toRead = count;
     size_t cnt = 0;
     size_t tmo = 30000 + dataObj._net.timeout;
-
     int res = 0;
 
     unsigned long dataTime = millis();
@@ -3292,7 +3294,7 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
             }
             else
             {
-
+                
                 if (contentLength <= 4)
                 {
                     dataObj._httpCode = _HTTP_CODE_NOT_FOUND;
@@ -3300,50 +3302,24 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
                 }
                 else
                 {
-
                     toRead = count;
                     cnt = 0;
                     yield();
                     if (toRead > buffSize)
                         toRead = buffSize;
-
                     memset(buff, 0, buffSize + 1);
-                    cnt = 0;
-
                     while (cnt < toRead)
                     {
-
                         res = dataObj._net._client->read();
-
-                        if (res < 0 || res > 0xff)
-                        {
-                            //seem to be bug? due to content length header is not match the actual data
-                            count = 0;
-                            break;
-                        }
-
+                        if (res < 0)
+                            continue;                        
                         c = (char)res;
-
-                        if (res >= 0 && res <= 0xff && c >= 0x20)
-                        {
-                            if (dataObj._fileName == "" && c < 0xff)
-                            {
-                                buff[cnt] = c;
-                                cnt++;
-                            }
-                            else if (dataObj._fileName != "" && c != '"')
-                            {
-                                buff[cnt] = c;
-                                cnt++;
-                            }
-                        }
+                        if (dataObj._fileName == "" || (dataObj._fileName != "" && c != '"'))
+                            buff[cnt] = c;
+                        cnt++;
                     }
-
-                    if (cnt == 0)
-                        break;
-
-                    count -= cnt;
                     dataTime = millis();
+                    count -=cnt;
                     toRead = cnt;
                     buff[cnt] = '\0';
                     if (dataObj._storageType == StorageType::SPIFFS)
@@ -3360,14 +3336,14 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
                         else
                             base64_decode_file(file, buff, toRead);
                     }
-
+                    if(cnt == 0)
+                        break;
                     continue;
                 }
             }
 
             if (c == '\n' && !beginPayload)
             {
-
                 dataTime = millis();
                 memset(fstr, 0, 60);
                 strcpy_P(fstr, ESP8266_FIREBASE_STR_5);
@@ -3415,11 +3391,7 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
                     memset(tmp, 0, tempBufSize);
                     strncpy(tmp, lineBuf + p1 + strlen_P(ESP8266_FIREBASE_STR_12), strlen(lineBuf) - p1 - strlen_P(ESP8266_FIREBASE_STR_12));
                     contentLength = atoi(tmp);
-                    dataObj._backupzFileSize = contentLength;
-                    count = contentLength;
-
-                    if (dataObj._fileName != "")
-                        count -= strlen_P(ESP8266_FIREBASE_STR_93) - 1;
+                    dataObj._backupFileSize = contentLength;
                 }
                 memset(fstr, 0, 60);
                 strcpy_P(fstr, ESP8266_FIREBASE_STR_80);
@@ -3448,6 +3420,7 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
                     {
                         for (size_t i = 0; i < strlen_P(ESP8266_FIREBASE_STR_93); i++)
                             dataObj._net._client->read();
+                        count = contentLength -strlen_P(ESP8266_FIREBASE_STR_93);
                     }
                 }
 
@@ -3461,7 +3434,6 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
             }
         }
     }
-
     delete[] buff;
     delete[] lineBuf;
     delete[] contentType;
@@ -3552,7 +3524,7 @@ bool FirebaseESP8266::getUploadResponse(FirebaseData &dataObj)
 
             res = dataObj._net._client->read();
 
-            if (res < 0 || res > 0xff)
+            if (res < 0)
                 continue;
 
             c = (char)res;
@@ -3567,7 +3539,6 @@ bool FirebaseESP8266::getUploadResponse(FirebaseData &dataObj)
                 p1 = strpos(lineBuf, fstr, 0);
                 if (p1 != -1)
                 {
-
                     memset(tmp, 0, tempBufSize);
                     dataObj._firebaseError.clear();
                     strncpy(tmp, lineBuf + p1 + strlen_P(ESP8266_FIREBASE_STR_102) + 1, strlen(lineBuf) - p1 - strlen_P(ESP8266_FIREBASE_STR_102) - 2);
@@ -3611,7 +3582,6 @@ bool FirebaseESP8266::getUploadResponse(FirebaseData &dataObj)
     if (dataObj._httpCode != -1000 && _httpCode != _HTTP_CODE_NO_CONTENT)
     {
         dataObj._firebaseError.clear();
-
         memset(tmp, 0, tempBufSize);
         strcpy_P(tmp, ESP8266_FIREBASE_STR_87);
         strcat(tmp, dataObj.errorReason().c_str());
@@ -3721,8 +3691,6 @@ bool FirebaseESP8266::getServerStreamResponse(FirebaseData &dataObj)
             dataObj._streamCall = true;
 
             firebaseConnectStream(dataObj, path.c_str());
-
-            res = false;
 
             res = getServerResponse(dataObj);
 
@@ -4416,9 +4384,10 @@ void FirebaseESP8266::setDataType(FirebaseData &dataObj, const char *data)
 
 void FirebaseESP8266::setSecure(FirebaseData &dataObj)
 {
+    dataObj._net._bsslLowBuf= _bsslLowBuf;
     if (dataObj._net._certType == -1)
     {
-        if (!_clockReady)
+        if (!_clockReady && _rootCA)
             setClock();
 
         dataObj._net._clockReady = _clockReady;
@@ -5545,7 +5514,6 @@ bool FirebaseESP8266::base64_decode_SPIFFS(fs::File &file, const char *src, size
     size_t i, count;
     int pad = 0;
     size_t extra_pad;
-
     count = 0;
 
     for (i = 0; i < len; i++)
@@ -5794,9 +5762,9 @@ void FirebaseData::setQuery(QueryFilter &query)
     queryFilter._equalTo = query._equalTo;
 }
 
-SSL_CLIENT FirebaseData::getWiFiClient()
+SSL_CLIENT *FirebaseData::getWiFiClient()
 {
-    return *_net._client;
+    return _net._client.get();
 }
 
 bool FirebaseData::pauseFirebase(bool pause)
@@ -6170,7 +6138,7 @@ bool FirebaseData::bufferOverflow()
 
 size_t FirebaseData::getBackupFileSize()
 {
-    return _backupzFileSize;
+    return _backupFileSize;
 }
 
 String FirebaseData::getBackupFilename()

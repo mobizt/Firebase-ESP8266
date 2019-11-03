@@ -1,5 +1,5 @@
 /*
- * HTTP Client wrapper v1.0.5
+ * HTTP Client wrapper v1.0.6
  * 
  * The MIT License (MIT)
  * Copyright (c) 2019 K. Suwatchai (Mobizt)
@@ -34,9 +34,9 @@ FirebaseHTTPClient::FirebaseHTTPClient()
 
 FirebaseHTTPClient::~FirebaseHTTPClient()
 {
- _client->stop();
- _client.reset();
- _client.release();
+  _client->stop();
+  _client.reset();
+  _client.release();
 }
 
 void FirebaseHTTPClient::setRootCA(const char *rootCA)
@@ -45,28 +45,29 @@ void FirebaseHTTPClient::setRootCA(const char *rootCA)
   {
 #ifndef USING_AXTLS
 
-    _client->setBufferSizes(512, 512);
+    if(_bsslLowBuf)
+    _client->setBufferSizes(1024, 512);
 
     if (rootCA)
       _client->setTrustAnchors(new X509List(rootCA));
 
 #else
     if (rootCA)
-     _client->setCACert_P(rootCA, strlen_P(rootCA));
+      _client->setCACert_P(rootCA, strlen_P(rootCA));
 #endif
 
     _certType = 1;
   }
 
-
-  if (rootCA == nullptr){
+  if (rootCA == nullptr)
+  {
 #ifndef USING_AXTLS
-   _client->setInsecure();
+    _client->setInsecure();
 #endif
     _certType = 0;
   }
-  
- _client->setNoDelay(true);
+
+  _client->setNoDelay(true);
 }
 
 void FirebaseHTTPClient::setRootCAFile(std::string &rootCAFile, uint8_t storageType, uint8_t sdPin)
@@ -74,7 +75,8 @@ void FirebaseHTTPClient::setRootCAFile(std::string &rootCAFile, uint8_t storageT
 
 #ifndef USING_AXTLS
   _sdPin = sdPin;
- _client->setBufferSizes(512, 512);
+  if(_bsslLowBuf)
+    _client->setBufferSizes(1024, 512);
 
   if (_clockReady && rootCAFile.length() > 0)
   {
@@ -95,7 +97,7 @@ void FirebaseHTTPClient::setRootCAFile(std::string &rootCAFile, uint8_t storageT
             f.read(der, len);
 
           f.close();
-         _client->setTrustAnchors(new X509List(der, len));
+          _client->setTrustAnchors(new X509List(der, len));
           delete[] der;
         }
       }
@@ -115,7 +117,7 @@ void FirebaseHTTPClient::setRootCAFile(std::string &rootCAFile, uint8_t storageT
             f.read(der, len);
 
           f.close();
-         _client->setTrustAnchors(new X509List(der, len));
+          _client->setTrustAnchors(new X509List(der, len));
           delete[] der;
         }
       }
@@ -124,7 +126,7 @@ void FirebaseHTTPClient::setRootCAFile(std::string &rootCAFile, uint8_t storageT
   }
 #endif
 
- _client->setNoDelay(true);
+  _client->setNoDelay(true);
 }
 
 bool FirebaseHTTPClient::begin(const std::string host, uint16_t port)
@@ -143,7 +145,7 @@ bool FirebaseHTTPClient::sendHeader(const char *header)
 {
   if (!connected())
     return false;
- _client->print(header);
+  _client->print(header);
   return true;
 }
 
@@ -155,7 +157,7 @@ int FirebaseHTTPClient::sendRequest(const char *header, const char *payload)
   if (!sendHeader(header))
     return HTTPC_ERROR_SEND_HEADER_FAILED;
   if (size > 0)
-   _client->print(payload);
+    _client->print(payload);
 
   return 0;
 }
@@ -165,7 +167,7 @@ bool FirebaseHTTPClient::connect(void)
   if (connected())
   {
     while (_client->available() > 0)
-     _client->read();
+      _client->read();
     return true;
   }
 
