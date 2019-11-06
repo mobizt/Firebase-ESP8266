@@ -1,13 +1,12 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.6.5
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.6.6
  * 
- * November 3, 2019
+ * November 7, 2019
  * 
  * Feature Added:
- * - Low memory BearSSL enable/disable.
  * 
  * Feature Fixed: 
- * - Large file (SPIFFS and SD) get's truncated data.
+ * - BearSSL reserved rx buffer.
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -4387,7 +4386,7 @@ void FirebaseESP8266::setSecure(FirebaseData &dataObj)
     dataObj._net._bsslLowBuf= _bsslLowBuf;
     if (dataObj._net._certType == -1)
     {
-        if (!_clockReady && _rootCA)
+        if (!_clockReady)
             setClock();
 
         dataObj._net._clockReady = _clockReady;
