@@ -1,12 +1,12 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.6.7
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.6.8
  * 
- * November 12, 2019
+ * November 13, 2019
  * 
  * Feature Added:
  * 
  * Feature Fixed: 
- * - FirebaseJson array parsing.
+ * - Fix internal clock setting for BearSSL if root CA was set (ESP8266 Core SDK 2.5.x or later).
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -151,22 +151,26 @@ void FirebaseESP8266::begin(const String &host, const String &auth)
     delete[] tmp;
 }
 
-void FirebaseESP8266::begin(const String &host, const String &auth, const char *rootCA)
+void FirebaseESP8266::begin(const String &host, const String &auth, const char *rootCA, float GMTOffset)
 {
     begin(host, auth);
     if (rootCA)
     {
-        setClock();
+        if (GMTOffset >= -12.0 && GMTOffset <= 14.0)
+            _gmtOffset = GMTOffset;
+        setClock(_gmtOffset);
         _rootCA = std::shared_ptr<const char>(rootCA);
     }
 }
 
-void FirebaseESP8266::begin(const String &host, const String &auth, const String &rootCAFile, uint8_t storageType)
+void FirebaseESP8266::begin(const String &host, const String &auth, const String &rootCAFile, uint8_t storageType, float GMTOffset)
 {
     begin(host, auth);
     if (rootCAFile.length() > 0)
     {
-        setClock();
+        if (GMTOffset >= -12.0 && GMTOffset <= 14.0)
+            _gmtOffset = GMTOffset;
+        setClock(_gmtOffset);
         _rootCAFile = rootCAFile.c_str();
         _rootCAFileStoreageType = storageType;
         if (storageType == StorageType::SD && !_sdOk)
@@ -2065,7 +2069,6 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const std::string &p
     memset(slash, 0, 10);
     strcpy_P(slash, ESP8266_FIREBASE_STR_1);
 
-
     if (method == FirebaseMethod::STREAM)
     {
         //stream path change? reset the current (keep alive) connection
@@ -2576,7 +2579,6 @@ bool FirebaseESP8266::sendRequest(FirebaseData &dataObj, uint8_t storageType, co
     dataObj._firebaseCall = false;
     return flag;
 }
-
 
 bool FirebaseESP8266::clientAvailable(FirebaseData &dataObj, bool available)
 {
@@ -3293,7 +3295,7 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
             }
             else
             {
-                
+
                 if (contentLength <= 4)
                 {
                     dataObj._httpCode = _HTTP_CODE_NOT_FOUND;
@@ -3311,14 +3313,14 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
                     {
                         res = dataObj._net._client->read();
                         if (res < 0)
-                            continue;                        
+                            continue;
                         c = (char)res;
                         if (dataObj._fileName == "" || (dataObj._fileName != "" && c != '"'))
                             buff[cnt] = c;
                         cnt++;
                     }
                     dataTime = millis();
-                    count -=cnt;
+                    count -= cnt;
                     toRead = cnt;
                     buff[cnt] = '\0';
                     if (dataObj._storageType == StorageType::SPIFFS)
@@ -3335,7 +3337,7 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
                         else
                             base64_decode_file(file, buff, toRead);
                     }
-                    if(cnt == 0)
+                    if (cnt == 0)
                         break;
                     continue;
                 }
@@ -3419,7 +3421,7 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
                     {
                         for (size_t i = 0; i < strlen_P(ESP8266_FIREBASE_STR_93); i++)
                             dataObj._net._client->read();
-                        count = contentLength -strlen_P(ESP8266_FIREBASE_STR_93);
+                        count = contentLength - strlen_P(ESP8266_FIREBASE_STR_93);
                     }
                 }
 
@@ -4383,14 +4385,17 @@ void FirebaseESP8266::setDataType(FirebaseData &dataObj, const char *data)
 
 void FirebaseESP8266::setSecure(FirebaseData &dataObj)
 {
-    dataObj._net._bsslLowBuf= _bsslLowBuf;
+    dataObj._net._bsslLowBuf = _bsslLowBuf;
     if (dataObj._net._certType == -1)
     {
-        if (!_clockReady)
-            setClock();
 
-        dataObj._net._clockReady = _clockReady;
-
+#ifndef USING_AXTLS
+        if (!_clockReady && (_rootCAFile.length() > 0 || _rootCA))
+        {
+            setClock(_gmtOffset);
+            dataObj._net._clockReady = _clockReady;
+        }
+#endif
         if (_rootCAFile.length() == 0)
         {
             if (_rootCA)
@@ -5629,10 +5634,10 @@ char *FirebaseESP8266::rstrstr(const char *haystack, const char *needle)
     return 0;
 }
 
-void FirebaseESP8266::setClock()
+void FirebaseESP8266::setClock(float offset)
 {
     reconnect();
-    configTime(3 * 3600, 0, "pool.ntp.org", "time.nist.gov");
+    configTime(offset * 3600, 0, "pool.ntp.org", "time.nist.gov");
     time_t now = time(nullptr);
     uint8_t tryCount = 0;
     while (now < 8 * 3600 * 2)

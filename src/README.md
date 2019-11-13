@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.6.7
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.6.8
 
 
 ## Global functions
@@ -19,14 +19,19 @@ param **`rootCAFile`** - Root CA certificate DER file (binary).
 
 param **`storageType`** - Type of storage, StorageType::SD and StorageType::SPIFFS.
 
+param **`GMTOffset`** - GMT time offset in hour is required to set time in order to make BearSSL 
+                        data decryption/encryption to work.
+
+                        This parameter is only required for ESP8266 Core SDK v2.5.x or later.
+
 Root CA certificate DER file is only support in Core SDK v2.5.x
 
 ```C++
 void begin(const String &host, const String &auth);
 
-void begin(const String &host, const String &auth, const char *rootCA);
+void begin(const String &host, const String &auth, const char *rootCA, float GMTOffset = 0.0);
   
-void begin(const String &host, const String &auth, const String &rootCAFile, uint8_t storageType);
+void begin(const String &host, const String &auth, const String &rootCAFile, uint8_t storageType, float GMTOffset = 0.0);
 ```
 
 

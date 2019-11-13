@@ -1,5 +1,5 @@
 /*
- * HTTP Client wrapper v1.0.5
+ * HTTP Client wrapper v1.0.6
  * 
  * The MIT License (MIT)
  * Copyright (c) 2019 K. Suwatchai (Mobizt)
@@ -41,25 +41,22 @@ FirebaseHTTPClient::~FirebaseHTTPClient()
 
 void FirebaseHTTPClient::setRootCA(const char *rootCA)
 {
-  if (_clockReady)
-  {
+
 #ifndef USING_AXTLS
-
-    if(_bsslLowBuf)
+  if (_bsslLowBuf)
     _client->setBufferSizes(512, 512);
-
-    if (rootCA)
-      _client->setTrustAnchors(new X509List(rootCA));
-
-#else
-    if (rootCA)
-      _client->setCACert_P(rootCA, strlen_P(rootCA));
 #endif
 
+  if (rootCA)
+  {
+#ifndef USING_AXTLS
+    _client->setTrustAnchors(new X509List(rootCA));
+#else
+    _client->setCACert_P(rootCA, strlen_P(rootCA));
+#endif
     _certType = 1;
   }
-
-  if (rootCA == nullptr)
+  else
   {
 #ifndef USING_AXTLS
     _client->setInsecure();
@@ -75,7 +72,7 @@ void FirebaseHTTPClient::setRootCAFile(std::string &rootCAFile, uint8_t storageT
 
 #ifndef USING_AXTLS
   _sdPin = sdPin;
-  if(_bsslLowBuf)
+  if (_bsslLowBuf)
     _client->setBufferSizes(512, 512);
 
   if (_clockReady && rootCAFile.length() > 0)

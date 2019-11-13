@@ -69,9 +69,12 @@ void setup()
   Serial.print("Connected with IP: ");
   Serial.println(WiFi.localIP());
   Serial.println();
-  
+
+  //GMT time offset in hour is required to set time in order to make BearSSL data decryption/encryption to work.
+  //This parameter is only required in ESP8266 Core SDK v2 .5.x or later.
+  //Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH, root_ca, 9.3);
   Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH, root_ca);
-  
+
   /*
   //The following feature is for ESP8266 Arduino Core SDK v2.5.x.
   

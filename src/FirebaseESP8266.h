@@ -1,12 +1,12 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.6.7
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.6.8
  * 
- * November 12, 2019
+ * November 13, 2019
  * 
  * Feature Added:
  * 
  * Feature Fixed: 
- * - FirebaseJson array parsing.
+ * - Fix internal clock setting for BearSSL if root CA was set (ESP8266 Core SDK 2.5.x or later).
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -546,15 +546,18 @@ public:
     @param rootCA - Root CA certificate base64 string (PEM file).
     @param rootCAFile - Root CA certificate DER file (binary).
     @param StorageType - Type of storage, StorageType::SD and StorageType::SPIFFS.
+    @param GMTOffset - GMT time offset in hour is required to set time in order to make BearSSL 
+                       data decryption/encryption to work.
+                       This parameter is only required for ESP8266 Core SDK v2.5.x or later.
 
     Root CA certificate DER file is only support in Core SDK v2.5.x
 
   */
   void begin(const String &host, const String &auth);
 
-  void begin(const String &host, const String &auth, const char *rootCA);
+  void begin(const String &host, const String &auth, const char *rootCA, float GMTOffset = 0.0);
 
-  void begin(const String &host, const String &auth, const String &rootCAFile, uint8_t storageType);
+  void begin(const String &host, const String &auth, const String &rootCAFile, uint8_t storageType, float GMTOffset = 0.0);
 
   /*
     Reconnect WiFi if lost connection.
@@ -1391,7 +1394,6 @@ public:
 
   bool set(FirebaseData &dataObj, const String &path, FirebaseJsonArray &arr);
 
-
   /*
 
     Set FirebaseJsonArray object and virtual child ".priority" at the defined database path.
@@ -1576,7 +1578,6 @@ public:
    */
   bool setTimestamp(FirebaseData &dataObj, const String &path);
 
-
   /*
     Update child nodes's key or exising key's value (using FirebaseJson object) under the defined database path.
 
@@ -1605,7 +1606,6 @@ public:
 
   bool updateNode(FirebaseData &dataObj, const String &path, FirebaseJson &json, float priority);
 
-
   /*
     Update child nodes's key or exising key's value (using FirebaseJson object) under the defined database path.
 
@@ -1628,7 +1628,6 @@ public:
   */
 
   bool updateNodeSilent(FirebaseData &dataObj, const String &path, FirebaseJson &json, float priority);
-
 
   /*
     Read the any type of value at the defined database path.
@@ -2479,7 +2478,7 @@ private:
   int strpos(const char *haystack, const char *needle, int offset);
   int rstrpos(const char *haystack, const char *needle, int offset);
   char *rstrstr(const char *haystack, const char *needle);
-  void setClock();
+  void setClock(float offset);
 
   void set_scheduled_callback(callback_function_t callback)
   {
@@ -2503,10 +2502,8 @@ private:
   uint16_t _reconnectTimeout = 10000;
   File file;
   fs::File _file;
-  
+  float _gmtOffset = 0.0;
 };
-
-
 
 class FirebaseData
 {
