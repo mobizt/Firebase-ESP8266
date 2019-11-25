@@ -1,12 +1,12 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.7.0
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.7.1
  * 
- * November 15, 2019
+ * November 25, 2019
  * 
  * Feature Added:
  * 
  * Feature Fixed: 
- * - Fix FirebaseJson set/remove bugs.
+ * - Fix zero length string bugs.
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -2884,21 +2884,25 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
                             memset(lineBuf, 0, FIREBASE_RESPONSE_SIZE);
                         }
 
-                        memset(fstr, 0, 60);
-                        strcpy_P(fstr, ESP8266_FIREBASE_STR_14);
-
-                        p1 = strpos(lineBuf, fstr, 0);
-                        if (p1 != -1)
+                        if (strlen(lineBuf) > 0)
                         {
-                            hasEventData = true;
-                            isStream = true;
-                            dataObj._httpCode = _HTTP_CODE_OK;
 
-                            memset(tmp, 0, tempBufSize);
-                            strncpy(tmp, lineBuf + p1 + strlen_P(ESP8266_FIREBASE_STR_14), strlen(lineBuf) - p1 - strlen_P(ESP8266_FIREBASE_STR_14));
-                            memset(lineBuf, 0, FIREBASE_RESPONSE_SIZE);
-                            strcpy(lineBuf, tmp);
-                            break;
+                            memset(fstr, 0, 60);
+                            strcpy_P(fstr, ESP8266_FIREBASE_STR_14);
+
+                            p1 = strpos(lineBuf, fstr, 0);
+                            if (p1 != -1)
+                            {
+                                hasEventData = true;
+                                isStream = true;
+                                dataObj._httpCode = _HTTP_CODE_OK;
+
+                                memset(tmp, 0, tempBufSize);
+                                strncpy(tmp, lineBuf + p1 + strlen_P(ESP8266_FIREBASE_STR_14), strlen(lineBuf) - p1 - strlen_P(ESP8266_FIREBASE_STR_14));
+                                memset(lineBuf, 0, FIREBASE_RESPONSE_SIZE);
+                                strcpy(lineBuf, tmp);
+                                break;
+                            }
                         }
                     }
                 }
@@ -5591,6 +5595,9 @@ void FirebaseESP8266::strcat_c(char *str, char c)
 int FirebaseESP8266::strpos(const char *haystack, const char *needle, int offset)
 {
     size_t len = strlen(haystack);
+    size_t len2 = strlen(needle);
+    if (len == 0 || len < len2 || len2 == 0)
+        return -1;
     char *_haystack = new char[len];
     memset(_haystack, 0, len);
     strncpy(_haystack, haystack + offset, strlen(haystack) - offset);
@@ -5605,6 +5612,9 @@ int FirebaseESP8266::strpos(const char *haystack, const char *needle, int offset
 int FirebaseESP8266::rstrpos(const char *haystack, const char *needle, int offset)
 {
     size_t len = strlen(haystack);
+    size_t len2 = strlen(needle);
+    if (len == 0 || len < len2 || len2 == 0)
+        return -1;
     char *_haystack = new char[len];
     memset(_haystack, 0, len);
     strncpy(_haystack, haystack + offset, len - offset);
