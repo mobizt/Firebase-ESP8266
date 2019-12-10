@@ -1,5 +1,5 @@
 /*
- * HTTP Client wrapper v1.0.6
+ * HTTP Client wrapper v1.0.7
  * 
  * The MIT License (MIT)
  * Copyright (c) 2019 K. Suwatchai (Mobizt)

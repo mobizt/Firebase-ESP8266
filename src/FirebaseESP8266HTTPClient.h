@@ -1,5 +1,5 @@
 /*
- * HTTP Client wrapper v1.0.6
+ * HTTP Client wrapper v1.0.7
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
  * and delete calls. 
@@ -32,6 +32,10 @@
 #define FirebaseESP8266HTTPClient_H
 
 //ARDUINO_ESP8266_GIT_VER
+//2.6.2 0xbc204a9b
+//2.6.1 0x482516e3
+//2.6.0 0x643ec203
+//2.5.2 0x8b899c12
 //2.5.1 0xac02aff5
 //2.5.0 0x951aeffa
 //2.5.0-beta3 0x21db8fc9
@@ -51,6 +55,11 @@
 #error Your ESP8266 Arduino Core SDK is outdated, please update. From Arduino IDE go to Boards Manager and search 'esp8266' then select the latest version.
 #endif
 
+//2.6.1 BearSSL bug
+#if ARDUINO_ESP8266_GIT_VER == 0x482516e3
+#error Due to bugs in BearSSL in ESP8266 Arduino Core SDK version 2.6.1, please update ESP8266 Arduino Core SDK to newer version. The issue was found here https:\/\/github.com/esp8266/Arduino/issues/6811.
+#endif
+
 #if ARDUINO_ESP8266_GIT_VER != 0xf6d232f1 && ARDUINO_ESP8266_GIT_VER != 0x0c897c37 && ARDUINO_ESP8266_GIT_VER != 0x4ceabea9 && ARDUINO_ESP8266_GIT_VER != 0x614f7c32 && ARDUINO_ESP8266_GIT_VER != 0xbb28d4a3
 #include <WiFiClientSecure.h>
 #include <CertStoreBearSSL.h>
@@ -59,7 +68,7 @@
 #elif ARDUINO_ESP8266_GIT_VER == 0xbb28d4a3
 #define USING_AXTLS
 #include <WiFiClientSecureAxTLS.h>
-using namespace axTLS;
+    using namespace axTLS;
 #define SSL_CLIENT axTLS::WiFiClientSecure
 #else
 #define USING_AXTLS
@@ -121,7 +130,7 @@ using namespace axTLS;
 #define _HTTP_CODE_LOOP_DETECTED 508
 #define _HTTP_CODE_NETWORK_AUTHENTICATION_REQUIRED 511
 
-class FirebaseHTTPClient
+    class FirebaseHTTPClient
 {
 
   friend class FirebaseESP8266;

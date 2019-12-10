@@ -1,12 +1,13 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.7.1
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.7.2
  * 
- * November 25, 2019
+ * December 10, 2019
  * 
  * Feature Added:
  * 
  * Feature Fixed: 
- * - Fix zero length string bugs.
+ * - Fix zero length string bugs in FCM class.
+ * - Add compiler error for bugs in BearSSL in ESP8266 Arduino Core SDK version 2.6.1
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -229,7 +230,7 @@ bool FirebaseESP8266::buildRequest(FirebaseData &dataObj, uint8_t firebaseMethod
 
     if (dataObj._streamCall || dataObj._fcmCall)
         while ((dataObj._streamCall || dataObj._fcmCall) && millis() - lastTime < 1000)
-            delay(1);
+            delay(0);
 
     if (dataObj._streamCall || dataObj._fcmCall)
     {
@@ -287,7 +288,7 @@ bool FirebaseESP8266::buildRequestFile(FirebaseData &dataObj, uint8_t storageTyp
 
     if (dataObj._streamCall || dataObj._fcmCall)
         while ((dataObj._streamCall || dataObj._fcmCall) && millis() - lastTime < 1000)
-            delay(1);
+            delay(0);
 
     if (dataObj._streamCall || dataObj._fcmCall)
     {
@@ -2664,7 +2665,7 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
         {
             if (!apConnected(dataObj))
                 return false;
-            delay(1);
+            delay(0);
         }
 
     dataTime = millis();
@@ -3273,7 +3274,7 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
     {
         if (!apConnected(dataObj))
             return false;
-        delay(1);
+        delay(0);
     }
 
     dataTime = millis();
@@ -3508,7 +3509,7 @@ bool FirebaseESP8266::getUploadResponse(FirebaseData &dataObj)
         {
             if (!apConnected(dataObj))
                 return false;
-            delay(1);
+            delay(0);
         }
 
     dataTime = millis();
@@ -4073,6 +4074,7 @@ void FirebaseESP8266::sendFirebaseRequest(FirebaseData &dataObj, const char *hos
         retryCount++;
         if (retryCount > maxRetry)
             break;
+        delay(0);
     }
 
     if (strlen(path) > 0)
@@ -4639,7 +4641,7 @@ bool FirebaseESP8266::sendFCMMessage(FirebaseData &dataObj, uint8_t messageType)
 
     if (dataObj._streamCall || dataObj._firebaseCall || dataObj._fcmCall)
         while ((dataObj._streamCall || dataObj._firebaseCall || dataObj._fcmCall) && millis() - lastTime < 1000)
-            delay(1);
+            delay(0);
 
     if (dataObj._streamCall || dataObj._firebaseCall || dataObj._fcmCall)
     {
@@ -6684,6 +6686,7 @@ bool FCMObject::fcm_connect(FirebaseHTTPClient &net)
 
     return true;
 }
+
 void FCMObject::fcm_buildHeader(char *header, size_t payloadSize)
 {
     char *len = new char[20];
@@ -6889,12 +6892,12 @@ bool FCMObject::getFCMServerResponse(FirebaseHTTPClient &net, int &httpcode)
 
     _sendResult = "";
 
-    char c;
-    int p1;
+    char c = '\0';
+    int p1 = -1;
+    int r = -1;
     httpcode = -1000;
 
     size_t lfCount = 0;
-    size_t charPos = 0;
 
     bool payloadBegin = false;
 
@@ -6907,7 +6910,7 @@ bool FCMObject::getFCMServerResponse(FirebaseHTTPClient &net, int &httpcode)
             httpcode = HTTPC_ERROR_CONNECTION_LOST;
             return false;
         }
-        delay(1);
+        delay(0);
     }
 
     dataTime = millis();
@@ -6916,6 +6919,7 @@ bool FCMObject::getFCMServerResponse(FirebaseHTTPClient &net, int &httpcode)
 
         while (net._client->available())
         {
+            delay(0);
 
             if (WiFi.status() != WL_CONNECTED)
             {
@@ -6923,12 +6927,13 @@ bool FCMObject::getFCMServerResponse(FirebaseHTTPClient &net, int &httpcode)
                 return false;
             }
 
-            c = net._client->read();
+            r = net._client->read();
+            if (r < 0)
+                continue;
+            c = (char)r;
 
             if (c != '\r' && c != '\n')
                 strcat_c(lineBuf, c);
-
-            charPos++;
 
             if (c == '\n')
             {
@@ -6953,7 +6958,6 @@ bool FCMObject::getFCMServerResponse(FirebaseHTTPClient &net, int &httpcode)
                     memset(lineBuf, 0, FIREBASE_RESPONSE_SIZE);
 
                 lfCount++;
-                charPos = 0;
             }
 
             if (millis() - dataTime > 5000)
@@ -7069,6 +7073,9 @@ void FCMObject::strcat_c(char *str, char c)
 int FCMObject::strpos(const char *haystack, const char *needle, int offset)
 {
     size_t len = strlen(haystack);
+    size_t len2 = strlen(needle);
+    if (len == 0 || len < len2 || len2 == 0)
+        return -1;
     char *_haystack = new char[len];
     memset(_haystack, 0, len);
     strncpy(_haystack, haystack + offset, strlen(haystack) - offset);
