@@ -53,6 +53,14 @@ For library v 2.7.2 (comes with FirebaseJson v 2.2.7) or later, FirebaseJson obj
 getJson, setJson, pushJson, updateNode and updateNodeSilent.
 
 
+## Known bugs
+
+From [known bugs](https://github.com/mobizt/Firebase-ESP8266/issues/74) for BearSSL stack in ESP8266 Arduino Core SDK version 2.6.1.
+
+If you're using this SDK version, please update the ESP8266 Arduino Core SDK to version 2.6.2 or newer.
+
+
+
 ## Basic Examples
 
 Don't be confused with other Firebase Arduino libraries, this library has different working functions, the following examples provide the basic usages.
