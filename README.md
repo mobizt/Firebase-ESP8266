@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.7.2
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.7.3
 
 
 This library supports ESP8266 MCU from Espressif. The following are platforms which library are also available.
@@ -48,7 +48,7 @@ This library supports ESP8266 MCU from Espressif. The following are platforms wh
 
 ## Changes from earlier version
 
-For library v 2.7.2 (comes with FirebaseJson v 2.2.7) or later, FirebaseJson object will be used to handle JSON data instead of JSON string which, the following functions are affected:
+For library v 2.7.3 (comes with FirebaseJson v 2.2.7) or later, FirebaseJson object will be used to handle JSON data instead of JSON string which, the following functions are affected:
 
 getJson, setJson, pushJson, updateNode and updateNodeSilent.
 
@@ -699,7 +699,7 @@ This library provides two approaches to run or process Error Queues with two fun
 * `beginAutoRunErrorQueue`
 * `processErrorQueue`
 
-The function `beginAutoRunErrorQueue` will run or process queues automatically and can be call once. 
+The function `beginAutoRunErrorQueue` will run or process queues automatically and can be called once. 
 
 While function `processErrorQueue` will run or process queues and should call inside the loop().
 
