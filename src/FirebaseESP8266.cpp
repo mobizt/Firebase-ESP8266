@@ -1,12 +1,12 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.7.3
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.7.5
  * 
- * December 15, 2019
+ * December 20, 2019
  * 
  * Feature Added:
  * 
  * Feature Fixed: 
- * - Fix StreamData return string bug.
+ * - Fix empty data when none POST payload contains name key.
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -3103,23 +3103,26 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
                     }
 
                     //Push (POST) data?
-                    memset(fstr, 0, 60);
-                    strcpy_P(fstr, ESP8266_FIREBASE_STR_20);
-                    p1 = strpos(lineBuf, fstr, 0);
-                    if (p1 != -1)
+                    if (dataObj._r_method == FirebaseMethod::POST)
                     {
                         memset(fstr, 0, 60);
-                        strcpy_P(fstr, ESP8266_FIREBASE_STR_3);
-                        p2 = strpos(lineBuf, fstr, p1 + strlen_P(ESP8266_FIREBASE_STR_20));
-                        if (p2 != -1)
+                        strcpy_P(fstr, ESP8266_FIREBASE_STR_20);
+                        p1 = strpos(lineBuf, fstr, 0);
+                        if (p1 != -1)
                         {
-                            dataObj._pushName.clear();
-                            memset(tmp, 0, tempBufSize);
-                            strncpy(tmp, lineBuf + p1 + strlen_P(ESP8266_FIREBASE_STR_20), p2 - p1 - strlen_P(ESP8266_FIREBASE_STR_20));
-                            dataObj._pushName = tmp;
-                            dataObj._dataType = -1;
-                            dataObj._dataType2 = -1;
-                            dataObj._data.clear();
+                            memset(fstr, 0, 60);
+                            strcpy_P(fstr, ESP8266_FIREBASE_STR_3);
+                            p2 = strpos(lineBuf, fstr, p1 + strlen_P(ESP8266_FIREBASE_STR_20));
+                            if (p2 != -1)
+                            {
+                                dataObj._pushName.clear();
+                                memset(tmp, 0, tempBufSize);
+                                strncpy(tmp, lineBuf + p1 + strlen_P(ESP8266_FIREBASE_STR_20), p2 - p1 - strlen_P(ESP8266_FIREBASE_STR_20));
+                                dataObj._pushName = tmp;
+                                dataObj._dataType = 0;
+                                dataObj._dataType2 = 0;
+                                dataObj._data.clear();
+                            }
                         }
                     }
                 }
@@ -3135,8 +3138,8 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
                     dataObj._path.clear();
                     dataObj._data.clear();
                     dataObj._pushName.clear();
-                    dataObj._dataType = -1;
-                    dataObj._dataType2 = -1;
+                    dataObj._dataType = 0;
+                    dataObj._dataType2 = 0;
                     dataObj._dataAvailable = false;
                 }
             }
