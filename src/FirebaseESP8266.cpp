@@ -1,12 +1,12 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.7.5
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.7.6
  * 
- * December 20, 2019
+ * December 21, 2019
  * 
  * Feature Added:
  * 
  * Feature Fixed: 
- * - Fix empty data when none POST payload contains name key.
+ * - Fix unhandle stream callback data (FirebaseJsonArray and FirebaseJsonData).
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -5062,6 +5062,8 @@ void FirebaseESP8266::processFirebaseStream()
 
                 StreamData s;
                 s._json = &firebaseDataObject[id].get()._json;
+                s._jsonArr = &firebaseDataObject[id].get()._jsonArr;
+                s._jsonData = &firebaseDataObject[id].get()._jsonData;
                 s._streamPath = firebaseDataObject[id].get()._streamPath;
                 s._data = firebaseDataObject[id].get()._data;
                 s._path = firebaseDataObject[id].get()._path;
@@ -6042,27 +6044,16 @@ String FirebaseData::jsonString()
 FirebaseJson *FirebaseData::jsonObjectPtr()
 {
     if (_data.length() > 0 && _dataType == FirebaseESP8266::FirebaseDataType::JSON)
-    {
         _json._setJsonData(_data);
-        return &_json;
-    }
     return &_json;
 }
 
 FirebaseJson &FirebaseData::jsonObject()
 {
-    if (_data.length() > 0 && _dataType == FirebaseESP8266::FirebaseDataType::JSON)
-        _json._setJsonData(_data);
-    return _json;
+    return *jsonObjectPtr();
 }
 
 FirebaseJsonArray *FirebaseData::jsonArrayPtr()
-{
-    jsonArray();
-    return &_jsonArr;
-}
-
-FirebaseJsonArray &FirebaseData::jsonArray()
 {
     if (_data.length() > 0 && _dataType == FirebaseESP8266::FirebaseDataType::ARRAY)
     {
@@ -6091,12 +6082,22 @@ FirebaseJsonArray &FirebaseData::jsonArray()
         _jsonArr._json._rawbuf = _jsonArr._json._jsonData._dbuf.substr(1, _jsonArr._json._jsonData._dbuf.length() - 2);
         _jsonArr._arrLen = _jsonArr._json._jsonData._len;
     }
-    return _jsonArr;
+    return &_jsonArr;
+}
+
+FirebaseJsonArray &FirebaseData::jsonArray()
+{
+    return *jsonArrayPtr();
 }
 
 FirebaseJsonData &FirebaseData::jsonData()
 {
     return _jsonData;
+}
+
+FirebaseJsonData *FirebaseData::jsonDataPtr()
+{
+    return &_jsonData;
 }
 
 std::vector<uint8_t> FirebaseData::blobData()
@@ -6287,20 +6288,19 @@ String StreamData::jsonString()
         return std::string().c_str();
 }
 
-FirebaseJson *StreamData::jsonObject()
+FirebaseJson *StreamData::jsonObjectPtr()
 {
     if (_dataType == FirebaseESP8266::FirebaseDataType::JSON)
-    {
         _json->_setJsonData(_data);
-        return _json;
-    }
-    else
-    {
-        return _json;
-    }
+    return _json;
 }
 
-FirebaseJsonArray *StreamData::jsonArray()
+FirebaseJson &StreamData::jsonObject()
+{
+    return *jsonObjectPtr();
+}
+
+FirebaseJsonArray *StreamData::jsonArrayPtr()
 {
     if (_data.length() > 0 && _dataType == FirebaseESP8266::FirebaseDataType::ARRAY)
     {
@@ -6332,9 +6332,18 @@ FirebaseJsonArray *StreamData::jsonArray()
     return _jsonArr;
 }
 
-FirebaseJsonData *StreamData::jsonData()
+FirebaseJsonArray &StreamData::jsonArray(){
+    return *jsonArrayPtr();
+}
+
+FirebaseJsonData *StreamData::jsonDataPtr()
 {
     return _jsonData;
+}
+
+FirebaseJsonData &StreamData::jsonData()
+{
+    return *_jsonData;
 }
 
 String StreamData::dataType()

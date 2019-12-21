@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.7.5
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.7.6
 
 
 ## Global functions
@@ -2818,12 +2818,26 @@ FirebaseJsonArray *jsonArrayPtr();
 
 
 
+
 #### the Firebase JSON Data object that keep the get(parse) result.
+
+return **`FirebaseJsonData object `**.
+
+```C++
+FirebaseJsonData &jsonData();
+```
+
+
+
+
+
+
+#### the Firebase JSON Data object pointer that keep the get(parse) result.
 
 return **`FirebaseJsonData object `**pointer.
 
 ```C++
-FirebaseJsonData &jsonData();
+FirebaseJsonData *jsonData();
 ```
 
 

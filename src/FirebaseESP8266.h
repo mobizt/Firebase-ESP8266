@@ -1,12 +1,12 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.7.5
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.7.6
  * 
- * December 20, 2019
+ * December 21, 2019
  * 
  * Feature Added:
  * 
  * Feature Fixed: 
- * - Fix empty data when none POST payload contains name key.
+ * - Fix unhandle stream callback data (FirebaseJsonArray and FirebaseJsonData).
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -2690,10 +2690,19 @@ public:
 
     Return the Firebase JSON Data object that keep the get(parse) result.
 
-    @return FirebaseJsonData object pointer.
+    @return FirebaseJsonData object.
 
   */
   FirebaseJsonData &jsonData();
+
+  /*
+
+    Return the Firebase JSON Data object pointer that keep the get(parse) result.
+
+    @return FirebaseJsonData object pointer.
+
+  */
+  FirebaseJsonData *jsonDataPtr();
 
   /*
 
@@ -2957,16 +2966,19 @@ public:
   bool boolData();
   String stringData();
   String jsonString();
-  FirebaseJson *jsonObject();
-  FirebaseJsonArray *jsonArray();
-  FirebaseJsonData *jsonData();
+  FirebaseJson *jsonObjectPtr();
+  FirebaseJson &jsonObject();
+  FirebaseJsonArray *jsonArrayPtr();
+  FirebaseJsonArray &jsonArray();
+  FirebaseJsonData *jsonDataPtr();
+  FirebaseJsonData &jsonData();
   String dataType();
   String eventType();
   void empty();
   friend FirebaseESP8266;
-  FirebaseJson *_json;
-  FirebaseJsonArray *_jsonArr;
-  FirebaseJsonData *_jsonData;
+  FirebaseJson *_json = nullptr;
+  FirebaseJsonArray *_jsonArr = nullptr;
+  FirebaseJsonData *_jsonData = nullptr;
 
 private:
   std::string _streamPath = "";

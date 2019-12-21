@@ -108,6 +108,12 @@ doubleData	KEYWORD2
 boolData	KEYWORD2
 stringData	KEYWORD2
 jsonData	KEYWORD2
+jsonObjectPtr   KEYWORD2
+jsonObject   KEYWORD2
+jsonArrayPtr    KEYWORD2
+jsonArray    KEYWORD2
+jsonDataPtr KEYWORD2
+jsonString  KEYWORD2
 blobData	KEYWORD2
 pushName	KEYWORD2
 isStream	KEYWORD2
@@ -158,7 +164,7 @@ equalTo	KEYWORD2
 equalTo	KEYWORD2
 
 ################################
-# Methods for QueInfo (KEYWORD2)
+# Methods for QueueInfo (KEYWORD2)
 ################################
 
 totalQueues	KEYWORD2
@@ -202,6 +208,8 @@ typeNum KEYWORD2
 success KEYWORD2
 getArray    KEYWORD2
 getJson KEYWORD2
+
+
 
 ######################################
 # Constants (LITERAL1)
