@@ -1,12 +1,16 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.7.6
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.7.7
  * 
- * December 21, 2019
+ * January 15, 2020
  * 
  * Feature Added:
+ * - Add setBSSLBufferSize to handle large data, lowMemBSSL function was removed. 
+ * - Add setResponseSize function to handle large data.
+ * 
  * 
  * Feature Fixed: 
- * - Fix unhandle stream callback data (FirebaseJsonArray and FirebaseJsonData).
+ * - Fix FirebaseJson's reserved JSMN token.
+ * - Integer push instead of float in Firebase.pushFloat.
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -54,7 +58,6 @@
 #include "FirebaseJson.h"
 
 #define FIEBASE_PORT 443
-#define FIREBASE_RESPONSE_SIZE 400
 #define KEEP_ALIVE_TIMEOUT 30000
 #define SD_CS_PIN 15
 
@@ -241,6 +244,7 @@ static const char ESP8266_FIREBASE_STR_171[] PROGMEM = "%f";
 static const char ESP8266_FIREBASE_STR_172[] PROGMEM = "[";
 static const char ESP8266_FIREBASE_STR_173[] PROGMEM = "]";
 static const char ESP8266_FIREBASE_STR_174[] PROGMEM = "array";
+static const char ESP8266_FIREBASE_STR_175[] PROGMEM = "unknown";
 
 static const unsigned char ESP8266_FIREBASE_base64_table[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -250,9 +254,8 @@ class QueueInfo;
 class FirebaseESP8266;
 class FCMObject;
 
-typedef void (*StreamEventCallback)(StreamData);
-typedef void (*StreamTimeoutCallback)(bool);
-typedef void (*QueueInfoCallback)(QueueInfo);
+
+
 typedef std::function<void(void)> callback_function_t;
 
 static std::vector<std::reference_wrapper<FirebaseData>> firebaseDataObject;
@@ -535,6 +538,10 @@ public:
   struct FirebaseMethod;
   struct FCMMessageType;
 
+  typedef void (*StreamEventCallback)(StreamData);
+  typedef void (*StreamTimeoutCallback)(bool);
+  typedef void (*QueueInfoCallback)(QueueInfo);
+
   FirebaseESP8266();
   ~FirebaseESP8266();
 
@@ -567,15 +574,7 @@ public:
   */
   void reconnectWiFi(bool reconnect);
 
-  /*
-    Enable low buffer memory for secured mode BearSSL WiFi client.
-
-    @param enable - The boolean to enable/disable low buffer memory for secured mode BearSSL.
-
-    Set this option to false to support get large Blob and File.
-
-  */
-  void lowMemBSSL(bool enable);
+  
 
   /*
     Set the timeouts of get function.
@@ -1598,6 +1597,7 @@ public:
   */
   bool updateNode(FirebaseData &dataObj, const String path, FirebaseJson &json);
 
+
   /*
 
     Update child nodes's key or exising key's value and virtual child ".priority" (using JSON data or FirebaseJson object) under the defined database path.
@@ -1605,6 +1605,7 @@ public:
   */
 
   bool updateNode(FirebaseData &dataObj, const String &path, FirebaseJson &json, float priority);
+
 
   /*
     Update child nodes's key or exising key's value (using FirebaseJson object) under the defined database path.
@@ -1621,6 +1622,7 @@ public:
   */
   bool updateNodeSilent(FirebaseData &dataObj, const String &path, FirebaseJson &json);
 
+
   /*
 
     Update child nodes's key or exising key's value and virtual child ".priority" (using JSON data or FirebaseJson object) under the defined database path.
@@ -1628,6 +1630,7 @@ public:
   */
 
   bool updateNodeSilent(FirebaseData &dataObj, const String &path, FirebaseJson &json, float priority);
+
 
   /*
     Read the any type of value at the defined database path.
@@ -2417,6 +2420,7 @@ public:
   template <typename T>
   bool push(FirebaseData &dataObj, const String &path, T value, size_t size, float priority);
 
+
 private:
   callback_function_t _callback_function = nullptr;
 
@@ -2494,7 +2498,6 @@ private:
   uint8_t _sdPin = 15;
   std::shared_ptr<const char> _rootCA = nullptr;
   bool _reconnectWiFi = false;
-  bool _bsslLowBuf = true;
   bool _sdOk = false;
   bool _sdInUse = false;
   bool _clockReady = false;
@@ -2511,6 +2514,26 @@ class FirebaseData
 public:
   FirebaseData();
   ~FirebaseData();
+
+  /*
+    Set the receive and transmit buffer memory size for secured mode BearSSL WiFi client.
+
+    @param rx - The number of bytes for receive buffer memory for secured mode BearSSL (512 is minimum, 16384 is maximum). 
+
+    @param tx - The number of bytes for transmit buffer memory for secured mode BearSSL (512 is minimum, 16384 is maximum). 
+
+    Set this option to false to support get large Blob and File operations.
+
+  */
+  void setBSSLBufferSize(uint16_t rx, uint16_t tx);
+
+  /*
+    Set the http response size limit.
+
+    @param len - The server response buffer size limit. 
+
+  */
+  void setResponseSize(uint16_t len);
 
   /*
 
@@ -2659,6 +2682,8 @@ public:
 
   FirebaseJson &jsonObject();
 
+  
+
   /*
 
     Return the Firebase JSON object pointer of server returned payload.
@@ -2795,7 +2820,7 @@ public:
 
     @return The overflow status.
 
-    Default buffer size is 400 bytes, assigned via FIREBASE_RESPONSE_SIZE macro in FirebaseESP8266.h
+    Total default http response buffer size is 400 bytes which can be set through FirebaseData.setResponseSize.
 
   */
   bool bufferOverflow();
@@ -2847,10 +2872,10 @@ public:
 
   friend class QueueManager;
 
-protected:
-  StreamEventCallback _dataAvailableCallback = NULL;
-  StreamTimeoutCallback _timeoutCallback = NULL;
-  QueueInfoCallback _queueInfoCallback = NULL;
+private:
+  FirebaseESP8266::StreamEventCallback _dataAvailableCallback = NULL;
+  FirebaseESP8266::StreamTimeoutCallback _timeoutCallback = NULL;
+  FirebaseESP8266::QueueInfoCallback _queueInfoCallback = NULL;
 
   int _index = -1;
   int _Qindex = -1;
@@ -2905,6 +2930,9 @@ protected:
   FirebaseJsonData _jsonData;
 
   uint16_t _maxBlobSize = 1024;
+  uint16_t _bsslRxSize = 512;
+  uint16_t _bsslTxSize = 512;
+  uint16_t _responseBufSize = 400;
 
   std::vector<uint8_t> _blob = std::vector<uint8_t>();
 

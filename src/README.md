@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.7.6
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.7.7
 
 
 ## Global functions
@@ -46,20 +46,6 @@ param **`reconnect`** - The boolean to set/unset WiFi AP reconnection.
 void reconnectWiFi(bool reconnect);
 ```
 
-
-
-
-
-#### Enable low buffer memory for secured mode BearSSL WiFi client.
-
-param **`enable`** - The boolean to enable/disable low buffer memory for secured mode BearSSL.
-
-
-Set this option to false to support get large Blob and File.
-
-```C++
-void lowMemBSSL(bool enable);
-```
 
 
 
@@ -1492,6 +1478,7 @@ no payload will be returned from server.
 
 ```C++
 bool updateNodeSilent(FirebaseData &dataObj, const String &path, FirebaseJson &json);
+
 ```
 
 
@@ -1987,9 +1974,13 @@ QueryFilter.orderBy -       Required parameter to specify which data used for da
 
 
 QueryFilter.limitToFirst -  The total children (number) to filter from the first child.
+
 QueryFilter.limitToLast -   The total last children (number) to filter.
+
 QueryFilter.startAt -       Starting value of range (number or string) of query upon orderBy param.
+
 QueryFilter.endAt -         Ending value of range (number or string) of query upon orderBy param.
+
 QueryFilter.equalTo -       Value (number or string) matches the orderBy param
 
 
@@ -2575,6 +2566,39 @@ bool sendTopic(FirebaseData &dataObj);
 ## Firebase Data Object Functions
 
 
+
+#### Set the receive and transmit buffer memory size for secured mode BearSSL WiFi client.
+
+param **`rx`** - The number of bytes for receive buffer memory for secured mode BearSSL (512 is minimum, 16384 is maximum).
+
+param **`tx`** - The number of bytes for transmit buffer memory for secured mode BearSSL (512 is minimum, 16384 is maximum). 
+
+
+Set this option to false to support get large Blob and File operations.
+
+```C++
+void void setBSSLBufferSize(uint16_t rx, uint16_t tx);
+```
+
+
+
+
+
+
+#### Set the http response size limit.
+
+param **`len`** - The server response buffer size limit.
+
+```C++
+void setResponseSize(uint16_t len);
+```
+
+
+
+
+
+
+
 #### Get WiFi client instance
 
 
@@ -2966,7 +2990,7 @@ int httpCode();
 return **`Boolean`** of the overflow status.
 
 
-Default buffer size is 400 bytes, assigned via FIREBASE_RESPONSE_SIZE macro in FirebaseESP8266.h
+Total default http response buffer size is 400 bytes which can be set through Firebase.setResponseSize.
 
 
 ```C++

@@ -1,9 +1,9 @@
 /*
- * FirebaseJson, version 2.2.8
+ * FirebaseJson, version 2.2.9
  * 
  * The Easiest ESP8266/ESP32 Arduino library for parse, create and edit JSON object using relative path.
  * 
- * December 19, 2019
+ * December 30, 2019
  * 
  * Features
  * - None recursive operations
@@ -502,19 +502,21 @@ void FirebaseJson::_jsmn_parse(bool collectTk)
     _collectTk = collectTk;
     _eltk.clear();
     int cnt = jsmn_parse(_parser.get(), buf, bufLen, (jsmntok_t *)NULL, 0);
-    if (cnt < 0)
+    int cnt2 = 0;
+    int a = 0;
+    int b = 0;
+    for (int i = 0; i < bufLen; i++)
     {
-        int a = 0;
-        int b = 0;
-        for (int i = 0; i < bufLen; i++)
-        {
-            if (buf[i] == ',')
-                a++;
-            else if (buf[i] == '[' || buf[i] == '{')
-                b++;
-        }
-        cnt = 10 + (2 * (a + 1)) + b;
+        if (buf[i] == ',')
+            a++;
+        else if (buf[i] == '[' || buf[i] == '{')
+            b++;
     }
+    cnt2 = 10 + (2 * (a + 1)) + b;
+
+    if(cnt< cnt2)
+        cnt=cnt2;
+
     _tokens = std::unique_ptr<jsmntok_t>(new jsmntok_t[cnt + 10]);
     jsmn_init(_parser.get());
     _tokenCount = jsmn_parse(_parser.get(), buf, bufLen, _tokens.get(), cnt + 10);

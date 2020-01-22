@@ -1,12 +1,16 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.7.6
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.7.7
  * 
- * December 21, 2019
+ * January 22, 2020
  * 
  * Feature Added:
+ * - Add setBSSLBufferSize to handle large data, lowMemBSSL function was removed. 
+ * - Add setResponseSize function to handle large data.
+ * 
  * 
  * Feature Fixed: 
- * - Fix unhandle stream callback data (FirebaseJsonArray and FirebaseJsonData).
+ * - Fix FirebaseJson's reserved JSMN token.
+ * - Integer push instead of float in Firebase.pushFloat.
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -184,10 +188,6 @@ void FirebaseESP8266::reconnectWiFi(bool reconnect)
     WiFi.setAutoReconnect(reconnect);
 }
 
-void FirebaseESP8266::lowMemBSSL(bool enable)
-{
-    _bsslLowBuf = enable;
-}
 
 void FirebaseESP8266::setReadTimeout(FirebaseData &dataObj, int millisec)
 {
@@ -229,7 +229,7 @@ bool FirebaseESP8266::buildRequest(FirebaseData &dataObj, uint8_t firebaseMethod
 
     if (dataObj._streamCall || dataObj._fcmCall)
         while ((dataObj._streamCall || dataObj._fcmCall) && millis() - lastTime < 1000)
-            delay(0);
+            yield();
 
     if (dataObj._streamCall || dataObj._fcmCall)
     {
@@ -287,7 +287,7 @@ bool FirebaseESP8266::buildRequestFile(FirebaseData &dataObj, uint8_t storageTyp
 
     if (dataObj._streamCall || dataObj._fcmCall)
         while ((dataObj._streamCall || dataObj._fcmCall) && millis() - lastTime < 1000)
-            delay(0);
+            yield();
 
     if (dataObj._streamCall || dataObj._fcmCall)
     {
@@ -562,7 +562,7 @@ bool FirebaseESP8266::pushInt(FirebaseData &dataObj, const std::string &path, in
 
 bool FirebaseESP8266::pushFloat(FirebaseData &dataObj, const String &path, float floatValue)
 {
-    return pushInt(dataObj, path.c_str(), floatValue, false, "");
+    return pushFloat(dataObj, path.c_str(), floatValue, false, "");
 }
 
 bool FirebaseESP8266::pushFloat(FirebaseData &dataObj, const String &path, float floatValue, float priority)
@@ -1489,6 +1489,7 @@ bool FirebaseESP8266::updateNode(FirebaseData &dataObj, const String path, Fireb
     return flag;
 }
 
+
 bool FirebaseESP8266::updateNode(FirebaseData &dataObj, const String &path, FirebaseJson &json, float priority)
 {
     size_t buffSize = 50;
@@ -1503,6 +1504,7 @@ bool FirebaseESP8266::updateNode(FirebaseData &dataObj, const String &path, Fire
     return flag;
 }
 
+
 bool FirebaseESP8266::updateNodeSilent(FirebaseData &dataObj, const String &path, FirebaseJson &json)
 {
     std::string s;
@@ -1511,6 +1513,8 @@ bool FirebaseESP8266::updateNodeSilent(FirebaseData &dataObj, const String &path
     std::string().swap(s);
     return flag;
 }
+
+
 
 bool FirebaseESP8266::updateNodeSilent(FirebaseData &dataObj, const String &path, FirebaseJson &json, float priority)
 {
@@ -1525,6 +1529,8 @@ bool FirebaseESP8266::updateNodeSilent(FirebaseData &dataObj, const String &path
     std::string().swap(s);
     return flag;
 }
+
+
 
 bool FirebaseESP8266::get(FirebaseData &dataObj, const String &path)
 {
@@ -2625,10 +2631,10 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
 
     std::string jsonRes = "";
 
-    char *lineBuf = new char[FIREBASE_RESPONSE_SIZE];
-    memset(lineBuf, 0, FIREBASE_RESPONSE_SIZE);
+    char *lineBuf = new char[dataObj._responseBufSize];
+    memset(lineBuf, 0, dataObj._responseBufSize);
 
-    uint16_t tempBufSize = FIREBASE_RESPONSE_SIZE;
+    uint16_t tempBufSize = dataObj._responseBufSize;
     char *tmp = new char[tempBufSize];
     memset(tmp, 0, tempBufSize);
 
@@ -2664,7 +2670,7 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
         {
             if (!apConnected(dataObj))
                 return false;
-            delay(0);
+            yield();
         }
 
     dataTime = millis();
@@ -2703,9 +2709,9 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
 
             if (!hasBlob)
             {
-                if (rulesBegin && charPos <= FIREBASE_RESPONSE_SIZE)
+                if (rulesBegin && charPos <= dataObj._responseBufSize)
                     strcat_c(lineBuf, c);
-                else if (c < 0xff && c != '\r' && c != '\n' && charPos <= FIREBASE_RESPONSE_SIZE)
+                else if (c < 0xff && c != '\r' && c != '\n' && charPos <= dataObj._responseBufSize)
                     strcat_c(lineBuf, c);
             }
             else
@@ -2725,22 +2731,22 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
                     hasBlob = true;
                     if (dataObj._dataType2 != FirebaseDataType::BLOB)
                         dataObj._httpCode = FIREBASE_ERROR_DATA_TYPE_MISMATCH;
-                    memset(lineBuf, 0, FIREBASE_RESPONSE_SIZE);
+                    memset(lineBuf, 0, dataObj._responseBufSize);
                 }
             }
 
             if (c < 0xff)
                 charPos++;
 
-            if (strlen(lineBuf) > FIREBASE_RESPONSE_SIZE)
+            if (strlen(lineBuf) > dataObj._responseBufSize)
             {
                 dataObj._bufferOverflow = true;
-                memset(lineBuf, 0, FIREBASE_RESPONSE_SIZE);
+                memset(lineBuf, 0, dataObj._responseBufSize);
             }
 
             if (rulesBegin)
             {
-                if (jsonRes.length() < FIREBASE_RESPONSE_SIZE)
+                if (jsonRes.length() < dataObj._responseBufSize)
                     jsonRes += c;
                 else
                     dataObj._bufferOverflow = true;
@@ -2802,7 +2808,7 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
 
                     if (dataObj._httpCode == _HTTP_CODE_NO_CONTENT)
                     {
-                        memset(lineBuf, 0, FIREBASE_RESPONSE_SIZE);
+                        memset(lineBuf, 0, dataObj._responseBufSize);
                         continue;
                     }
 
@@ -2881,7 +2887,7 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
                             hasEvent = true;
                             isStream = true;
                             dataObj._httpCode = _HTTP_CODE_OK;
-                            memset(lineBuf, 0, FIREBASE_RESPONSE_SIZE);
+                            memset(lineBuf, 0, dataObj._responseBufSize);
                         }
 
                         if (strlen(lineBuf) > 0)
@@ -2899,7 +2905,7 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
 
                                 memset(tmp, 0, tempBufSize);
                                 strncpy(tmp, lineBuf + p1 + strlen_P(ESP8266_FIREBASE_STR_14), strlen(lineBuf) - p1 - strlen_P(ESP8266_FIREBASE_STR_14));
-                                memset(lineBuf, 0, FIREBASE_RESPONSE_SIZE);
+                                memset(lineBuf, 0, dataObj._responseBufSize);
                                 strcpy(lineBuf, tmp);
                                 break;
                             }
@@ -2911,7 +2917,7 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
                     rulesBegin = true;
 
                 if (!hasEventData || !hasEvent)
-                    memset(lineBuf, 0, FIREBASE_RESPONSE_SIZE);
+                    memset(lineBuf, 0, dataObj._responseBufSize);
 
                 lfCount++;
                 charPos = 0;
@@ -2928,7 +2934,7 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
         {
             if (rulesBegin)
             {
-                memset(lineBuf, 0, FIREBASE_RESPONSE_SIZE);
+                memset(lineBuf, 0, dataObj._responseBufSize);
                 if (!dataObj._bufferOverflow)
                     strcpy(lineBuf, jsonRes.c_str());
                 std::string().swap(jsonRes);
@@ -2941,7 +2947,7 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
 
                 p1 = strpos(lineBuf, fstr, 0);
                 if (p1 != -1)
-                    memset(lineBuf, 0, FIREBASE_RESPONSE_SIZE);
+                    memset(lineBuf, 0, dataObj._responseBufSize);
             }
 
             //JSON stream data?
@@ -2966,7 +2972,7 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
                         memset(fstr, 0, 60);
                         strcpy_P(fstr, ESP8266_FIREBASE_STR_17);
                         p1 = strpos(lineBuf, fstr, 0);
-                        if (p1 != -1 && p1 < FIREBASE_RESPONSE_SIZE)
+                        if (p1 != -1 && p1 < dataObj._responseBufSize)
                         {
                             memset(fstr, 0, 60);
                             strcpy_P(fstr, ESP8266_FIREBASE_STR_3);
@@ -2984,7 +2990,7 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
                         memset(fstr, 0, 60);
                         strcpy_P(fstr, ESP8266_FIREBASE_STR_18);
                         p1 = strpos(lineBuf, fstr, 0);
-                        if (p1 != -1 && p1 < FIREBASE_RESPONSE_SIZE)
+                        if (p1 != -1 && p1 < dataObj._responseBufSize)
                         {
 
                             dataObj._data.clear();
@@ -3009,13 +3015,13 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
                                     char *tmp = new char[dataObj._data.length() + 1];
                                     memset(tmp, 0, dataObj._data.length() + 1);
                                     strcpy(tmp, dataObj._data.c_str());
-                                    memset(lineBuf, 0, FIREBASE_RESPONSE_SIZE);
+                                    memset(lineBuf, 0, dataObj._responseBufSize);
                                     strncpy(lineBuf, tmp + strlen_P(ESP8266_FIREBASE_STR_92), dataObj._data.length() - strlen_P(ESP8266_FIREBASE_STR_92) - 1);
                                     hasBlob = true;
                                     std::vector<uint8_t>().swap(dataObj._blob);
                                     dataObj._dataType = FirebaseDataType::BLOB;
                                     base64_decode_string(lineBuf, dataObj._blob);
-                                    memset(lineBuf, 0, FIREBASE_RESPONSE_SIZE);
+                                    memset(lineBuf, 0, dataObj._responseBufSize);
                                     dataObj._data.clear();
                                     dataObj._data2.clear();
                                     delete[] tmp;
@@ -3092,6 +3098,8 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
                     dataObj._data = tmp;
 
                     setDataType(dataObj, lineBuf);
+
+                    
 
                     if (dataObj._priority_val_flag)
                     {
@@ -3243,10 +3251,10 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
     size_t buffSize = 128;
     char *buff = new char[buffSize + 1];
 
-    char *lineBuf = new char[FIREBASE_RESPONSE_SIZE];
-    memset(lineBuf, 0, FIREBASE_RESPONSE_SIZE);
+    char *lineBuf = new char[dataObj._responseBufSize];
+    memset(lineBuf, 0, dataObj._responseBufSize);
 
-    uint16_t tempBufSize = FIREBASE_RESPONSE_SIZE;
+    uint16_t tempBufSize = dataObj._responseBufSize;
     char *tmp = new char[tempBufSize];
     memset(tmp, 0, tempBufSize);
 
@@ -3276,7 +3284,7 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
     {
         if (!apConnected(dataObj))
             return false;
-        delay(0);
+        yield();
     }
 
     dataTime = millis();
@@ -3432,7 +3440,7 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
                     }
                 }
 
-                memset(lineBuf, 0, FIREBASE_RESPONSE_SIZE);
+                memset(lineBuf, 0, dataObj._responseBufSize);
             }
 
             if (millis() - dataTime > dataObj._net.timeout)
@@ -3490,10 +3498,10 @@ bool FirebaseESP8266::getUploadResponse(FirebaseData &dataObj)
     int _httpCode = -1000;
     char c = 0;
 
-    char *lineBuf = new char[FIREBASE_RESPONSE_SIZE];
-    memset(lineBuf, 0, FIREBASE_RESPONSE_SIZE);
+    char *lineBuf = new char[dataObj._responseBufSize];
+    memset(lineBuf, 0, dataObj._responseBufSize);
 
-    uint16_t tempBufSize = FIREBASE_RESPONSE_SIZE;
+    uint16_t tempBufSize = dataObj._responseBufSize;
     char *tmp = new char[tempBufSize];
     memset(tmp, 0, tempBufSize);
 
@@ -3511,7 +3519,7 @@ bool FirebaseESP8266::getUploadResponse(FirebaseData &dataObj)
         {
             if (!apConnected(dataObj))
                 return false;
-            delay(0);
+            yield();
         }
 
     dataTime = millis();
@@ -3568,7 +3576,7 @@ bool FirebaseESP8266::getUploadResponse(FirebaseData &dataObj)
                     }
                 }
 
-                memset(lineBuf, 0, FIREBASE_RESPONSE_SIZE);
+                memset(lineBuf, 0, dataObj._responseBufSize);
             }
 
             if (millis() - dataTime > dataObj._net.timeout)
@@ -3660,22 +3668,8 @@ bool FirebaseESP8266::getServerStreamResponse(FirebaseData &dataObj)
     if (dataObj._streamResetMillis == 0)
         dataObj._streamResetMillis = ml;
 
-    //Reset firebase data every 50 ms and extend delay for 50 ms before stream response checking
-    //to allow other http connection that may happen
-    if (ml - dataObj._streamResetMillis > 100)
-    {
-        dataObj._streamResetMillis = ml;
-        dataObj._streamDataChanged = false;
-        dataObj._data2.clear();
-        dataObj._path2.clear();
-        dataObj._dataAvailable = false;
-        dataObj._isStreamTimeout = false;
 
-        delay(50);
-        return true;
-    }
-
-    if (ml - dataObj._streamMillis > 50)
+    if (ml - dataObj._streamMillis > 0)
     {
         dataObj._streamMillis = ml;
         std::string path = "";
@@ -4076,7 +4070,7 @@ void FirebaseESP8266::sendFirebaseRequest(FirebaseData &dataObj, const char *hos
         retryCount++;
         if (retryCount > maxRetry)
             break;
-        delay(0);
+        yield();
     }
 
     if (strlen(path) > 0)
@@ -4393,7 +4387,8 @@ void FirebaseESP8266::setDataType(FirebaseData &dataObj, const char *data)
 
 void FirebaseESP8266::setSecure(FirebaseData &dataObj)
 {
-    dataObj._net._bsslLowBuf = _bsslLowBuf;
+    dataObj._net._bsslRxSize = dataObj._bsslRxSize;
+    dataObj._net._bsslTxSize = dataObj._bsslTxSize;
     if (dataObj._net._certType == -1)
     {
 
@@ -4643,7 +4638,7 @@ bool FirebaseESP8266::sendFCMMessage(FirebaseData &dataObj, uint8_t messageType)
 
     if (dataObj._streamCall || dataObj._firebaseCall || dataObj._fcmCall)
         while ((dataObj._streamCall || dataObj._firebaseCall || dataObj._fcmCall) && millis() - lastTime < 1000)
-            delay(0);
+            yield();
 
     if (dataObj._streamCall || dataObj._firebaseCall || dataObj._fcmCall)
     {
@@ -4713,8 +4708,7 @@ void FirebaseESP8266::setStreamCallback(FirebaseData &dataObj, StreamEventCallba
     else
         firebaseDataObject.push_back(dataObj);
 
-    if (!_callback_function)
-        set_scheduled_callback(std::bind(&FirebaseESP8266::processFirebaseStream, this));
+    set_scheduled_callback(std::bind(&FirebaseESP8266::processFirebaseStream, this));
 }
 
 void FirebaseESP8266::removeStreamCallback(FirebaseData &dataObj)
@@ -5782,6 +5776,20 @@ void FirebaseData::setQuery(QueryFilter &query)
     queryFilter._equalTo = query._equalTo;
 }
 
+void FirebaseData::setBSSLBufferSize(uint16_t rx, uint16_t tx)
+{
+    if (rx >= 512 && rx <= 16384)
+        _bsslRxSize = rx;
+    if (tx >= 512 && tx <= 16384)
+        _bsslTxSize = tx;
+}
+
+void FirebaseData::setResponseSize(uint16_t len)
+{
+    if (len >= 400)
+        _responseBufSize = len;
+}
+
 SSL_CLIENT *FirebaseData::getWiFiClient()
 {
     return _net._client.get();
@@ -5816,29 +5824,7 @@ bool FirebaseData::pauseFirebase(bool pause)
 
 String FirebaseData::dataType()
 {
-    switch (_dataType)
-    {
-    case FirebaseESP8266::FirebaseDataType::JSON:
-        return FPSTR(ESP8266_FIREBASE_STR_74);
-    case FirebaseESP8266::FirebaseDataType::ARRAY:
-        return FPSTR(ESP8266_FIREBASE_STR_174);
-    case FirebaseESP8266::FirebaseDataType::STRING:
-        return FPSTR(ESP8266_FIREBASE_STR_75);
-    case FirebaseESP8266::FirebaseDataType::FLOAT:
-        return FPSTR(ESP8266_FIREBASE_STR_76);
-    case FirebaseESP8266::FirebaseDataType::DOUBLE:
-        return FPSTR(ESP8266_FIREBASE_STR_108);
-    case FirebaseESP8266::FirebaseDataType::BOOLEAN:
-        return FPSTR(ESP8266_FIREBASE_STR_105);
-    case FirebaseESP8266::FirebaseDataType::INTEGER:
-        return FPSTR(ESP8266_FIREBASE_STR_77);
-    case FirebaseESP8266::FirebaseDataType::BLOB:
-        return FPSTR(ESP8266_FIREBASE_STR_91);
-    case FirebaseESP8266::FirebaseDataType::NULL_:
-        return FPSTR(ESP8266_FIREBASE_STR_78);
-    default:
-        return std::string().c_str();
-    }
+    return getDataType(_dataType).c_str();
 }
 
 String FirebaseData::eventType()
@@ -5856,69 +5842,39 @@ String FirebaseData::ETag()
 std::string FirebaseData::getDataType(uint8_t type)
 {
     std::string res = "";
-    char *t = new char[100];
-    memset(t, 0, 100);
-
-    if (type == FirebaseESP8266::FirebaseDataType::JSON)
+    switch (type)
     {
-        strcpy_P(t, ESP8266_FIREBASE_STR_74);
-        goto ex_get_type;
+    case FirebaseESP8266::FirebaseDataType::JSON:
+        res = "json";
+        break;
+    case FirebaseESP8266::FirebaseDataType::ARRAY:
+        res = "array";
+        break;
+    case FirebaseESP8266::FirebaseDataType::STRING:
+        res = "string";
+        break;
+    case FirebaseESP8266::FirebaseDataType::FLOAT:
+        res = "float";
+        break;
+    case FirebaseESP8266::FirebaseDataType::DOUBLE:
+        res = "double";
+        break;
+    case FirebaseESP8266::FirebaseDataType::BOOLEAN:
+        res = "boolean";
+        break;
+    case FirebaseESP8266::FirebaseDataType::INTEGER:
+        res = "int";
+        break;
+    case FirebaseESP8266::FirebaseDataType::BLOB:
+        res = "blob";
+        break;
+    case FirebaseESP8266::FirebaseDataType::NULL_:
+        res = "null";
+        break;
+    default:
+        res = "unknown";
     }
-
-    if (type == FirebaseESP8266::FirebaseDataType::ARRAY)
-    {
-        strcpy_P(t, ESP8266_FIREBASE_STR_174);
-        goto ex_get_type;
-    }
-
-    if (type == FirebaseESP8266::FirebaseDataType::STRING)
-    {
-        strcpy_P(t, ESP8266_FIREBASE_STR_75);
-        goto ex_get_type;
-    }
-
-    if (type == FirebaseESP8266::FirebaseDataType::FLOAT)
-    {
-        strcpy_P(t, ESP8266_FIREBASE_STR_76);
-        goto ex_get_type;
-    }
-
-    if (type == FirebaseESP8266::FirebaseDataType::DOUBLE)
-    {
-        strcpy_P(t, ESP8266_FIREBASE_STR_108);
-        goto ex_get_type;
-    }
-
-    if (type == FirebaseESP8266::FirebaseDataType::BOOLEAN)
-    {
-        strcpy_P(t, ESP8266_FIREBASE_STR_105);
-        goto ex_get_type;
-    }
-
-    if (type == FirebaseESP8266::FirebaseDataType::INTEGER)
-    {
-        strcpy_P(t, ESP8266_FIREBASE_STR_77);
-        goto ex_get_type;
-    }
-
-    if (type == FirebaseESP8266::FirebaseDataType::BLOB)
-    {
-        strcpy_P(t, ESP8266_FIREBASE_STR_91);
-        goto ex_get_type;
-    }
-
-    if (type == FirebaseESP8266::FirebaseDataType::NULL_)
-    {
-        strcpy_P(t, ESP8266_FIREBASE_STR_78);
-        goto ex_get_type;
-    }
-
-ex_get_type:
-
-    res = t;
-    delete[] t;
-
-    return res;
+    return res.c_str();
 }
 
 std::string FirebaseData::getMethod(uint8_t method)
@@ -6053,6 +6009,8 @@ FirebaseJson &FirebaseData::jsonObject()
     return *jsonObjectPtr();
 }
 
+
+
 FirebaseJsonArray *FirebaseData::jsonArrayPtr()
 {
     if (_data.length() > 0 && _dataType == FirebaseESP8266::FirebaseDataType::ARRAY)
@@ -6071,7 +6029,7 @@ FirebaseJsonArray *FirebaseData::jsonArrayPtr()
         memset(tmp, 0, 20);
         strcpy_P(tmp, FirebaseJson_STR_26);
 
-        _jsonArr._json._parse(tmp, PRINT_MODE_PLAIN);
+       _jsonArr._json._parse(tmp, PRINT_MODE_PLAIN);
 
         std::string().swap(_jsonArr._json._tbuf);
         std::string().swap(_jsonArr._jbuf);
@@ -6079,7 +6037,8 @@ FirebaseJsonArray *FirebaseData::jsonArrayPtr()
         _jsonArr._json._tokens.reset();
         _jsonArr._json._tokens = nullptr;
         delete[] tmp;
-        _jsonArr._json._rawbuf = _jsonArr._json._jsonData._dbuf.substr(1, _jsonArr._json._jsonData._dbuf.length() - 2);
+        if(_jsonArr._json._jsonData._dbuf.length() > 2)
+            _jsonArr._json._rawbuf = _jsonArr._json._jsonData._dbuf.substr(1, _jsonArr._json._jsonData._dbuf.length() - 2);
         _jsonArr._arrLen = _jsonArr._json._jsonData._len;
     }
     return &_jsonArr;
@@ -6326,13 +6285,15 @@ FirebaseJsonArray *StreamData::jsonArrayPtr()
         _jsonArr->_json._tokens.reset();
         _jsonArr->_json._tokens = nullptr;
         delete[] tmp;
-        _jsonArr->_json._rawbuf = _jsonArr->_json._jsonData._dbuf.substr(1, _jsonArr->_json._jsonData._dbuf.length() - 2);
+        if(_jsonArr->_json._jsonData._dbuf.length() > 2)
+            _jsonArr->_json._rawbuf = _jsonArr->_json._jsonData._dbuf.substr(1, _jsonArr->_json._jsonData._dbuf.length() - 2);
         _jsonArr->_arrLen = _jsonArr->_json._jsonData._len;
     }
     return _jsonArr;
 }
 
-FirebaseJsonArray &StreamData::jsonArray(){
+FirebaseJsonArray &StreamData::jsonArray()
+{
     return *jsonArrayPtr();
 }
 
@@ -6432,6 +6393,7 @@ QueryFilter &QueryFilter::endAt(float val)
     delete[] num;
     return *this;
 }
+
 
 QueryFilter &QueryFilter::startAt(const String &val)
 {
@@ -6698,7 +6660,7 @@ bool FCMObject::fcm_connect(FirebaseHTTPClient &net)
     return true;
 }
 
-void FCMObject::fcm_buildHeader(char *header, size_t payloadSize)
+void FCMObject::fcm_buildHeader(char *header, size_t responseBufSize)
 {
     char *len = new char[20];
     memset(len, 0, 20);
@@ -6723,7 +6685,7 @@ void FCMObject::fcm_buildHeader(char *header, size_t payloadSize)
     strcat_P(header, ESP8266_FIREBASE_STR_21);
 
     strcat_P(header, ESP8266_FIREBASE_STR_12);
-    itoa(payloadSize, len, 10);
+    itoa(responseBufSize, len, 10);
     strcat(header, len);
     strcat_P(header, ESP8266_FIREBASE_STR_21);
     strcat_P(header, ESP8266_FIREBASE_STR_34);
@@ -6891,10 +6853,11 @@ bool FCMObject::getFCMServerResponse(FirebaseHTTPClient &net, int &httpcode)
     }
 
     bool flag = false;
-    char *lineBuf = new char[FIREBASE_RESPONSE_SIZE];
-    memset(lineBuf, 0, FIREBASE_RESPONSE_SIZE);
+    int responseBufSize = 400;
+    char *lineBuf = new char[responseBufSize];
+    memset(lineBuf, 0, responseBufSize);
 
-    uint16_t tempBufSize = FIREBASE_RESPONSE_SIZE;
+    uint16_t tempBufSize = responseBufSize;
     char *tmp = new char[tempBufSize];
     memset(tmp, 0, tempBufSize);
 
@@ -6921,7 +6884,7 @@ bool FCMObject::getFCMServerResponse(FirebaseHTTPClient &net, int &httpcode)
             httpcode = HTTPC_ERROR_CONNECTION_LOST;
             return false;
         }
-        delay(0);
+        yield();
     }
 
     dataTime = millis();
@@ -6930,7 +6893,7 @@ bool FCMObject::getFCMServerResponse(FirebaseHTTPClient &net, int &httpcode)
 
         while (net._client->available())
         {
-            delay(0);
+            yield();
 
             if (WiFi.status() != WL_CONNECTED)
             {
@@ -6966,7 +6929,7 @@ bool FCMObject::getFCMServerResponse(FirebaseHTTPClient &net, int &httpcode)
                     payloadBegin = true;
 
                 if (!payloadBegin)
-                    memset(lineBuf, 0, FIREBASE_RESPONSE_SIZE);
+                    memset(lineBuf, 0, responseBufSize);
 
                 lfCount++;
             }
