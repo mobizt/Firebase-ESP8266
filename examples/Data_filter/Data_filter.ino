@@ -7,7 +7,7 @@
  * 
  * Copyright (c) 2019 mobizt
  * 
- * This example is for FirebaseESP8266 Arduino library v 2.6.0 and later
+ * This example is for FirebaseESP8266 Arduino library v 2.7.7 or later
  *
 */
 
@@ -21,15 +21,16 @@
 
 #define WIFI_SSID "YOUR_WIFI_AP"
 #define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
-#define FIREBASE_HOST "YOUR_FIREBASE_PROJECT.firebaseio.com" //Do not include https:// in FIREBASE_HOST
+#define FIREBASE_HOST "YOUR_FIREBASE_PROJECT.firebaseio.com" //Without http:// or https:// schemes
 #define FIREBASE_AUTH "YOUR_FIREBASE_DATABASE_SECRET"
 
-//Define Firebase Data object
+//Define the Firebase Data object
 FirebaseData firebaseData;
 
 FirebaseJson json;
 
 void printResult(FirebaseData &data);
+void updateDatabaseRules(FirebaseData &dataObj);
 
 void setup()
 {
@@ -53,6 +54,13 @@ void setup()
   Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
   Firebase.reconnectWiFi(true);
 
+
+  //Set the size of WiFi rx/tx buffers in the case where we want to work with large data in this example.
+  firebaseData.setBSSLBufferSize(1024, 1024);
+
+  //Set the size of HTTP response buffers in the case where we want to work with large data in this example.
+  firebaseData.setResponseSize(1024);
+
   Serial.println("------------------------------------");
   Serial.println("Push JSON test...");
 
@@ -60,9 +68,9 @@ void setup()
   {
     json.set("Data1",i + 1);
     json.set("Data2",i + 100);
-    
+
     //Also can use Firebase.push instead of Firebase.pushJSON
-    //Json string is not support in v 2.6.0 and later, only FirebaseJson object is supported.
+    //JSON string does not support in v 2.6.0 and later, only FirebaseJson object is supported.
     if (Firebase.pushJSON(firebaseData, "/Test/Int", json))
     {
       Serial.println("PASSED");
@@ -81,37 +89,20 @@ void setup()
     }
   }
 
+  //Add an index to the node that being query.
+  //Update the existing database rules by adding key "Test/Int/.indexOn" and value "Data2"
+  //Check your database rules changes after running this function.
+  updateDatabaseRules(firebaseData);
+
   QueryFilter query;
 
   query.orderBy("Data2");
-  //query.orderBy("Data1");
   query.startAt(105);
-  //query.startAt(5);
   query.endAt(120);
-  //query.endAt(20);
   query.limitToLast(8);
 
-  /*
-
-  Begin data filtering test
-
-  Add the following rules in Firebase Database Rules Dashboard
-
-  "rules": {
-    ...
-    ...
-    ,
-
-    "Test":{
-      "Int":{
-        ".indexOn":"Data2"
-        //".indexOn":"Data1"
-      }
-    }
-  }
-
-  */
-
+  
+  //Begin the data filtering test
   Serial.println("------------------------------------");
   Serial.println("Data Filtering test...");
 
@@ -184,7 +175,7 @@ void printResult(FirebaseData &data)
     else if (data.dataType() == "array")
     {
         Serial.println();
-        //get array data from FirebaseData using FirebaseJsonArray object
+        //get the array data from FirebaseData using FirebaseJsonArray object
         FirebaseJsonArray &arr = data.jsonArray();
         //Print all array values
         Serial.println("Pretty printed Array:");
@@ -219,5 +210,44 @@ void printResult(FirebaseData &data)
 
 void loop()
 {
+}
+
+void updateDatabaseRules(FirebaseData &dataObj)
+{
+
+  String path = "rules/Test/Int/.indexOn";
+  //Read all database rules.
+  if (Firebase.getRules(dataObj))
+  {
+    FirebaseJsonData jdata;
+    FirebaseJson &json = dataObj.jsonObject();
+    bool flag = false;
+    bool update = false;
+    
+    //Check for the existent of the defined path 
+    if (!json.get(jdata, path))
+      flag = true;
+    else if (jdata.stringValue != "Data2")
+      flag = true;
+
+    //If the defined path does not exist
+    if (flag)
+    {
+      //Add new data to "rules/Test/Int/.indexOn"
+      json.set(path, "Data2");
+      update = true;
+    }
+
+    if (update)
+    {
+      //Update the database rules
+      String rules = "";
+      json.toString(rules, true);
+      Firebase.setRules(dataObj, rules);
+    }
+
+    json.clear();
+  }
+ 
 }
 

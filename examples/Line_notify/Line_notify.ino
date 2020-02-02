@@ -7,7 +7,7 @@
  * 
  * Copyright (c) 2019 mobizt
  * 
- * This example is for FirebaseESP8266 Arduino library v 2.6.0 and later
+ * This example is for FirebaseESP8266 Arduino library v 2.7.7 or later
  *
 */
 
@@ -22,7 +22,7 @@
 
 #define WIFI_SSID "YOUR_WIFI_AP"
 #define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
-#define FIREBASE_HOST "YOUR_FIREBASE_PROJECT.firebaseio.com" //Do not include https:// in FIREBASE_HOST
+#define FIREBASE_HOST "YOUR_FIREBASE_PROJECT.firebaseio.com" //Without http:// or https:// schemes
 #define FIREBASE_AUTH "YOUR_FIREBASE_DATABASE_SECRET"
 #define LINE_TOKEN "YOUR_LINE_NOTIFY_TOKEN"
 
@@ -30,9 +30,7 @@
 //Define Firebase Data object
 FirebaseData firebaseData;
 
-//Use shared WiFi client
-//For ESP Core SDK v2.5.x
-BearSSL::WiFiClientSecure client = firebaseData.getWiFiClient();
+LineNotifyHTTPClient net;
 
 String path = "/Test";
 
@@ -63,10 +61,18 @@ void setup()
   Serial.println(WiFi.localIP());
   Serial.println();
 
-  lineNotify.init(LINE_TOKEN);
+  
+  lineNotify.init(&net, LINE_TOKEN);
+
 
   Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
   Firebase.reconnectWiFi(true);
+
+  //Set the size of WiFi rx/tx buffers in the case where we want to work with large data.
+  firebaseData.setBSSLBufferSize(1024, 1024);
+
+  //Set the size of HTTP response buffers in the case where we want to work with large data.
+  firebaseData.setResponseSize(1024);
 
   Serial.println("------------------------------------");
   Serial.println("Begin stream...");
@@ -120,7 +126,7 @@ void loop()
       Serial.println("Send Line Message...");
 
       //Pause Firebase and use WiFiClient accessed through firebaseData.http
-      uint8_t status = lineNotify.sendLineMessage(client, "Instant sending message after call!");
+      uint8_t status = lineNotify.sendLineMessage("Instant sending message after call!");
       if (status == LineNotifyESP8266::LineStatus::SENT_COMPLETED)
       {
         Serial.println("send Line message completed");
@@ -154,9 +160,7 @@ void loop()
       Serial.println("------------------------------------");
       Serial.println("Send Line Message...");
 
-      //Pause Firebase and use WiFiClient accessed through firebaseData.http
-
-      uint8_t status = lineNotify.sendLineMessage(client, "Schedule message sending!");
+      uint8_t status = lineNotify.sendLineMessage("Schedule message sending!");
       if (status == LineNotifyESP8266::LineStatus::SENT_COMPLETED)
       {
         Serial.println("send Line message completed");

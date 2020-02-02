@@ -3,7 +3,7 @@
  * 
  * The Easiest ESP8266/ESP32 Arduino library for parse, create and edit JSON object using a relative path.
  * 
- * December 30, 2019
+ * February 2, 2019
  * 
  * Features
  * - None recursive operations

@@ -10,7 +10,7 @@
  * 
  * Feature Fixed: 
  * - Fix the insufficient size of FirebaseJson's reserved JSMN token.
- * - Integer push instead of float in Firebase.pushFloat.
+ * - Fix incorrect operation in Firebase.pushFloat.
  * - Fix memory leaks possibility.
  * 
  * 
