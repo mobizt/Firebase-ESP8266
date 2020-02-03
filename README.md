@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.7.7
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.7.8
 
 
 This library supports ESP8266 MCU from Espressif. The following are platforms in which libraries are also available.
@@ -47,12 +47,6 @@ This library supports ESP8266 MCU from Espressif. The following are platforms in
 
 * **Built-in easiest and non-recursive JSON parser and builder.**
 
-
-## Changes from the earlier version
-
-For library v 2.7.7 (comes with FirebaseJson v 2.2.9) or later, FirebaseJson object will be used to handle JSON data instead of JSON string which, the following functions are affected:
-
-getJson, setJson, pushJson, updateNode and updateNodeSilent.
 
 
 ## Known bugs
@@ -164,7 +158,9 @@ Firebase.reconnectWiFi(true);
 //7. Optional, set number of error resumable queues
 Firebase.setMaxErrorQueue(firebaseData, 30);
 
-//8. Optional, use classic HTTP GET and POST requests.  
+//8. Optional, use classic HTTP GET and POST requests. 
+//This option allows get and delete functions (PUT and DELETE HTTP requests) works for 
+//device connected behind the Firewall that allows only GET and POST requests.   
 Firebase.enableClassicRequest(firebaseData, true);
 
 //9. Optional, set the size of BearSSL WiFi to receive and transmit buffers 
