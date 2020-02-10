@@ -1,5 +1,5 @@
 /*
- * FirebaseJson, version 2.3.0
+ * FirebaseJson, version 2.3.1
  * 
  * The Easiest ESP8266/ESP32 Arduino library for parse, create and edit JSON object using a relative path.
  * 
@@ -461,8 +461,8 @@ bool FirebaseJson::get(FirebaseJsonData &jsonData, const String &path, bool pret
             _jsonData.stringValue = _jsonData._dbuf.substr(1, _jsonData._dbuf.length() - 2).c_str();
         else
             _jsonData.stringValue = _jsonData._dbuf.c_str();
-        jsonData = _jsonData;
     }
+    jsonData = _jsonData;
     std::string().swap(_jsonData._dbuf);
     std::string().swap(_tbuf);
     clearPathTk();
