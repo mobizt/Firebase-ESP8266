@@ -233,7 +233,7 @@ The following example showed how to read integer value from "/test/int".
 ```C++
   if (Firebase.getInt(firebaseData, "/test/int")) {
 
-    if (firebaseData.dataType() == "int")) {
+    if (firebaseData.dataType() == "int") {
       Serial.println(firebaseData.intData());
     }
 
