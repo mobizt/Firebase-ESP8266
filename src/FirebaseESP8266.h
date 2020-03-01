@@ -1,14 +1,13 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.8.0
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.8.1
  * 
- * February 10, 2020
+ * March 1, 2020
  * 
  * Feature Added:
  * 
  * 
- * Feature Fixed:
- * - Fix FirebaseJson multiple root elements parsing error.
- * - Reset FirebaseJsonData when parsing was failed
+ * Feature Fixed: 
+ * - Fix timestamp in JSON object bug.
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -184,6 +183,7 @@ static const char ESP8266_FIREBASE_STR_109[] PROGMEM = "cancel";
 static const char ESP8266_FIREBASE_STR_110[] PROGMEM = "auth_revoked";
 static const char ESP8266_FIREBASE_STR_111[] PROGMEM = "http://";
 static const char ESP8266_FIREBASE_STR_112[] PROGMEM = "https://";
+static const char ESP8266_FIREBASE_STR_113[] PROGMEM = "\".sv\"";
 
 static const char ESP8266_FIREBASE_STR_120[] PROGMEM = "fcm.googleapis.com";
 static const char ESP8266_FIREBASE_STR_121[] PROGMEM = "/fcm/send";
@@ -2428,7 +2428,7 @@ private:
   bool buildRequest(FirebaseData &dataObj, uint8_t firebaseMethod, uint8_t firebaseDataType, const std::string &path, const char *buff, bool queue, const std::string &priority, const std::string &etag = "");
   bool buildRequestFile(FirebaseData &dataObj, uint8_t storageType, uint8_t firebaseMethod, const std::string &path, const std::string &fileName, bool queue, const std::string &priority, const std::string &etag = "");
   bool sendRequest(FirebaseData &dataObj, uint8_t storageType, const std::string &path, const uint8_t method, uint8_t dataType, const std::string &payload, const std::string &priority, const std::string &etag);
-  void sendFirebaseRequest(FirebaseData &dataObj, const char *host, uint8_t method, uint8_t dataType, const char *path, const char *auth, size_t payloadLength);
+  void sendFirebaseRequest(FirebaseData &dataObj, const char *host, uint8_t method, uint8_t dataType, const char *path, const char *auth, size_t payloadLength, bool sv);
   void endFileTransfer(FirebaseData &dataObj);
   bool firebaseConnectStream(FirebaseData &dataObj, const std::string &path);
   bool getServerStreamResponse(FirebaseData &dataObj);

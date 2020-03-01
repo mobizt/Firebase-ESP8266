@@ -1,14 +1,13 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.8.0
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.8.1
  * 
- * February 10, 2020
+ * March 1, 2020
  * 
  * Feature Added:
  * 
  * 
- * Feature Fixed:
- * - Fix FirebaseJson multiple root elements parsing error.
- * - Reset FirebaseJsonData when parsing was failed
+ * Feature Fixed: 
+ * - Fix timestamp in JSON object bug.
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -2100,8 +2099,15 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const std::string &p
 
     //Prepare request header
     if (method != FirebaseMethod::BACKUP && method != FirebaseMethod::RESTORE && dataType != FirebaseDataType::FILE)
-        sendFirebaseRequest(dataObj, _host.c_str(), method, dataType, path.c_str(), _auth.c_str(), strlen(payloadStr));
-    else
+    {
+        bool sv = false;
+        if (dataType == FirebaseDataType::JSON){
+            tmp = getPGMString(ESP8266_FIREBASE_STR_113);
+            sv = strpos(payloadStr, tmp, 0) > -1;
+            delete[] tmp;
+        }
+        sendFirebaseRequest(dataObj, _host.c_str(), method, dataType, path.c_str(), _auth.c_str(), strlen(payloadStr), sv);
+    }else
     {
         if (dataObj._storageType == StorageType::SPIFFS)
         {
@@ -2234,10 +2240,10 @@ int FirebaseESP8266::firebaseConnect(FirebaseData &dataObj, const std::string &p
         }
 
         if (dataType == FirebaseDataType::FILE)
-            sendFirebaseRequest(dataObj, _host.c_str(), method, dataType, dataObj._path.c_str(), _auth.c_str(), len);
+            sendFirebaseRequest(dataObj, _host.c_str(), method, dataType, dataObj._path.c_str(), _auth.c_str(), len, false);
 
         else
-            sendFirebaseRequest(dataObj, _host.c_str(), method, dataType, dataObj._backupNodePath.c_str(), _auth.c_str(), len);
+            sendFirebaseRequest(dataObj, _host.c_str(), method, dataType, dataObj._backupNodePath.c_str(), _auth.c_str(), len, false);
     }
 
     if (method == FirebaseMethod::GET_SILENT || method == FirebaseMethod::PATCH_SILENT || (method == FirebaseMethod::PUT_SILENT && dataType == FirebaseDataType::BLOB))
@@ -3877,7 +3883,7 @@ bool FirebaseESP8266::isErrorQueueExisted(FirebaseData &dataObj, uint32_t errorQ
     return false;
 }
 
-void FirebaseESP8266::sendFirebaseRequest(FirebaseData &dataObj, const char *host, uint8_t method, uint8_t dataType, const char *path, const char *auth, size_t payloadLength)
+void FirebaseESP8266::sendFirebaseRequest(FirebaseData &dataObj, const char *host, uint8_t method, uint8_t dataType, const char *path, const char *auth, size_t payloadLength, bool sv)
 {
     uint8_t retryCount = 0;
     uint8_t maxRetry = 5;
@@ -4081,7 +4087,7 @@ void FirebaseESP8266::sendFirebaseRequest(FirebaseData &dataObj, const char *hos
     strcat_P(request, ESP8266_FIREBASE_STR_33);
 
     //Timestamp cannot use with ETag header, otherwise cases internal server error
-    if (dataObj.queryFilter._orderBy.length() == 0 && dataType != FirebaseDataType::TIMESTAMP && (method == FirebaseMethod::DELETE || method == FirebaseMethod::GET || method == FirebaseMethod::GET_SILENT || method == FirebaseMethod::PUT || method == FirebaseMethod::PUT_SILENT || method == FirebaseMethod::POST))
+    if (!sv && dataObj.queryFilter._orderBy.length() == 0 && dataType != FirebaseDataType::TIMESTAMP && (method == FirebaseMethod::DELETE || method == FirebaseMethod::GET || method == FirebaseMethod::GET_SILENT || method == FirebaseMethod::PUT || method == FirebaseMethod::PUT_SILENT || method == FirebaseMethod::POST))
         strcat_P(request, ESP8266_FIREBASE_STR_148);
 
     if (dataObj._etag2.length() > 0 && (method == FirebaseMethod::PUT || method == FirebaseMethod::PUT_SILENT || method == FirebaseMethod::DELETE))
