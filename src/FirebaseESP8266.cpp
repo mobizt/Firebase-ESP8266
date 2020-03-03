@@ -3324,7 +3324,7 @@ bool FirebaseESP8266::getDownloadResponse(FirebaseData &dataObj)
                     }
                 }
 
-                memset(lineBuf, 0, dataObj._responseBufSize);
+                lineBuf = newPtr(lineBuf, dataObj._responseBufSize);
             }
 
             if (millis() - dataTime > dataObj._net.timeout)
@@ -3474,7 +3474,7 @@ bool FirebaseESP8266::getUploadResponse(FirebaseData &dataObj)
                     }
                 }
 
-                memset(lineBuf, 0, dataObj._responseBufSize);
+                lineBuf = newPtr(lineBuf, dataObj._responseBufSize);
             }
 
             if (millis() - dataTime > dataObj._net.timeout)
