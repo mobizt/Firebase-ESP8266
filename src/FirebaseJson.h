@@ -1,9 +1,9 @@
 /*
- * FirebaseJson, version 2.3.1
+ * FirebaseJson, version 2.3.2
  * 
  * The Easiest ESP8266/ESP32 Arduino library for parse, create and edit JSON object using a relative path.
  * 
- * February 10, 2019
+ * March 3, 2020
  * 
  * Features
  * - None recursive operations
@@ -74,8 +74,7 @@ static const char FirebaseJson_STR_27[] PROGMEM = "/";
 class FirebaseJson;
 class FirebaseJsonArray;
 
-typedef enum
-{
+typedef enum {
     JSON_UNDEFINED = 0,
     JSON_OBJECT = 1,
     JSON_ARRAY = 2,
@@ -86,8 +85,7 @@ typedef enum
     JSON_NULL = 7
 } jsonDataType;
 
-typedef enum
-{
+typedef enum {
     PRINT_MODE_NONE = -1,
     PRINT_MODE_PLAIN = 0,
     PRINT_MODE_PRETTY = 1
@@ -672,6 +670,11 @@ private:
     int _strpos(const char *haystack, const char *needle, int offset);
     int _rstrpos(const char *haystack, const char *needle, int offset);
     char *_rstrstr(const char *haystack, const char *needle);
+    void _delPtr(char *p);
+    char *_newPtr(size_t len);
+    char *_newPtr(char *p, size_t len);
+    char *_newPtr(char *p, size_t len, char *d);
+    char *_getPGMString(PGM_P pgm);
 };
 
 class FirebaseJsonArray
@@ -1081,7 +1084,15 @@ private:
     char *getDoubleString(double value);
     char *getIntString(int value);
     char *getBoolString(bool value);
-    char *getPGMString(PGM_P pgm);
+    char *_getPGMString(PGM_P pgm);
+    int _strpos(const char *haystack, const char *needle, int offset);
+    int _rstrpos(const char *haystack, const char *needle, int offset);
+    char *_rstrstr(const char *haystack, const char *needle);
+    void _delPtr(char *p);
+    char *_newPtr(size_t len);
+    char *_newPtr(char *p, size_t len);
+    char *_newPtr(char *p, size_t len, char *d);
 };
+
 
 #endif
