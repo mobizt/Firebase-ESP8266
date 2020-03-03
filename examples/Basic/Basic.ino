@@ -22,6 +22,7 @@
 #define WIFI_SSID "YOUR_WIFI_AP"
 #define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
 
+
 //Define FirebaseESP8266 data object
 FirebaseData firebaseData;
 

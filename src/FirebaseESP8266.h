@@ -1,13 +1,13 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.8.1
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.8.2
  * 
- * March 1, 2020
+ * March 3, 2020
  * 
  * Feature Added:
- * 
+ * - Improve performance and the overall connection speed.
+ * - Specific to ESP8266.
  * 
  * Feature Fixed: 
- * - Fix timestamp in JSON object bug.
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -39,6 +39,8 @@
 
 #ifndef FirebaseESP8266_H
 #define FirebaseESP8266_H
+
+#ifdef ESP8266
 
 #include <Arduino.h>
 #include <SPI.h>
@@ -405,8 +407,6 @@ private:
   void fcm_buildPayload(char *msg, uint8_t messageType);
   bool getFCMServerResponse(FirebaseHTTPClient &net, int &httpcode);
   void clear();
-  void strcat_c(char *str, char c);
-  int strpos(const char *haystack, const char *needle, int offset);
 
   std::string _notify_title = "";
   std::string _notify_body = "";
@@ -532,6 +532,7 @@ public:
   friend class FirebaseData;
   friend class FCMObject;
   friend class QueryFilter;
+
   
   struct FirebaseDataType;
   struct FirebaseMethod;
@@ -2428,7 +2429,7 @@ private:
   bool buildRequest(FirebaseData &dataObj, uint8_t firebaseMethod, uint8_t firebaseDataType, const std::string &path, const char *buff, bool queue, const std::string &priority, const std::string &etag = "");
   bool buildRequestFile(FirebaseData &dataObj, uint8_t storageType, uint8_t firebaseMethod, const std::string &path, const std::string &fileName, bool queue, const std::string &priority, const std::string &etag = "");
   bool sendRequest(FirebaseData &dataObj, uint8_t storageType, const std::string &path, const uint8_t method, uint8_t dataType, const std::string &payload, const std::string &priority, const std::string &etag);
-  void sendFirebaseRequest(FirebaseData &dataObj, const char *host, uint8_t method, uint8_t dataType, const char *path, const char *auth, size_t payloadLength, bool sv);
+  void buildFirebaseRequest(std::string &buf, FirebaseData &dataObj, const char *host, uint8_t method, uint8_t dataType, const char *path, const char *auth, size_t payloadLength, bool sv, bool send);
   void endFileTransfer(FirebaseData &dataObj);
   bool firebaseConnectStream(FirebaseData &dataObj, const std::string &path);
   bool getServerStreamResponse(FirebaseData &dataObj);
@@ -2452,12 +2453,17 @@ private:
   bool commError(FirebaseData &dataObj);
   uint8_t openErrorQueue(FirebaseData &dataObj, const String &filename, uint8_t storageType, uint8_t mode);
   std::vector<std::string> splitString(int size, const char *str, const char delim);
+  void delPtr(char *p);
+  char *newPtr(size_t len);
+  char *newPtr(char *p, size_t len);
+  char *newPtr(char *p, size_t len, char *d);
 
   void processFirebaseStream();
   void processAllErrorQueues();
 
   void p_memCopy(std::string &buff, PGM_P p, bool empty = false);
   char *getPGMString(PGM_P pgm);
+  void getPGMString(char *buf, PGM_P pgm, bool empty = false);
   char *getFloatString(float value);
   char *getDoubleString(double value);
   char *getIntString(int value);
@@ -3015,4 +3021,7 @@ private:
 
 extern FirebaseESP8266 Firebase;
 
-#endif
+
+#endif /* ESP8266 */
+
+#endif /* FirebaseESP8266_H */

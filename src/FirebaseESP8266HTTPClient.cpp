@@ -1,5 +1,5 @@
 /*
- * HTTP Client wrapper v1.0.8
+ * HTTP Client wrapper v1.0.9
  * 
  * The MIT License (MIT)
  * Copyright (c) 2019 K. Suwatchai (Mobizt)
@@ -25,6 +25,8 @@
 
 #ifndef FirebaseESP8266HTTPClient_CPP
 #define FirebaseESP8266HTTPClient_CPP
+
+#ifdef ESP8266
 
 #include "FirebaseESP8266HTTPClient.h"
 
@@ -140,7 +142,8 @@ bool FirebaseHTTPClient::sendHeader(const char *header)
 {
   if (!connected())
     return false;
-  _client->print(header);
+  if(header != nullptr)
+    _client->print(header);
   return true;
 }
 
@@ -171,4 +174,7 @@ bool FirebaseHTTPClient::connect(void)
 
   return connected();
 }
-#endif
+
+#endif /* ESP8266 */
+
+#endif /* FirebaseESP8266HTTPClient_CPP */

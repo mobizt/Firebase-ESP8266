@@ -1,5 +1,5 @@
 /*
- * HTTP Client wrapper v1.0.8
+ * HTTP Client wrapper v1.0.9
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
  * and delete calls. 
@@ -30,6 +30,8 @@
 
 #ifndef FirebaseESP8266HTTPClient_H
 #define FirebaseESP8266HTTPClient_H
+
+#ifdef ESP8266
 
 //ARDUINO_ESP8266_GIT_VER
 //2.6.2 0xbc204a9b
@@ -165,5 +167,7 @@ protected:
   uint16_t _bsslRxSize = 512;
   uint16_t _bsslTxSize = 512;
 };
+
+#endif /* ESP8266 */
 
 #endif /* FirebaseESP8266HTTPClient_H */
