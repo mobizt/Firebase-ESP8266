@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.8.3
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.8.4
 
 
 This library supports ESP8266 MCU from Espressif. The following are platforms in which libraries are also available.
@@ -37,6 +37,8 @@ This library supports ESP8266 MCU from Espressif. The following are platforms in
 * **Supports ETag, Priority, Data Limits, Timestamp, Filtering, etc.**
 
 * **Supports Stream Event Callbacks**
+
+* **Supports Multiple paths Stream (under the same parent node)**
 
 * **Supports Data Backup and Restore.**
 
@@ -474,13 +476,22 @@ query.clear();
 
 This library uses HTTP GET request with stream header to connect the stream.
 
-The Firebase's functions that involved the stream operation are `beginStream`, `setStreamCallback` and/or `readStream`.
+The Firebase's functions that involved the stream operation are `beginStream`, `beginMultiPathStream`, 
+`setStreamCallback`, `setMultiPathStreamCallback` and/or `readStream`.
 
 Function `beginStream` is to subscribe to the stream changes at a defined database path.
 
+Function `beginMultiPathStream` is to subscribe to the stream changes at a defined parent node path with multiple child nodes value parsing and works with setMultiPathStreamCallback.
+
 Function `setStreamCallback` is to assign the callback function that accept the **StreamData** class as parameter.
 
+Function `setMultiPathStreamCallback` is to assign the callback function that accept the **MultiPathStreamData** class as parameter.
+
+
 The **StreamData** contains stream event and data and interface function calls are similar to Firebase Data object.
+
+The **MultiPathStreamData** contains stream event and data for various child nodes.
+
 
 To check the stream manually, use `readStream`.
 
@@ -584,6 +595,9 @@ void streamTimeoutCallback(bool timeout)
 }
 
 ```
+
+For multiple paths stream, see the MultiPath_stream example.
+
 
 The following example showed how to subscribe to the stream changes at "/test/data" and read the stream manually.
 

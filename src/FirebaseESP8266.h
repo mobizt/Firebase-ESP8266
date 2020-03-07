@@ -1,12 +1,14 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.8.3
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.8.4
  * 
- * March 3, 2020
+ * March 8, 2020
  * 
  * Feature Added:
- * - Optimized the FirebaseJson.
+ * - Multiple paths stream.
  * 
- * Feature Fixed: 
+ * Feature Fixed:
+ * - No stream event trigged bug when child node value of parent node changes.
+ * - FirebaseJson and FirebaseJsonArray data are not assign when read from stream.
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -251,6 +253,7 @@ static const unsigned char ESP8266_FIREBASE_base64_table[65] = "ABCDEFGHIJKLMNOP
 
 class FirebaseData;
 class StreamData;
+class MultiPathStreamData;
 class QueueInfo;
 class FirebaseESP8266;
 class FCMObject;
@@ -531,6 +534,7 @@ public:
   friend class FirebaseData;
   friend class FCMObject;
   friend class QueryFilter;
+  friend class MultiPathStreamData;
 
   
   struct FirebaseDataType;
@@ -538,6 +542,8 @@ public:
   struct FCMMessageType;
 
   typedef void (*StreamEventCallback)(StreamData);
+  typedef void (*MultiPathStreamEventCallback)(MultiPathStreamData);
+
   typedef void (*StreamTimeoutCallback)(bool);
   typedef void (*QueueInfoCallback)(QueueInfo);
 
@@ -2083,15 +2089,30 @@ public:
   bool deleteNode(FirebaseData &dataObj, const String &path, const String &ETag);
 
   /*
-    Start monitoring the value changes at the defined path and its children.
+    Start subscribe to the value changes at the defined path and its children.
 
     @param dataObj - Firebase Data Object to hold data and instances.
-    @param path - Database path in which being monitor.
+    @param path - Database path to subscribe.
 
     @return - Boolean type status indicates the success of the operation.
 
   */
-  bool beginStream(FirebaseData &dataObj, const String path);
+  bool beginStream(FirebaseData &dataObj, const String &path);
+
+
+
+  /*
+    Start subscribe to the value changes at the defined parent node path with multiple nodes paths parsing.
+
+    @param dataObj - Firebase Data Object to hold data and instances.
+    @param parentPath - Database parent node path to subscribe.
+    @param childPath - The string array of child nodes paths for parsing.
+
+    @return - Boolean type status indicates the success of the operation.
+
+  */
+  bool beginMultiPathStream(FirebaseData &dataObj, const String &parentPath, const String *childPath);
+
 
   /*
     Read the stream event data at the defined database path.
@@ -2145,6 +2166,32 @@ public:
 
    */
   void setStreamCallback(FirebaseData &dataObj, StreamEventCallback dataAvailablecallback, StreamTimeoutCallback timeoutCallback = NULL);
+  
+  
+  /*
+    Set the multiple paths stream callback functions.
+
+    setMultiPathStreamCallback should be called before Firebase.beginMultiPathStream.
+    
+    @param dataObj - Firebase Data Object to hold data and instances.
+    @param multiPathDataCallback - a Callback function that accepts MultiPathStreamData parameter.
+    @param timeoutCallback - a Callback function will be called when the stream connection was timed out (optional).
+
+    multiPathDataCallback will be called When data in the defined path changed or the stream path changed or stream connection
+    was resumed from getXXX, setXXX, pushXXX, updateNode, deleteNode.
+
+    The payload returned from the server will be one of these integer, float, string and JSON.
+
+    Call [MultiPathStreamData object].get to get the child node value, type and data path. 
+    
+    The properties [MultiPathStreamData object].value, [MultiPathStreamData object].dataPath, and [MultiPathStreamData object].type will return the value, path of data, and type of data respectively.
+
+    These properties will store the result from calling the function [MultiPathStreamData object].get.
+
+   */
+  void setMultiPathStreamCallback(FirebaseData &dataObj, MultiPathStreamEventCallback multiPathDataCallback, StreamTimeoutCallback timeoutCallback = NULL);
+
+
 
   /*
     Remove stream callback functions.
@@ -2152,6 +2199,13 @@ public:
     @param dataObj - Firebase Data Object to hold data and instances.
    */
   void removeStreamCallback(FirebaseData &dataObj);
+
+  /*
+    Remove multiple paths stream callback functions.
+
+    @param dataObj - Firebase Data Object to hold data and instances.
+  */
+  void removeMultiPathStreamCallback(FirebaseData &dataObj);
 
   /*
     Backup (download) database at the defined database path to SD card/Flash memory.
@@ -2873,6 +2927,7 @@ public:
 
 private:
   FirebaseESP8266::StreamEventCallback _dataAvailableCallback = NULL;
+  FirebaseESP8266::MultiPathStreamEventCallback _multiPathDataCallback = NULL;
   FirebaseESP8266::StreamTimeoutCallback _timeoutCallback = NULL;
   FirebaseESP8266::QueueInfoCallback _queueInfoCallback = NULL;
 
@@ -2911,7 +2966,6 @@ private:
   uint8_t _storageType = 0;
 
   std::string _path = "";
-  std::string _path2 = "";
   std::string _data = "";
   std::string _data2 = "";
   std::string _streamPath = "";
@@ -2935,6 +2989,7 @@ private:
   unsigned long _streamTimeoutMillis = 0;
 
   std::vector<uint8_t> _blob = std::vector<uint8_t>();
+  std::vector<std::string> _childNodeList = std::vector<std::string>();
 
   int _httpCode = -1000;
   int _contentLength = 0;
@@ -2977,6 +3032,10 @@ private:
 
   void setQuery(QueryFilter &query);
 
+  void clearNodeList();
+
+  void addNodeList(const String *childPath);
+
   friend class FirebaseESP8266;
 };
 
@@ -3016,6 +3075,27 @@ private:
   std::string _dataTypeStr = "";
   std::string _eventTypeStr = "";
   uint8_t _dataType = 0;
+};
+
+class MultiPathStreamData
+{
+  friend class FirebaseESP8266;
+public:
+  MultiPathStreamData();
+  ~MultiPathStreamData();
+  bool get(const String &path);
+  String dataPath;
+  String value;
+  String type;
+  
+private:
+  uint8_t _type = 0;
+  std::string _data = "";
+  std::string _path = "";
+  std::string _typeStr = "";
+  FirebaseJson *_json = nullptr;
+
+  void empty();
 };
 
 extern FirebaseESP8266 Firebase;
