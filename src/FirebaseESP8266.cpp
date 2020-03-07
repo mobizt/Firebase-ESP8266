@@ -7,8 +7,8 @@
  * - Multiple paths stream.
  * 
  * Feature Fixed:
- * - No stream event trigged bug when child node value of parent node changes.
- * - FirebaseJson and FirebaseJsonArray data are not assign when read from stream.
+ * - No stream event triggering bug when the child node value of parent node changes.
+ * - FirebaseJson and FirebaseJsonArray data are not assigned when reading from the stream.
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
