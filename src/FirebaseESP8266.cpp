@@ -5813,7 +5813,7 @@ void FirebaseData::addNodeList(const String *childPath)
 {
     clearNodeList();
     for(size_t i = 0; i< sizeof(childPath)/sizeof(childPath[0]);i++)
-        if(!childPath[i].isEmpty() && childPath[i] !="/")
+        if(childPath[i].length() != 0 && childPath[i] !="/")
             _childNodeList.push_back(childPath[i].c_str());
 }
 
