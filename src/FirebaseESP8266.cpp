@@ -1,12 +1,14 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.8.5
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.8.6
  * 
- * March 10, 2020
+ * March 28, 2020
  * 
  * Feature Added:
  * 
  * Feature Fixed:
- * - Fix the C++ string undefined isEmpty function.
+ * - Fix the FirebaseJson bug in add and set integer functions.
+ * - Add array size parameter to beginMultiPathStream function to prevent compiler warning.
+ * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
  * and delete calls. 
@@ -1926,9 +1928,9 @@ bool FirebaseESP8266::beginStream(FirebaseData &dataObj, const String &path)
     return firebaseConnectStream(dataObj, path.c_str());
 }
 
-bool FirebaseESP8266::beginMultiPathStream(FirebaseData &dataObj, const String &parentPath, const String *childPath)
+bool FirebaseESP8266::beginMultiPathStream(FirebaseData &dataObj, const String &parentPath, const String *childPath, size_t size)
 {
-    dataObj.addNodeList(childPath);
+    dataObj.addNodeList(childPath, size);
     return firebaseConnectStream(dataObj, parentPath.c_str());
 }
 
@@ -5806,10 +5808,10 @@ void FirebaseData::clearNodeList()
     _childNodeList.clear();
 }
 
-void FirebaseData::addNodeList(const String *childPath)
+void FirebaseData::addNodeList(const String *childPath, size_t size)
 {
     clearNodeList();
-    for(size_t i = 0; i< sizeof(childPath)/sizeof(childPath[0]);i++)
+    for(size_t i = 0; i< size;i++)
         if(childPath[i].length() > 0 && childPath[i] !="/")
             _childNodeList.push_back(childPath[i].c_str());
 }

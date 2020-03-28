@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.8.5
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.8.6
 
 
 ## Global functions
@@ -2136,10 +2136,12 @@ param **`parentPath`** - Database parent node path to subscribe.
 
 param **`childPath`** - The string array of child nodes paths for parsing.
 
+param **`size`** - The size of string array of child nodes paths for parsing.
+
 return **`Boolean`** type status indicates the success of the operation.*
 
 ```C++
-bool beginMultiPathStream(FirebaseData &dataObj, const String &parentPath, const String *childPath);
+bool beginMultiPathStream(FirebaseData &dataObj, const String &parentPath, const String *childPath, size_t size);
 ```
 
 

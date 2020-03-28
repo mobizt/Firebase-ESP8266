@@ -28,6 +28,7 @@ unsigned long sendDataPrevMillis = 0;
 
 String parentPath = "/Test/Stream";
 String childPath[2] = {"/node1","/node2"};
+size_t childPathSize = 2;
 
 uint16_t count = 0;
 
@@ -95,8 +96,7 @@ void setup()
   //Set the size of HTTP response buffers in the case where we want to work with large data.
   firebaseData2.setResponseSize(1024);
 
-
-  if (!Firebase.beginMultiPathStream(firebaseData1, parentPath, childPath))
+  if (!Firebase.beginMultiPathStream(firebaseData1, parentPath, childPath, childPathSize))
   {
     Serial.println("------------------------------------");
     Serial.println("Can't begin stream connection...");
