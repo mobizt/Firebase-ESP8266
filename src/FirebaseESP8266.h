@@ -1,13 +1,14 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.8.6
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.8.7
  * 
- * March 28, 2020
+ * April 11, 2020
  * 
  * Feature Added:
+ * - Add chunked decoding for FCM response payload.
+ * 
  * 
  * Feature Fixed:
- * - Fix the FirebaseJson bug in add and set integer functions.
- * - Add array size parameter to beginMultiPathStream function to prevent compiler warning.
+ * - Fix FCM multicast reserve message length.
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -186,6 +187,8 @@ static const char ESP8266_FIREBASE_STR_110[] PROGMEM = "auth_revoked";
 static const char ESP8266_FIREBASE_STR_111[] PROGMEM = "http://";
 static const char ESP8266_FIREBASE_STR_112[] PROGMEM = "https://";
 static const char ESP8266_FIREBASE_STR_113[] PROGMEM = "\".sv\"";
+static const char ESP8266_FIREBASE_STR_114[] PROGMEM = "Transfer-Encoding";
+static const char ESP8266_FIREBASE_STR_115[] PROGMEM = "chunked";
 
 static const char ESP8266_FIREBASE_STR_120[] PROGMEM = "fcm.googleapis.com";
 static const char ESP8266_FIREBASE_STR_121[] PROGMEM = "/fcm/send";
