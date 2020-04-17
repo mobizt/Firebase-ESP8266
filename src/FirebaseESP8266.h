@@ -1,14 +1,13 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.8.7
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.8.8
  * 
- * April 11, 2020
+ * April 17, 2020
  * 
  * Feature Added:
- * - Add chunked decoding for FCM response payload.
  * 
  * 
  * Feature Fixed:
- * - Fix FCM multicast reserve message length.
+ * - HTTP Redirection.
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -60,19 +59,15 @@
 #define FIEBASE_PORT 443
 #define KEEP_ALIVE_TIMEOUT 30000
 #define SD_CS_PIN 15
+#define MAX_REDIRECT 5
 
 #define HTTPC_ERROR_CONNECTION_INUSED -16
 #define HTTPC_NO_FCM_TOPIC_PROVIDED -17
 #define HTTPC_NO_FCM_DEVICE_TOKEN_PROVIDED -18
 #define HTTPC_NO_FCM_SERVER_KEY_PROVIDED -19
 #define HTTPC_NO_FCM_INDEX_NOT_FOUND_IN_DEVICE_TOKEN_PROVIDED -20
+#define HTTPC_MAX_REDIRECT_REACHED -21
 
-#define DEF_ESP8266_FIREBASE_STR_19 "null"
-#define DEF_ESP8266_FIREBASE_STR_92 "\"blob,base64,"
-#define DEF_ESP8266_FIREBASE_STR_93 "\"file,base64,"
-#define DEF_ESP8266_FIREBASE_STR_4 "."
-#define DEF_ESP8266_FIREBASE_STR_106 "false"
-#define DEF_ESP8266_FIREBASE_STR_107 "true"
 
 static const char ESP8266_FIREBASE_STR_1[] PROGMEM = "/";
 static const char ESP8266_FIREBASE_STR_2[] PROGMEM = ".json?auth=";
@@ -189,6 +184,10 @@ static const char ESP8266_FIREBASE_STR_112[] PROGMEM = "https://";
 static const char ESP8266_FIREBASE_STR_113[] PROGMEM = "\".sv\"";
 static const char ESP8266_FIREBASE_STR_114[] PROGMEM = "Transfer-Encoding";
 static const char ESP8266_FIREBASE_STR_115[] PROGMEM = "chunked";
+static const char ESP8266_FIREBASE_STR_116[] PROGMEM = "Maximum Redirection reached";
+static const char ESP8266_FIREBASE_STR_117[] PROGMEM = "?auth=";
+static const char ESP8266_FIREBASE_STR_118[] PROGMEM = "&auth=";
+static const char ESP8266_FIREBASE_STR_119[] PROGMEM = "&";
 
 static const char ESP8266_FIREBASE_STR_120[] PROGMEM = "fcm.googleapis.com";
 static const char ESP8266_FIREBASE_STR_121[] PROGMEM = "/fcm/send";
@@ -250,6 +249,13 @@ static const char ESP8266_FIREBASE_STR_174[] PROGMEM = "array";
 static const char ESP8266_FIREBASE_STR_175[] PROGMEM = "unknown";
 static const char ESP8266_FIREBASE_STR_176[] PROGMEM = "pool.ntp.org";
 static const char ESP8266_FIREBASE_STR_177[] PROGMEM = "time.nist.gov";
+static const char ESP8266_FIREBASE_STR_178[] PROGMEM = "?";
+static const char ESP8266_FIREBASE_STR_179[] PROGMEM = ".com";
+static const char ESP8266_FIREBASE_STR_180[] PROGMEM = ".net";
+static const char ESP8266_FIREBASE_STR_181[] PROGMEM = ".int";
+static const char ESP8266_FIREBASE_STR_182[] PROGMEM = ".edu";
+static const char ESP8266_FIREBASE_STR_183[] PROGMEM = ".gov";
+static const char ESP8266_FIREBASE_STR_184[] PROGMEM = ".mil";
 
 static const unsigned char ESP8266_FIREBASE_base64_table[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -2463,7 +2469,7 @@ public:
 
   template <typename T>
   bool push(FirebaseData &dataObj, const String &path, T value, size_t size, float priority);
-
+  
 
 private:
   callback_function_t _callback_function = nullptr;
@@ -2479,6 +2485,7 @@ private:
   bool setBool(FirebaseData &dataObj, const std::string &path, bool boolValue, bool queue, const std::string &priority, const std::string &etag);
   bool setBlob(FirebaseData &dataObj, const std::string &path, uint8_t *blob, size_t size, bool queue, const std::string &priority, const std::string &etag);
 
+  void getUrlInfo(const std::string url, std::string &host, std::string &uri, std::string &auth);
   bool buildRequest(FirebaseData &dataObj, uint8_t firebaseMethod, uint8_t firebaseDataType, const std::string &path, const char *buff, bool queue, const std::string &priority, const std::string &etag = "");
   bool buildRequestFile(FirebaseData &dataObj, uint8_t storageType, uint8_t firebaseMethod, const std::string &path, const std::string &fileName, bool queue, const std::string &priority, const std::string &etag = "");
   bool sendRequest(FirebaseData &dataObj, uint8_t storageType, const std::string &path, const uint8_t method, uint8_t dataType, const std::string &payload, const std::string &priority, const std::string &etag);
@@ -2964,6 +2971,8 @@ private:
   uint8_t _r_method = 0;
   uint8_t _r_dataType = 0;
   uint8_t _storageType = 0;
+  uint8_t _redirectCount = 0;
+  int _redirect = 0;
 
   std::string _path = "";
   std::string _data = "";
