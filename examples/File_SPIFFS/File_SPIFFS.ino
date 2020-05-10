@@ -5,9 +5,9 @@
  * 
  * Github: https://github.com/mobizt
  * 
- * Copyright (c) 2019 mobizt
+ * Copyright (c) 2020 mobizt
  * 
- * This example is for FirebaseESP8266 Arduino library v 2.7.7 or later
+ * This example is for FirebaseESP8266 Arduino library v 2.8.9 or later
  *
 */
 
@@ -18,7 +18,7 @@
 #include "FirebaseESP8266.h"
 #include <ESP8266WiFi.h>
 
-#define FIREBASE_HOST "YOUR_FIREBASE_PROJECT.firebaseio.com" //Without http:// or https:// schemes
+#define FIREBASE_HOST "YOUR_FIREBASE_PROJECT.firebaseio.com"
 #define FIREBASE_AUTH "YOUR_FIREBASE_DATABASE_SECRET"
 #define WIFI_SSID "YOUR_WIFI_AP"
 #define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"

@@ -1,13 +1,13 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.8.8
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.8.9
  * 
- * April 17, 2020
+ * May 11, 2020
  * 
  * Feature Added:
  * 
  * 
  * Feature Fixed:
- * - HTTP Redirection.
+ * - FirebaseJson, update JSMN as C++ class.
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -67,7 +67,6 @@
 #define HTTPC_NO_FCM_SERVER_KEY_PROVIDED -19
 #define HTTPC_NO_FCM_INDEX_NOT_FOUND_IN_DEVICE_TOKEN_PROVIDED -20
 #define HTTPC_MAX_REDIRECT_REACHED -21
-
 
 static const char ESP8266_FIREBASE_STR_1[] PROGMEM = "/";
 static const char ESP8266_FIREBASE_STR_2[] PROGMEM = ".json?auth=";
@@ -265,8 +264,6 @@ class MultiPathStreamData;
 class QueueInfo;
 class FirebaseESP8266;
 class FCMObject;
-
-
 
 typedef std::function<void(void)> callback_function_t;
 
@@ -544,7 +541,6 @@ public:
   friend class QueryFilter;
   friend class MultiPathStreamData;
 
-  
   struct FirebaseDataType;
   struct FirebaseMethod;
   struct FCMMessageType;
@@ -587,7 +583,6 @@ public:
   */
   void reconnectWiFi(bool reconnect);
 
-  
   /*
     Set the timeout of Firebase.get functions.
 
@@ -994,8 +989,6 @@ public:
 
   bool set(FirebaseData &dataObj, const String &path, int intValue);
 
-
-
   /*
 
     Set integer data and virtual child ".priority" at the defined database path.
@@ -1254,9 +1247,6 @@ public:
 
   bool set(FirebaseData &dataObj, const String &path, const StringSumHelper &stringValue);
 
-
-  
-
   /*
 
     Set string data and virtual child ".priority" at the defined database path.
@@ -1300,7 +1290,6 @@ public:
 
   bool set(FirebaseData &dataObj, const String &path, const StringSumHelper &stringValue, const String &ETag);
 
-
   /*
 
     Set string data and the virtual child ".priority" if defined ETag matches at the defined database path 
@@ -1313,7 +1302,6 @@ public:
   bool set(FirebaseData &dataObj, const String &path, const String &stringValue, float priority, const String &ETag);
 
   bool set(FirebaseData &dataObj, const String &path, const StringSumHelper &stringValue, float priority, const String &ETag);
-
 
   /*
 
@@ -2172,8 +2160,7 @@ public:
 
    */
   void setStreamCallback(FirebaseData &dataObj, StreamEventCallback dataAvailablecallback, StreamTimeoutCallback timeoutCallback = NULL);
-  
-  
+
   /*
     Set the multiple paths stream callback functions.
 
@@ -2196,8 +2183,6 @@ public:
 
    */
   void setMultiPathStreamCallback(FirebaseData &dataObj, MultiPathStreamEventCallback multiPathDataCallback, StreamTimeoutCallback timeoutCallback = NULL);
-
-
 
   /*
     Remove stream callback functions.
@@ -2469,7 +2454,6 @@ public:
 
   template <typename T>
   bool push(FirebaseData &dataObj, const String &path, T value, size_t size, float priority);
-  
 
 private:
   callback_function_t _callback_function = nullptr;
@@ -2744,7 +2728,6 @@ public:
 
   FirebaseJson &jsonObject();
 
-  
   /*
 
     Return the Firebase JSON object pointer of server returned payload.
@@ -3089,6 +3072,7 @@ private:
 class MultiPathStreamData
 {
   friend class FirebaseESP8266;
+
 public:
   MultiPathStreamData();
   ~MultiPathStreamData();
@@ -3096,7 +3080,7 @@ public:
   String dataPath;
   String value;
   String type;
-  
+
 private:
   uint8_t _type = 0;
   std::string _data = "";
@@ -3108,7 +3092,6 @@ private:
 };
 
 extern FirebaseESP8266 Firebase;
-
 
 #endif /* ESP8266 */
 

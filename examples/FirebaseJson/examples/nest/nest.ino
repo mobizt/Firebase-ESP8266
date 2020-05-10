@@ -1,3 +1,14 @@
+/*
+ * Created by K. Suwatchai (Mobizt)
+ * 
+ * Email: k_suwatchai@hotmail.com
+ * 
+ * Github: https://github.com/mobizt
+ * 
+ * Copyright (c) 2020 mobizt
+ * 
+ *
+*/
 #include <Arduino.h>
 #include "FirebaseJson.h"
 

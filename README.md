@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.8.8
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.8.9
 
 
 This library supports ESP8266 MCU from Espressif. The following are platforms in which libraries are also available.
@@ -1274,8 +1274,8 @@ for (size_t i = 0; i < len; i++)
   Serial.print(i);
   Serial.print(", ");
   Serial.print("Type: ");
-  Serial.print(type == JSON_OBJECT ? "object" : "array");
-  if (type == JSON_OBJECT)
+  Serial.print(type == FirebaseJson::JSON_OBJECT ? "object" : "array");
+  if (type == FirebaseJson::JSON_OBJECT)
   {
     Serial.print(", Key: ");
     Serial.print(key);

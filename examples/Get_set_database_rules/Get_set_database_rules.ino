@@ -5,9 +5,9 @@
  * 
  * Github: https://github.com/mobizt
  * 
- * Copyright (c) 2019 mobizt
+ * Copyright (c) 2020 mobizt
  * 
- * This example is for FirebaseESP8266 Arduino library v 2.7.7 or later
+ * This example is for FirebaseESP8266 Arduino library v 2.8.9 or later
  *
 */
 
@@ -81,8 +81,8 @@ void setup()
       Serial.print(i);
       Serial.print(", ");
       Serial.print("Type: ");
-      Serial.print(type == JSON_OBJECT ? "object" : "array");
-      if (type == JSON_OBJECT)
+      Serial.print(type == FirebaseJson::JSON_OBJECT ? "object" : "array");
+      if (type == FirebaseJson::JSON_OBJECT)
       {
         Serial.print(", Key: ");
         Serial.print(key);

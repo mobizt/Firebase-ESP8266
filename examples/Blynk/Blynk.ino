@@ -6,9 +6,9 @@
  * 
  * Github: https://github.com/mobizt
  * 
- * Copyright (c) 2019 mobizt
+ * Copyright (c) 2020 mobizt
  *
- * This example is for FirebaseESP8266 Arduino library v 2.7.7 or later
+ * This example is for FirebaseESP8266 Arduino library v 2.8.9 or later
 */
 
 //This example shows the basic usage of Blynk platform and Firebase RTDB.
