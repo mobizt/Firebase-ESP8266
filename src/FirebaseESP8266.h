@@ -1,13 +1,14 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.8.9
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.9.0
  * 
- * May 11, 2020
+ * May 18, 2020
  * 
  * Feature Added:
  * 
  * 
  * Feature Fixed:
- * - FirebaseJson, update JSMN as C++ class.
+ * - FCM chunk decoding.
+ * - FCM send topic, the old topic does not clear.
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -2529,6 +2530,7 @@ private:
   int rstrpos(const char *haystack, const char *needle, int offset);
   char *rstrstr(const char *haystack, const char *needle);
   void setClock(float offset);
+  uint32_t hex2int(const char *hex);
 
   void set_scheduled_callback(callback_function_t callback)
   {

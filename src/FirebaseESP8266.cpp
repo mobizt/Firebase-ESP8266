@@ -1,13 +1,14 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.8.9
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.9.0
  * 
- * May 11, 2020
+ * May 18, 2020
  * 
  * Feature Added:
  * 
  * 
  * Feature Fixed:
- * - FirebaseJson, update JSMN as C++ class.
+ * - FCM chunk decoding.
+ * - FCM send topic, the old topic does not clear.
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -2008,7 +2009,7 @@ bool FirebaseESP8266::beginStream(FirebaseData &dataObj, const String &path)
 bool FirebaseESP8266::beginMultiPathStream(FirebaseData &dataObj, const String &parentPath, const String *childPath, size_t size)
 {
     dataObj.addNodeList(childPath, size);
-  
+
     if (!apConnected(dataObj))
         return false;
 
@@ -5847,6 +5848,26 @@ void FirebaseESP8266::setClock(float offset)
     _clockReady = now > 1577836800;
 }
 
+uint32_t FirebaseESP8266::hex2int(const char *hex)
+{
+    uint32_t val = 0;
+    while (*hex)
+    {
+        // get current character then increment
+        uint8_t byte = *hex++;
+        // transform hex character to the 4bit equivalent number, using the ascii table indexes
+        if (byte >= '0' && byte <= '9')
+            byte = byte - '0';
+        else if (byte >= 'a' && byte <= 'f')
+            byte = byte - 'a' + 10;
+        else if (byte >= 'A' && byte <= 'F')
+            byte = byte - 'A' + 10;
+        // shift 4 to make space for new digit, and add the 4 bits of the new digit
+        val = (val << 4) | (byte & 0xF);
+    }
+    return val;
+}
+
 FirebaseData::FirebaseData() {}
 
 FirebaseData::~FirebaseData()
@@ -6852,7 +6873,7 @@ void FCMObject::setTimeToLive(uint32_t seconds)
 
 void FCMObject::setTopic(const String &topic)
 {
-    Firebase.p_memCopy(_topic, ESP8266_FIREBASE_STR_134);
+    Firebase.p_memCopy(_topic, ESP8266_FIREBASE_STR_134, true);
     _topic += topic.c_str();
 }
 
@@ -7073,15 +7094,14 @@ bool FCMObject::getFCMServerResponse(FirebaseHTTPClient &net, int &httpcode)
 
     char c;
     int p1 = -1;
+    int p2 = -1;
     int r = -1;
     httpcode = -1000;
     bool chunked = false;
-    size_t chunkSize = 0;
-    int chunkCount = 0;
+    int chunkSize = 0;
     int chunkState = 0;
-    bool newChunk = false;
-    size_t lfCount = 0;
     bool payloadBegin = false;
+    int dataLen = 0;
 
     unsigned long dataTime = millis();
     _sendResult.clear();
@@ -7115,62 +7135,59 @@ bool FCMObject::getFCMServerResponse(FirebaseHTTPClient &net, int &httpcode)
                 continue;
             c = (char)r;
 
-            if (c != '\n')
-            {
-                if (newChunk)
-                {
-                    newChunk = false;
-                    Firebase.strcat_c(lineBuf, '\r');
-                    Firebase.strcat_c(lineBuf, '\n');
-                }
+            if ((c != '\r' && c != '\n') || payloadBegin)
+                Firebase.strcat_c(lineBuf, c);
 
-                if (c != '\r')
-                    Firebase.strcat_c(lineBuf, c);
-            }
-            else
+            if (c == '\n')
             {
                 dataTime = millis();
 
                 if (!payloadBegin)
                 {
-                    tmp = Firebase.getPGMString(ESP8266_FIREBASE_STR_5);
-                    p1 = Firebase.strpos(lineBuf, tmp, 0);
-                    Firebase.delPtr(tmp);
-                    if (p1 != -1)
+                    if (httpcode == -1000)
                     {
-                        tbuf = Firebase.newPtr(strlen(lineBuf) + 1);
-                        strncpy(tbuf, lineBuf + p1 + 9, strlen(lineBuf) - p1 - 9);
-                        httpcode = atoi(tbuf);
-                        Firebase.delPtr(tbuf);
-                    }
-
-                    tmp = Firebase.getPGMString(ESP8266_FIREBASE_STR_114);
-                    p1 = Firebase.strpos(lineBuf, tmp, 0);
-                    Firebase.delPtr(tmp);
-                    if (p1 != -1)
-                    {
-                        tmp = Firebase.getPGMString(ESP8266_FIREBASE_STR_7);
+                        tmp = Firebase.getPGMString(ESP8266_FIREBASE_STR_5);
                         p1 = Firebase.strpos(lineBuf, tmp, 0);
                         Firebase.delPtr(tmp);
                         if (p1 != -1)
                         {
-                            p1++;
-                            while (lineBuf[p1] == ' ')
-                                p1++;
-                            tmp = Firebase.getPGMString(ESP8266_FIREBASE_STR_115);
-                            tbuf = Firebase.newPtr(strlen(lineBuf) + 1);
-                            strncpy(tbuf, lineBuf + p1, strlen(lineBuf) - p1);
-                            chunked = strcmp(tbuf, tmp) == 0;
-                            Firebase.delPtr(tbuf);
+                            tmp = Firebase.getPGMString(ESP8266_FIREBASE_STR_6);
+                            p2 = Firebase.strpos(lineBuf, tmp, p1 + strlen_P(ESP8266_FIREBASE_STR_5));
                             Firebase.delPtr(tmp);
+                            if (p2 != -1)
+                            {
+                                tbuf = Firebase.newPtr(p2 - p1 - strlen_P(ESP8266_FIREBASE_STR_5) + 1);
+                                strncpy(tbuf, lineBuf + p1 + strlen_P(ESP8266_FIREBASE_STR_5), p2 - p1 - strlen_P(ESP8266_FIREBASE_STR_5));
+                                httpcode = atoi(tbuf);
+                                Firebase.delPtr(tbuf);
+                            }
                         }
                     }
-
-                    if (httpcode == _HTTP_CODE_OK && lfCount > 0 && strlen(lineBuf) == 0)
-                        payloadBegin = true;
-
-                    if (!payloadBegin)
-                        lineBuf = Firebase.newPtr(lineBuf, responseBufSize);
+                    else if (!chunked)
+                    {
+                        tmp = Firebase.getPGMString(ESP8266_FIREBASE_STR_114);
+                        p1 = Firebase.strpos(lineBuf, tmp, 0);
+                        Firebase.delPtr(tmp);
+                        if (p1 != -1)
+                        {
+                            tmp = Firebase.getPGMString(ESP8266_FIREBASE_STR_7);
+                            p1 = Firebase.strpos(lineBuf, tmp, 0);
+                            Firebase.delPtr(tmp);
+                            if (p1 != -1)
+                            {
+                                p1++;
+                                while (lineBuf[p1] == ' ')
+                                    p1++;
+                                tmp = Firebase.getPGMString(ESP8266_FIREBASE_STR_115);
+                                tbuf = Firebase.newPtr(strlen(lineBuf) + 1);
+                                strncpy(tbuf, lineBuf + p1, strlen(lineBuf) - p1);
+                                chunked = strcmp(tbuf, tmp) == 0;
+                                Firebase.delPtr(tbuf);
+                                Firebase.delPtr(tmp);
+                                chunkState = 0;
+                            }
+                        }
+                    }
                 }
                 else
                 {
@@ -7178,35 +7195,61 @@ bool FCMObject::getFCMServerResponse(FirebaseHTTPClient &net, int &httpcode)
                     {
                         if (chunkState == 0)
                         {
+                            chunkState = 1;
+                            chunkSize = -1;
+                            dataLen = 0;
                             tmp = Firebase.getPGMString(ESP8266_FIREBASE_STR_79);
                             p1 = Firebase.strpos(lineBuf, tmp, 0);
                             Firebase.delPtr(tmp);
                             if (p1 == -1)
-                                p1 = strlen(lineBuf);
-
-                            tbuf = Firebase.newPtr(strlen(lineBuf) + 1);
-                            strncpy(tbuf, lineBuf, p1);
-
-                            chunkSize = atoi(tbuf);
-                            chunkState = 1;
-                            Firebase.delPtr(tbuf);
-
-                            if (chunkSize == 0 && chunkCount > 0)
-                                lineBuf[strlen(lineBuf) - 3] = 0;
-
-                            if (chunkCount == 0)
-                                lineBuf = Firebase.newPtr(lineBuf, responseBufSize);
+                            {
+                                tmp = Firebase.getPGMString(ESP8266_FIREBASE_STR_21);
+                                p1 = Firebase.strpos(lineBuf, tmp, 0);
+                                Firebase.delPtr(tmp);
+                            }
+                            if (p1 != -1)
+                            {
+                                tbuf = Firebase.newPtr(p1 + 1);
+                                strncpy(tbuf, lineBuf, p1);
+                                chunkSize = Firebase.hex2int(tbuf);
+                                Firebase.delPtr(tbuf);
+                            }
+                            //last chunk
+                            if (chunkSize < 1)
+                                chunked = false;
                         }
                         else
                         {
-                            if (chunkSize > 0 && chunkCount > 0)
-                                newChunk = true;
-                            chunkState = 0;
+                            if (chunkSize > -1)
+                            {
+                                //chunk may contain trailing
+                                if ((int)(dataLen + strlen(lineBuf)) - 2 < chunkSize)
+                                {
+                                    dataLen += strlen(lineBuf);
+                                    tbuf = Firebase.newPtr(strlen(lineBuf) + 1);
+                                    strcpy(tbuf, lineBuf);
+                                    _sendResult += tbuf;
+                                    Firebase.delPtr(tbuf);
+                                }
+                                else
+                                {
+                                    tbuf = Firebase.newPtr(chunkSize - dataLen + 1);
+                                    strncpy(tbuf, lineBuf, chunkSize - dataLen);
+                                    _sendResult += tbuf;
+                                    Firebase.delPtr(tbuf);
+                                    dataLen = chunkSize;
+                                    chunkState = 0;
+                                }
+                            }
                         }
-                        chunkCount++;
                     }
                 }
-                lfCount++;
+
+                if (strlen(lineBuf) == 0)
+                    payloadBegin = true;
+
+                Firebase.delPtr(lineBuf);
+                lineBuf = Firebase.newPtr(responseBufSize);
             }
 
             if (millis() - dataTime > 5000)
@@ -7215,8 +7258,8 @@ bool FCMObject::getFCMServerResponse(FirebaseHTTPClient &net, int &httpcode)
                 break;
             }
         }
-
-        _sendResult = lineBuf;
+        if (_sendResult.length() == 0)
+            _sendResult = lineBuf;
 
         if (!httpcode)
             httpcode = HTTPC_ERROR_NO_HTTP_SERVER;
