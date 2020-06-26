@@ -1,5 +1,5 @@
 /*
- * HTTP Client wrapper v1.0.9
+ * HTTP Client wrapper v1.1.0
  * 
  * The MIT License (MIT)
  * Copyright (c) 2019 K. Suwatchai (Mobizt)
@@ -80,13 +80,13 @@ void FirebaseHTTPClient::setRootCAFile(std::string &rootCAFile, uint8_t storageT
 
     if (storageType == 0)
     {
-      bool t = SPIFFS.begin();
+      bool t = FLASH_FS.begin();
       if (t)
       {
         fs::File f;
-        if (SPIFFS.exists(rootCAFile.c_str()))
+        if (FLASH_FS.exists(rootCAFile.c_str()))
         {
-          f = SPIFFS.open(rootCAFile.c_str(), "r");
+          f = FLASH_FS.open(rootCAFile.c_str(), "r");
           size_t len = f.size();
           uint8_t *der = new uint8_t[len];
 

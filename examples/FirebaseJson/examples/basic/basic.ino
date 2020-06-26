@@ -140,7 +140,7 @@
         Serial.print(value);
         Serial.print(", ");
         Serial.print("TYPE: ");
-        Serial.println(type == JSMN_OBJECT ? "object" : "array");
+        Serial.println(type == FirebaseJson::JSMN_OBJECT ? "object" : "array");
     }
 
     Serial.println();

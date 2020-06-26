@@ -58,7 +58,7 @@ void setup()
   //{TARGET_NODE_PATH} is the full path of database to backup and restore.
   //{FILE_NAME} is file name included path to save to Flash meory
 
-  if (!Firebase.backup(firebaseData, StorageType::SPIFFS, "/{TARGET_NODE_PATH}", "/{FILE_NAME}"))
+  if (!Firebase.backup(firebaseData, StorageType::FLASH, "/{TARGET_NODE_PATH}", "/{FILE_NAME}"))
   {
     Serial.println("FAILED");
     Serial.println("REASON: " + firebaseData.fileTransferError());
@@ -81,7 +81,7 @@ void setup()
   //{TARGET_NODE_PATH} is the full path of database to restore
   //{FILE_NAME} is file name included path of backed up file.
 
-  if (!Firebase.restore(firebaseData, StorageType::SPIFFS, "/{TARGET_NODE_PATH}", "/{FILE_NAME}"))
+  if (!Firebase.restore(firebaseData, StorageType::FLASH, "/{TARGET_NODE_PATH}", "/{FILE_NAME}"))
   {
     Serial.println("FAILED");
     Serial.println("REASON: " + firebaseData.fileTransferError());

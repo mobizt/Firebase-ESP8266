@@ -1,14 +1,13 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.9.0
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.9.1
  * 
- * May 18, 2020
+ * June 26, 2020
  * 
  * Feature Added:
- * 
+ * - Add support for LittleFS file system for flash memory.
  * 
  * Feature Fixed:
- * - FCM chunk decoding.
- * - FCM send topic, the old topic does not clear.
+ * - NULL data handling.
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -43,11 +42,10 @@
 
 #ifdef ESP8266
 
+
 #include <Arduino.h>
 #include <SPI.h>
 #include <time.h>
-#define FS_NO_GLOBALS
-#include <FS.h>
 #include <SD.h>
 #include <vector>
 #include <functional>
@@ -55,6 +53,9 @@
 #include <ets_sys.h>
 #include <ESP8266WiFi.h>
 #include "FirebaseESP8266HTTPClient.h"
+
+#define FS_NO_GLOBALS
+#include <FS.h>
 #include "FirebaseJson.h"
 
 #define FIEBASE_PORT 443
@@ -461,7 +462,7 @@ protected:
 
 struct StorageType
 {
-  static const uint8_t SPIFFS = 0;
+  static const uint8_t FLASH = 0;
   static const uint8_t SD = 1;
 };
 
@@ -562,7 +563,7 @@ public:
     @param auth - Your database secret.
     @param rootCA - Root CA certificate base64 string (PEM file).
     @param rootCAFile - Root CA certificate DER file (binary).
-    @param StorageType - Type of storage, StorageType::SD and StorageType::SPIFFS.
+    @param StorageType - Type of storage, StorageType::SD and StorageType::FLASH.
     @param GMTOffset - GMT time offset in hour is required to set time in order to make BearSSL 
                        data decryption/encryption to work.
                        This parameter is only required for ESP8266 Core SDK v2.5.x or later.
@@ -2521,7 +2522,7 @@ private:
   void send_base64_encode_file(SSL_CLIENT *ssl_client, const std::string &filePath, uint8_t storageType);
   bool base64_decode_string(const std::string src, std::vector<uint8_t> &out);
   bool base64_decode_file(File &file, const char *src, size_t len);
-  bool base64_decode_SPIFFS(fs::File &file, const char *src, size_t len);
+  bool base64_decode_flash(fs::File &file, const char *src, size_t len);
 
   bool sendFCMMessage(FirebaseData &dataObj, uint8_t messageType);
 
@@ -2541,7 +2542,7 @@ private:
   std::string _host = "";
   std::string _auth = "";
   std::string _rootCAFile = "";
-  uint8_t _rootCAFileStoreageType = StorageType::SPIFFS;
+  uint8_t _rootCAFileStoreageType = StorageType::FLASH;
   uint16_t _port = 443;
   uint8_t _sdPin = 15;
   std::shared_ptr<const char> _rootCA = nullptr;

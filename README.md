@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.9.0
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.9.1
 
 
 This library supports ESP8266 MCU from Espressif. The following are platforms in which libraries are also available.
@@ -44,7 +44,7 @@ This library supports ESP8266 MCU from Espressif. The following are platforms in
 
 * **Supports Firebase Cloud Messaging.**
 
-* **Supports SD and SPIFFS's CA certificate file (for Core SDK v2.5.x).**
+* **Supports SD and flash memory's CA certificate file (for Core SDK v2.5.x).**
 
 * **Built-in easiest and non-recursive JSON parser and builder.**
 
@@ -52,7 +52,7 @@ This library supports ESP8266 MCU from Espressif. The following are platforms in
 
 ## Known bugs
 
-From [known bugs](https://github.com/mobizt/Firebase-ESP8266/issues/74) for BearSSL stack in ESP8266 Arduino Core SDK version 2.6.1.
+From known bugs of BearSSL library in ESP8266 Arduino Core SDK version 2.6.1.
 
 If you're using this SDK version, please update the ESP8266 Arduino Core SDK to version 2.6.2 or newer.
 
@@ -276,14 +276,22 @@ The server's **Timestamp** can be stored in the database through `Firebase.setTi
 
 The returned **Timestamp** value can get from `firebaseData.getInt()`. 
 
-The following example showed how to store file data to Flash memory at "/test/file_data".
+
+To use LittleFS file system for flash memory instead of SPIFFS, add the following macro in **FirebaseFS.h**
+
+```C++
+#define USE_LITTLEFS
+```
+
+The following example showed how to store file data to flash memory at "/test/file_data".
+
 
 
 ```C++
 
-if (Firebase.getFile(firebaseData, StorateType::SPIFFS, "/test/file_data", "/test.txt"))
+if (Firebase.getFile(firebaseData, StorateType::FLASH, "/test/file_data", "/test.txt"))
 {
-  //SPIFFS.begin(); //not need to begin again due to it has been called in function.
+  //To use LittleFS file system, add #define USE_LITTLEFS in FirebaseFS.h
   File file = SPIFFS.open("/test.txt", "r");
 
   while (file.available())
@@ -646,7 +654,13 @@ if (firebaseData.streamAvailable())
 
 This library allows you to backup and restores the database at the defined path.
 
-The backup file will store in SD card or Flash memory (SPIFFS).
+The backup file will store in SD card or flash memory (SPIFFS or LittleFS file systems).
+
+To use LittleFS file system for flash memory instead of SPIFFS, add the following macro in **FirebaseFS.h**
+
+```C++
+#define USE_LITTLEFS
+```
 
 Due to SD library used, only 8.3 DOS format file name supported.
 
@@ -815,11 +829,17 @@ Serial.println();
 ```
 
 
-Error Queues can be saved as a file in SD card or Flash memory with function `saveErrorQueue`.
+Error Queues can be saved as a file in SD card or flash memory with function `saveErrorQueue`.
+
+To use LittleFS file system for flash memory instead of SPIFFS, add the following macro in **FirebaseFS.h**
+
+```C++
+#define USE_LITTLEFS
+```
 
 Error Queues store as a file can be restored to Error Queue collection with function `restoreErrorQueue`.
 
-Two types of storage can be assigned with these functions, `StorageType::SPIFFS` and `StorageType::SD`.
+Two types of storage can be assigned with these functions, `StorageType::FLASH` and `StorageType::SD`.
 
 Read data (get) operation is not support queues restore
 
@@ -828,14 +848,14 @@ The following example showed how to restore and save Error Queues in /test.txt f
 ```C++
 //To restore Error Queues
 
-if (Firebase.errorQueueCount(firebaseData, "/test.txt", StorageType::SPIFFS) > 0)
+if (Firebase.errorQueueCount(firebaseData, "/test.txt", StorageType::FLASH) > 0)
 {
-    Firebase.restoreErrorQueue(firebaseData, "/test.txt", StorageType::SPIFFS);
-    Firebase.deleteStorageFile("/test.txt", StorageType::SPIFFS);
+    Firebase.restoreErrorQueue(firebaseData, "/test.txt", StorageType::FLASH);
+    Firebase.deleteStorageFile("/test.txt", StorageType::FLASH);
 }
 
 //To save Error Queues to file
-Firebase.saveErrorQueue(firebaseData, "/test.txt", StorageType::SPIFFS);
+Firebase.saveErrorQueue(firebaseData, "/test.txt", StorageType::FLASH);
 
 ```
 

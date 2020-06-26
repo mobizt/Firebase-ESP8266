@@ -200,6 +200,10 @@ void printResult(FirebaseData &data)
                 Serial.println(jsonData.stringValue);
         }
     }
+    else
+    {
+        Serial.println(data.payload());
+    }
 }
 
 void loop()

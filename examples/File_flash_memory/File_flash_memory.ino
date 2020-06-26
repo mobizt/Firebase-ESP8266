@@ -30,6 +30,13 @@ String path = "/ESP8266_Test";
 
 fs::File file;
 
+/*
+
+To use LittleFS file system instead of SPIFFS. add #define USE_LITTLEFS to FirebaseFS.h 
+and replace all SPIFFS class in this sketch with LittleFS 
+
+*/
+
 void setup()
 {
 
@@ -94,7 +101,7 @@ void setup()
   //Firebase.lowMemBSSL(false);
 
   //Set file (read file from Flash memory and set to database)
-  if (Firebase.setFile(firebaseData, StorageType::SPIFFS, path + "/Binary/File/data", "/file1.txt"))
+  if (Firebase.setFile(firebaseData, StorageType::FLASH, path + "/Binary/File/data", "/file1.txt"))
   {
     Serial.println("PASSED");
     Serial.println("------------------------------------");
@@ -112,7 +119,7 @@ void setup()
   Serial.println("Get file data test...");
 
   //Get file (download file to Flash memory)
-  if (Firebase.getFile(firebaseData, StorageType::SPIFFS, path + "/Binary/File/data", "/file2.txt"))
+  if (Firebase.getFile(firebaseData, StorageType::FLASH, path + "/Binary/File/data", "/file2.txt"))
   {
 
     Serial.println("PASSED");
@@ -164,7 +171,7 @@ void setup()
   file.close();
 
   //Append file data to database
-  if (Firebase.pushFile(firebaseData, StorageType::SPIFFS, path + "/Binary/File/Logs", "/file1.txt"))
+  if (Firebase.pushFile(firebaseData, StorageType::FLASH, path + "/Binary/File/Logs", "/file1.txt"))
   {
     Serial.println("PASSED");
     Serial.println("PATH: " + firebaseData.dataPath());
@@ -177,7 +184,7 @@ void setup()
     Serial.println("Get appended file data test...");
 
     //Get the recently appended file (download file to Flash memory)
-    if (Firebase.getFile(firebaseData, StorageType::SPIFFS, path + "/Binary/File/Logs/" + firebaseData.pushName(), "/file3.txt"))
+    if (Firebase.getFile(firebaseData, StorageType::FLASH, path + "/Binary/File/Logs/" + firebaseData.pushName(), "/file3.txt"))
     {
 
       Serial.println("PASSED");

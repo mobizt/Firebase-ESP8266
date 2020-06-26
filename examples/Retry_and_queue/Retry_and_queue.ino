@@ -94,10 +94,10 @@ void setup()
 
 
   //Open and retore Firebase Error Queues from file.
-  if (Firebase.errorQueueCount(firebaseData, "/test.txt", StorageType::SPIFFS) > 0)
+  if (Firebase.errorQueueCount(firebaseData, "/test.txt", StorageType::FLASH) > 0)
   {
-    Firebase.restoreErrorQueue(firebaseData, "/test.txt", StorageType::SPIFFS);
-    Firebase.deleteStorageFile("/test.txt", StorageType::SPIFFS);
+    Firebase.restoreErrorQueue(firebaseData, "/test.txt", StorageType::FLASH);
+    Firebase.deleteStorageFile("/test.txt", StorageType::FLASH);
   }
 
   //Set maximum Firebase read/store retry operation (0 - 255) in case of network problems and buffer overflow
@@ -262,7 +262,7 @@ void setup()
     Serial.println();
 
     //Save Error Queues to file
-    Firebase.saveErrorQueue(firebaseData, "/test.txt", StorageType::SPIFFS);
+    Firebase.saveErrorQueue(firebaseData, "/test.txt", StorageType::FLASH);
   }
 
   //Stop error queue auto run process
@@ -415,5 +415,9 @@ void printResult(FirebaseData &data)
                jsonData.typeNum == FirebaseJson::JSON_ARRAY)
         Serial.println(jsonData.stringValue);
     }
+  }
+  else
+  {
+    Serial.println(data.payload());
   }
 }

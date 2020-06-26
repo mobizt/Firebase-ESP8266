@@ -80,7 +80,7 @@ void setup()
   
   //To set root CA cert file, DER format (rootCA.der in data folder) in this example, use this plugin to upload
   //https://github.com/esp8266/arduino-esp8266fs-plugin
-  Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH, "/rootCA.der",StorageType::SPIFFS);
+  Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH, "/rootCA.der",StorageType::FLASH);
   
   //or add rootCA.der file to SD card
   Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH, "/rootCA.der",StorageType::SD);
@@ -323,6 +323,10 @@ void printResult(FirebaseData &data)
                      jsonData.typeNum == FirebaseJson::JSON_ARRAY)
                 Serial.println(jsonData.stringValue);
         }
+    }
+    else
+    {
+      Serial.println(data.payload());
     }
 }
 

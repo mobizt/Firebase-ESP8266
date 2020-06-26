@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.9.0
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.9.1
 
 
 ## Global functions
@@ -17,7 +17,7 @@ param **`rootCA`** - Root CA certificate base64 string (PEM file).
 
 param **`rootCAFile`** - Root CA certificate DER file (binary).
 
-param **`storageType`** - Type of storage, StorageType::SD and StorageType::SPIFFS.
+param **`storageType`** - Type of storage, StorageType::SD and StorageType::FLASH.
 
 param **`GMTOffset`** - GMT time offset in hour is required to set time in order to make BearSSL 
                         data decryption/encryption to work.
@@ -25,6 +25,17 @@ param **`GMTOffset`** - GMT time offset in hour is required to set time in order
                         This parameter is only required for ESP8266 Core SDK v2.5.x or later.
 
 Root CA certificate DER file is only supported in Core SDK v2.5.x
+
+To use LittleFS file system for flash memory instead of SPIFFS, add the following macro in **FirebaseFS.h**
+
+```C++
+#define USE_LITTLEFS
+```
+
+
+
+
+
 
 ```C++
 void begin(const String &host, const String &auth);
@@ -551,7 +562,7 @@ bool push(FirebaseData &dataObj, const String &path, uint8_t *blob, size_t size,
 
 
 
-#### Append new binary data from file stored on SD card/Flash memory to the defined database path.
+#### Append new binary data from file stored on SD card/flash memory to the defined database path.
 
 param **`dataObj`** - Firebase Data Object to hold data and instances.
 
@@ -572,12 +583,19 @@ bool pushFile(FirebaseData &dataObj, uint8_t storageType, const String &path, co
 bool push(FirebaseData &dataObj, uint8_t storageType, const String &path, const String &fileName);
 ```
 
+To use LittleFS file system for flash memory instead of SPIFFS, add the following macro in **FirebaseFS.h**
+
+```C++
+#define USE_LITTLEFS
+```
 
 
 
 
 
-#### Append new binary data from the file store on SD card/Flash memory and the virtual child ".priority" to the defined database path.
+
+
+#### Append new binary data from the file store on SD card/flash memory and the virtual child ".priority" to the defined database path.
 
 ```C++
 bool pushFile(FirebaseData &dataObj, uint8_t storageType, const String &path, const String &fileName, float priority);
@@ -585,7 +603,11 @@ bool pushFile(FirebaseData &dataObj, uint8_t storageType, const String &path, co
 bool push(FirebaseData &dataObj, uint8_t storageType, const String &path, const String &fileName, float priority);
 ```
 
+To use LittleFS file system for flash memory instead of SPIFFS, add the following macro in **FirebaseFS.h**
 
+```C++
+#define USE_LITTLEFS
+```
 
 
 
@@ -1302,7 +1324,7 @@ bool set(FirebaseData &dataObj, const String &path, uint8_t *blob, size_t size, 
 
 
 
-#### Set binary data from a file stored on SD card/Flash memory to the defined database path.
+#### Set binary data from a file stored on SD card/flash memory to the defined database path.
 
 param **`dataObj`** - Firebase Data Object to hold data and instances.
 
@@ -1322,6 +1344,11 @@ bool setFile(FirebaseData &dataObj, uint8_t storageType, const String &path, con
 bool set(FirebaseData &dataObj, uint8_t storageType, const String &path, const String &fileName);
 ```
 
+To use LittleFS file system for flash memory instead of SPIFFS, add the following macro in **FirebaseFS.h**
+
+```C++
+#define USE_LITTLEFS
+```
 
 
 
@@ -1339,7 +1366,7 @@ bool set(FirebaseData &dataObj, uint8_t storageType, const String &path, const S
 
 
 
-#### Set binary data from a file stored on SD card/Flash memory to the defined database path if defined database path's ETag matched the ETag value
+#### Set binary data from a file stored on SD card/flash memory to the defined database path if defined database path's ETag matched the ETag value
 
 param **`dataObj`** - Firebase Data Object to hold data and instances.
 
@@ -1364,6 +1391,11 @@ bool setFile(FirebaseData &dataObj, uint8_t storageType, const String &path, con
 bool set(FirebaseData &dataObj, uint8_t storageType, const String &path, const String &fileName, const String &ETag);
 ```
 
+To use LittleFS file system for flash memory instead of SPIFFS, add the following macro in **FirebaseFS.h**
+
+```C++
+#define USE_LITTLEFS
+```
 
 
 
@@ -2048,7 +2080,7 @@ bool getBlob(FirebaseData &dataObj, const String &path, std::vector<uint8_t> &ta
 
 
 
-#### Download file data in a database at the defined database path and save to SD card/Flash memory.
+#### Download file data in a database at the defined database path and save to SD card/flash memory.
 
 The downloaded data will be decoded to binary and save to SD card/Flash memory, then
 
@@ -2068,6 +2100,11 @@ return **`Boolean`** type status indicates the success of the operation.
 bool getFile(FirebaseData &dataObj, uint8_t storageType, const String &nodePath, const String &fileName);
 ```
 
+To use LittleFS file system for flash memory instead of SPIFFS, add the following macro in **FirebaseFS.h**
+
+```C++
+#define USE_LITTLEFS
+```
 
 
 
@@ -2188,7 +2225,7 @@ bool endStream(FirebaseData &dataObj);
 
 
 
-#### Backup (download) database at defined database path to SD card/Flash memory
+#### Backup (download) database at defined database path to SD card/flash memory
 
 param **`dataObj`** - Firebase Data Object to hold data and instances.
 
@@ -2207,11 +2244,16 @@ return **`Boolean`** type status indicates the success of the operation.
 bool backup(FirebaseData &dataObj, uint8_t storageType, const String &nodePath, const String &fileName);
 ```
 
+To use LittleFS file system for flash memory instead of SPIFFS, add the following macro in **FirebaseFS.h**
+
+```C++
+#define USE_LITTLEFS
+```
 
 
 
 
-#### Restore database at a defined path using backup file saved on SD card/Flash memory
+#### Restore database at a defined path using backup file saved on SD card/flash memory
 
 param **`dataObj`** - Firebase Data Object to hold data and instances.
 
@@ -2227,7 +2269,11 @@ return **`Boolean`** type status indicates the success of the operation.
 bool restore(FirebaseData &dataObj, uint8_t storageType const String &nodePath, const String &fileName);
 ```
 
+To use LittleFS file system for flash memory instead of SPIFFS, add the following macro in **FirebaseFS.h**
 
+```C++
+#define USE_LITTLEFS
+```
 
 
 
@@ -2420,7 +2466,7 @@ bool saveErrorQueue(FirebaseData &dataObj, const String &filename, uint8_t stora
 
 
 
-#### Delete file in Flash (SPIFFS) or SD card
+#### Delete file in flash memory (SPIFFS and LittleFS file systems) or SD card
 
 param **`filename`** - File name to delete.
 
@@ -2430,7 +2476,11 @@ param **`storageType`** - Type of storage to save file, StorageType::SPIFS or St
 bool deleteStorageFile(const String &filename, uint8_t storageType);
 ```
 
+To use LittleFS file system for flash memory instead of SPIFFS, add the following macro in **FirebaseFS.h**
 
+```C++
+#define USE_LITTLEFS
+```
 
 
    
@@ -3041,14 +3091,18 @@ bool bufferOverflow();
 
 
 
-#### Determine the name (full path) of backup file in SD card/Flash memory
+#### Determine the name (full path) of backup file in SD card/flash memory
 
-return **`String`** (String object) of a file name that stores on SD card/Flash memory after backup operation.
+return **`String`** (String object) of a file name that stores on SD card/flash memory after backup operation.
 
 ```C++
 String getBackupFilename();
 ```
+To use LittleFS file system for flash memory instead of SPIFFS, add the following macro in **FirebaseFS.h**
 
+```C++
+#define USE_LITTLEFS
+```
 
 
 

@@ -1,5 +1,5 @@
 /*
- * HTTP Client wrapper v1.0.9
+ * HTTP Client wrapper v1.1.0
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
  * and delete calls. 
@@ -81,6 +81,14 @@
 #define FS_NO_GLOBALS
 #include <FS.h>
 #include <SD.h>
+#include "FirebaseFS.h"
+
+#ifdef USE_LITTLEFS
+#include <LittleFS.h>
+#define FLASH_FS LittleFS
+#else
+#define FLASH_FS SPIFFS
+#endif
 
 /// HTTP client errors
 #define HTTPC_ERROR_CONNECTION_REFUSED (-1)
