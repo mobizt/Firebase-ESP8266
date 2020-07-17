@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.9.1
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.9.2
 
 
 ## Global functions
@@ -3349,6 +3349,7 @@ String getSendResult();
 ## FirebaseJSON object Functions
 
 
+
 #### Clear internal buffer of FirebaseJson object.
     
 return **`instance of an object.`**
@@ -3428,7 +3429,7 @@ FirebaseJson &add(const String &key, const char *value);
 
 #### Add integer/unsigned short to FirebaseJson object.
     
-param **`key`** - The new key string that values to be added.
+param **`key`** - The new key string that the value to be added.
 
 param **`value`** - The integer/unsigned short value for new specified key.
 
@@ -3437,6 +3438,22 @@ return **`instance of an object.`**
 ```C++
 FirebaseJson &add(const String &key, int value);
 FirebaseJson &add(const String &key, unsigned short value);
+```
+
+
+
+
+
+#### Add float to FirebaseJson object.
+    
+param **`key`** - The new key string that float value to be added.
+
+param **`value`** - The float value for the new specified key.
+
+return **`instance of an object.`**
+
+```C++
+FirebaseJson &add(const String &key, float value);
 ```
 
 
@@ -3464,7 +3481,7 @@ FirebaseJson &add(const String &key, double value);
     
 param **`key`** - The new key string that bool value to be added.
 
-param **`value`** - The boolean value for the new specified key.
+param **`value`** - The boolean value for new specified key.
 
 return **`instance of an object.`**
 
@@ -3542,25 +3559,28 @@ return **`boolean status of the operation.`**
 
     jsonData.intValue - contains the returned integer value.
 
+    jsonData.floatValue - contains the returned float value.
+
     jsonData.doubleValue - contains the returned double value.
 
     jsonData.boolValue - contains the returned boolean value.
 
-    jsonData.success - used to determine the result of get operation.
+    jsonData.success - used to determine the result of the get operation.
 
     jsonData.type - used to determine the type of returned value in string represent 
     the types of value e.g. string, int, double, boolean, array, object, null and undefined.
 
     jsonData.typeNum used to determine the type of returned value is an integer as represented by the following value.
     
-    FirebaseJson::JSON_UNDEFINED = 0
-    FirebaseJson::JSON_OBJECT = 1
-    FirebaseJson::JSON_ARRAY = 2
-    FirebaseJson::JSON_STRING = 3
-    FirebaseJson::JSON_INT = 4
-    FirebaseJson::JSON_DOUBLE = 5
-    FirebaseJson::JSON_BOOL = 6 and
-    FirebaseJson::JSON_NULL = 7
+    FirebaseJson::UNDEFINED = 0
+    FirebaseJson::OBJECT = 1
+    FirebaseJson::ARRAY = 2
+    FirebaseJson::STRING = 3
+    FirebaseJson::INT = 4
+    FirebaseJson::FLOAT = 5
+    FirebaseJson::DOUBLE = 6
+    FirebaseJson::BOOL = 7 and
+    FirebaseJson::NULL = 8
 
  
  ```C++
@@ -3591,9 +3611,9 @@ return **`number`** of child/array elements in FirebaseJson object.
     
 param **`index`** - The element index to get.
 
-param **`type`** - The integer which holds the type of data i.e. FirebaseJson::JSON_OBJECT and FirebaseJson::JSON_ARR
+param **`type`** - The integer which holds the type of data i.e. FirebaseJson::OBJECT and FirebaseJson::ARR
 
-param **`key`** - The string which holds the key/name of an object, can return empty String if the data type is an array.
+param **`key`** - The string which holds the key/name of the object, can return empty String if the data type is an array.
 
 param **`value`** - The string which holds the value for the element key or array.   
 
@@ -3679,6 +3699,23 @@ void set(const String &path, int value);
 void set(const String &path, unsigned short value);
 ```
 
+
+
+
+
+
+#### Set the float value to FirebaseJson object at the specified node path.
+    
+param **`path`** - The relative path that float value to be set.
+
+param **`value`** - The float value to set.
+
+The relative path can be mixed with array index (number placed inside square brackets) and node names 
+e.g. /myRoot/[2]/Sensor1/myData/[3].
+
+```C++
+void set(const String &path, float value);
+```
 
 
 
@@ -3834,6 +3871,20 @@ FirebaseJsonArray &add(unsigned short value);
 
 
 
+#### Add float to FirebaseJsonArray object.
+
+param **`value`** - The float value to add.
+
+return **`instance of an object.`**
+
+```C++
+FirebaseJsonArray &add(float value);
+```
+
+
+
+
+
 
 #### Add double to FirebaseJsonArray object.
 
@@ -3934,7 +3985,7 @@ bool get(FirebaseJsonData &jsonData, const String &path);
 
 #### Get the length of array in FirebaseJsonArray object.  
 
-return **`length of an array.`**
+return **`length of the array.`**
 
 ```C++
 size_t size();
@@ -4030,6 +4081,20 @@ param **`value`** - The integer/unsigned short value to set.
 void set(int index, int value);
 void set(int index, unsigned short value);
 ```
+
+
+
+
+#### Set float value to FirebaseJsonArray object at specified index.
+    
+param **`index`** - The array index that float value to be set.
+
+param **`value`** - The float value to set.
+
+```C++
+void set(int index, float value);
+```
+
 
 
 
@@ -4162,6 +4227,25 @@ void set(const String &path, unsigned short value);
 
 
 
+#### Set float value to FirebaseJsonArray object at specified path.
+    
+param **`path`** - The relative path that float value to be set.
+
+param **`value`** - The float to set.
+
+The relative path must begin with array index (number placed inside square brackets) followed by 
+other array indexes or node names e.g. /[2]/myData would get the data from myData key inside the array indexes 2.
+
+ ```C++
+void set(const String &path, float value);
+```
+
+
+
+
+
+
+
 #### Set double value to FirebaseJsonArray object at specified path.
     
 param **`path`** - The relative path that double value to be set.
@@ -4289,7 +4373,7 @@ param **`jsonArray`** - The returning FirebaseJson object.
 
 return **`bool`** status for successful operation.
 
-This should call after parse or get function.
+This should call after pares or get functions.
 
 ```C++
 bool getJSON(FirebaseJson &json);
@@ -4304,34 +4388,37 @@ bool getJSON(FirebaseJson &json);
 
 **`intValue`** The int value of parses data.
 
+**`floatValue`** The double value of parses data.
+
 **`doubleValue`** The double value of parses data.
 
 **`boolValue`** The bool value of parses data.
 
-**`success`** used to determine the result of Firebase.get operation.
+**`success`** used to determine the result of the get operation.
 
 **`type`** The type String of parses data e.g. string, int, double, boolean, array, object, null and undefined.
 
 **`typeNum`** The type (number) of parses data in form of the following **`jsonDataType`** value.
 
-**FirebaseJson::JSON_UNDEFINED = 0**
+**FirebaseJson::UNDEFINED = 0**
 
-**FirebaseJson::JSON_OBJECT = 1**
+**FirebaseJson::OBJECT = 1**
 
-**FirebaseJson::JSON_ARRAY = 2**
+**FirebaseJson::ARRAY = 2**
 
-**FirebaseJson::JSON_STRING = 3**
+**FirebaseJson::STRING = 3**
 
-**FirebaseJson::JSON_INT = 4**
+**FirebaseJson::INT = 4**
 
-**FirebaseJson::JSON_DOUBLE = 5**
+**FirebaseJson::FLOAT = 5**
 
-**FirebaseJson::JSON_BOOL = 6 and**
+**FirebaseJson::DOUBLE = 6**
 
-**FirebaseJson::JSON_NULL = 7**
+**FirebaseJson::BOOL = 7 and**
+
+**FirebaseJson::NULL = 8**
 
 **`success`** The success flag of parsing data.
-
 
 
 

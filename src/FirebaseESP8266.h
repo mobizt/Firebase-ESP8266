@@ -1,13 +1,14 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.9.1
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.9.2
  * 
- * June 26, 2020
+ * July 17, 2020
  * 
  * Feature Added:
- * - Add support for LittleFS file system for flash memory.
+ * 
  * 
  * Feature Fixed:
- * - NULL data handling.
+ * - MACRO name conflicts with ESP8266HTTPClient.h
+ * - FirebaseJson parsing for top level array.
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -63,7 +64,7 @@
 #define SD_CS_PIN 15
 #define MAX_REDIRECT 5
 
-#define HTTPC_ERROR_CONNECTION_INUSED -16
+#define _HTTPC_ERROR_CONNECTION_INUSED -16
 #define HTTPC_NO_FCM_TOPIC_PROVIDED -17
 #define HTTPC_NO_FCM_DEVICE_TOKEN_PROVIDED -18
 #define HTTPC_NO_FCM_SERVER_KEY_PROVIDED -19

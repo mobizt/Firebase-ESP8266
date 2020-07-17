@@ -1,5 +1,5 @@
 /*
- * HTTP Client wrapper v1.1.0
+ * HTTP Client wrapper v1.1.1
  * 
  * The MIT License (MIT)
  * Copyright (c) 2019 K. Suwatchai (Mobizt)
@@ -151,9 +151,9 @@ int FirebaseHTTPClient::sendRequest(const char *header, const char *payload)
 {
   size_t size = strlen(payload);
   if (!connect())
-    return HTTPC_ERROR_CONNECTION_REFUSED;
+    return _HTTPC_ERROR_CONNECTION_REFUSED;
   if (!sendHeader(header))
-    return HTTPC_ERROR_SEND_HEADER_FAILED;
+    return _HTTPC_ERROR_SEND_HEADER_FAILED;
   if (size > 0)
     _client->print(payload);
 
