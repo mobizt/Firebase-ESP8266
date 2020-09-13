@@ -1,5 +1,5 @@
 /*
- * HTTP Client wrapper v1.1.1
+ * HTTP Client wrapper v1.1.2
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
  * and delete calls. 
@@ -90,6 +90,10 @@
 #define FLASH_FS SPIFFS
 #endif
 
+#if __has_include(<WiFiEspAT.h>) || __has_include(<espduino.h>)
+#error WiFi UART bridge was not supported.
+#endif
+
 /// HTTP client errors
 #define _HTTPC_ERROR_CONNECTION_REFUSED (-1)
 #define _HTTPC_ERROR_SEND_HEADER_FAILED (-2)
@@ -141,7 +145,9 @@
 #define _HTTP_CODE_LOOP_DETECTED 508
 #define _HTTP_CODE_NETWORK_AUTHENTICATION_REQUIRED 511
 
-    class FirebaseHTTPClient
+#define FIREBASE_ESP8266_DEFAULT_TCP_TIMEOUT 5000 //5 seconds
+
+class FirebaseHTTPClient
 {
 
   friend class FirebaseESP8266;
@@ -170,7 +176,7 @@ protected:
   std::unique_ptr<SSL_CLIENT> _client = std::unique_ptr<SSL_CLIENT>(new SSL_CLIENT());
   
   int _certType = -1;
-  uint16_t timeout = 5000;
+  uint16_t timeout = FIREBASE_ESP8266_DEFAULT_TCP_TIMEOUT;
   uint8_t _sdPin = 15;
   bool _clockReady = false;
   uint16_t _bsslRxSize = 512;

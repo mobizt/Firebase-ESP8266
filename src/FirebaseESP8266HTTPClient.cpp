@@ -1,5 +1,5 @@
 /*
- * HTTP Client wrapper v1.1.1
+ * HTTP Client wrapper v1.1.2
  * 
  * The MIT License (MIT)
  * Copyright (c) 2019 K. Suwatchai (Mobizt)
@@ -166,7 +166,7 @@ bool FirebaseHTTPClient::connect(void)
   {
     while (_client->available() > 0)
       _client->read();
-    return true;
+    _client->stop();
   }
 
   if (!_client->connect(_host.c_str(), _port))
