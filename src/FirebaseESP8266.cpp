@@ -1,14 +1,14 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.9.3
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.9.4
  * 
- * September 13, 2020
+ * September 17, 2020
  * 
  * 
  * Feature Added:
  * 
  * 
  * Feature Fixed:
- * Minor HTTPClient update 
+ * Improper set of internal FirebaseJsonArray object when parsing the response payload as array. 
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -3022,7 +3022,14 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
                             if (dataObj._dataType == FirebaseDataType::JSON)
                                 dataObj._json.setJsonData(tbuf);
                             else if (dataObj._dataType == FirebaseDataType::ARRAY)
-                                dataObj._jsonArr._json.setJsonData(tbuf);
+                            {
+                                std::string s = tbuf;
+                                size_t start_pos = s.find('[');
+                                size_t end_pos = s.find(']');
+                                if (start_pos != std::string::npos && end_pos != std::string::npos && start_pos != end_pos)
+                                    dataObj._jsonArr._json._rawbuf = s.substr(start_pos + 1, end_pos - start_pos - 1);
+                                std::string().swap(s);
+                            }
 
                             bool sameData = dataObj._data == dataObj._data2;
 
@@ -3119,7 +3126,14 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
                     if (dataObj._dataType == FirebaseDataType::JSON)
                         dataObj._json.setJsonData(tbuf);
                     else if (dataObj._dataType == FirebaseDataType::ARRAY)
-                        dataObj._jsonArr._json.setJsonData(tbuf);
+                    {
+                        std::string s = tbuf;
+                        size_t start_pos = s.find('[');
+                        size_t end_pos = s.find(']');
+                        if (start_pos != std::string::npos && end_pos != std::string::npos && start_pos != end_pos)
+                            dataObj._jsonArr._json._rawbuf = s.substr(start_pos + 1, end_pos - start_pos - 1);
+                        std::string().swap(s);
+                    }
 
                     if (dataObj._priority_val_flag)
                     {
