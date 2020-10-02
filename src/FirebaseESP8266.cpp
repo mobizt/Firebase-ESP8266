@@ -1,15 +1,16 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.9.5
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.9.6
  * 
- * September 26, 2020
+ * October 2, 2020
  * 
  * 
  * Feature Added:
  * 
  * 
  * Feature Fixed:
- * FirebaseJsonArray length does not clear when last item removed. 
- * FirebaseData internal FirebaseJson and FirebaseJsonArray are not cleared when calling the FirebaseData object clear method.
+ * Base64 encoded buffer index out of range error. 
+ * Zero length of FirebaseJsonArray payload.
+ * 
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -3028,7 +3029,20 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
                                 size_t start_pos = s.find('[');
                                 size_t end_pos = s.find(']');
                                 if (start_pos != std::string::npos && end_pos != std::string::npos && start_pos != end_pos)
-                                    dataObj._jsonArr._json._rawbuf = s.substr(start_pos + 1, end_pos - start_pos - 1);
+                                {
+                                    char *_r = getPGMString(FirebaseJson_STR_21);
+                                    dataObj._json._rawbuf = _r;
+                                    dataObj._json._rawbuf += s;
+                                    delPtr(_r);
+                                    _r = getPGMString(FirebaseJson_STR_26);
+                                    dataObj._json.get(dataObj._jsonData, _r);
+                                    delPtr(_r);
+                                    dataObj._jsonData.getArray(dataObj._jsonArr);
+                                    dataObj._jsonData.stringValue.clear();
+                                    dataObj._json.clear();
+                                    dataObj._data.clear();
+                                    dataObj._data2.clear();
+                                }                          
                                 std::string().swap(s);
                             }
 
@@ -3132,7 +3146,20 @@ bool FirebaseESP8266::getServerResponse(FirebaseData &dataObj)
                         size_t start_pos = s.find('[');
                         size_t end_pos = s.find(']');
                         if (start_pos != std::string::npos && end_pos != std::string::npos && start_pos != end_pos)
-                            dataObj._jsonArr._json._rawbuf = s.substr(start_pos + 1, end_pos - start_pos - 1);
+                        {
+                            char *_r = getPGMString(FirebaseJson_STR_21);
+                            dataObj._json._rawbuf = _r;
+                            dataObj._json._rawbuf += s;
+                            delPtr(_r);
+                            _r = getPGMString(FirebaseJson_STR_26);
+                            dataObj._json.get(dataObj._jsonData, _r);
+                            delPtr(_r);
+                            dataObj._jsonData.getArray(dataObj._jsonArr);
+                            dataObj._jsonData.stringValue.clear();
+                            dataObj._json.clear();
+                            dataObj._data.clear();
+                            dataObj._data2.clear();
+                        }
                         std::string().swap(s);
                     }
 
@@ -5468,16 +5495,14 @@ void FirebaseESP8266::send_base64_encode_file(SSL_CLIENT *_client, const std::st
             buf[byteAdd++] = ESP8266_FIREBASE_base64_table[((fbuf[1] & 0x0f) << 2) | (fbuf[2] >> 6)];
             buf[byteAdd++] = ESP8266_FIREBASE_base64_table[fbuf[2] & 0x3f];
 
-            if (len > chunkSize)
+            if (byteAdd >= chunkSize - 4)
             {
-                if (byteAdd >= chunkSize)
-                {
-                    byteSent += byteAdd;
-                    _client->write(buf, byteAdd);
-                    memset(buf, 0, chunkSize);
-                    byteAdd = 0;
-                }
+                byteSent += byteAdd;
+                _client->write(buf, byteAdd);
+                memset(buf, 0, chunkSize);
+                byteAdd = 0;
             }
+
             fbufIndex += 3;
 
             yield();
