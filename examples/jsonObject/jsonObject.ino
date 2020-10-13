@@ -132,7 +132,7 @@ void setup()
 
     json1 = firebaseData.jsonObject();
 
-    json1.get(jsonObj, "This/is/[2]/my");
+    json1.get(jsonObj, "This/is/[3]/my");
 
     Serial.println("This/is/[3]/my: " + jsonObj.stringValue);
 
