@@ -1,16 +1,12 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.9.6
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.9.7
  * 
- * October 2, 2020
+ * October 13, 2020
  * 
- * 
- * Feature Added:
- * 
- * 
- * Feature Fixed:
- * Base64 encoded buffer index out of range error. 
- * Zero length of FirebaseJsonArray payload.
- * 
+ *   Updates:
+ * - New rewrite code and memory optimization
+ * - Decimal places config for float and double stored data
+ * - Bugs fixed 
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -45,7 +41,6 @@
 
 #ifdef ESP8266
 
-
 #include <Arduino.h>
 #include <SPI.h>
 #include <time.h>
@@ -61,207 +56,290 @@
 #include <FS.h>
 #include "FirebaseJson.h"
 
-
-
-#define FIEBASE_PORT 443
-#define KEEP_ALIVE_TIMEOUT 30000
+#define FIREBASE_PORT 443
+#define KEEP_ALIVE_TIMEOUT 45000
+#define STREAM_ERROR_NOTIFIED_INTERVAL 3000
+#define STREAM_RECONNECT_INTERVAL 1000
 #define SD_CS_PIN 15
 #define MAX_REDIRECT 5
+#define WIFI_RECONNECT_TIMEOUT 10000
+#define STEAM_STACK_SIZE 8192
+#define QUEUE_TASK_STACK_SIZE 8192
+#define MAX_BLOB_PAYLOAD_SIZE 1024
 
-#define _HTTPC_ERROR_CONNECTION_INUSED -16
-#define HTTPC_NO_FCM_TOPIC_PROVIDED -17
-#define HTTPC_NO_FCM_DEVICE_TOKEN_PROVIDED -18
-#define HTTPC_NO_FCM_SERVER_KEY_PROVIDED -19
-#define HTTPC_NO_FCM_INDEX_NOT_FOUND_IN_DEVICE_TOKEN_PROVIDED -20
-#define HTTPC_MAX_REDIRECT_REACHED -21
+struct StorageType
+{
+  static const uint8_t FLASH = 0;
+  static const uint8_t SD = 1;
+};
 
-static const char ESP8266_FIREBASE_STR_1[] PROGMEM = "/";
-static const char ESP8266_FIREBASE_STR_2[] PROGMEM = ".json?auth=";
-static const char ESP8266_FIREBASE_STR_3[] PROGMEM = "\"";
-static const char ESP8266_FIREBASE_STR_4[] PROGMEM = ".";
-static const char ESP8266_FIREBASE_STR_5[] PROGMEM = "HTTP/1.1 ";
-static const char ESP8266_FIREBASE_STR_6[] PROGMEM = " ";
-static const char ESP8266_FIREBASE_STR_7[] PROGMEM = ":";
-static const char ESP8266_FIREBASE_STR_8[] PROGMEM = "Content-Type: ";
-static const char ESP8266_FIREBASE_STR_9[] PROGMEM = "text/event-stream";
-static const char ESP8266_FIREBASE_STR_10[] PROGMEM = "Connection: ";
-static const char ESP8266_FIREBASE_STR_11[] PROGMEM = "keep-alive";
-static const char ESP8266_FIREBASE_STR_12[] PROGMEM = "Content-Length: ";
-static const char ESP8266_FIREBASE_STR_13[] PROGMEM = "event: ";
-static const char ESP8266_FIREBASE_STR_14[] PROGMEM = "data: ";
-static const char ESP8266_FIREBASE_STR_15[] PROGMEM = "put";
-static const char ESP8266_FIREBASE_STR_16[] PROGMEM = "patch";
-static const char ESP8266_FIREBASE_STR_17[] PROGMEM = "\"path\":\"";
-static const char ESP8266_FIREBASE_STR_18[] PROGMEM = "\"data\":";
-static const char ESP8266_FIREBASE_STR_19[] PROGMEM = "null";
-static const char ESP8266_FIREBASE_STR_20[] PROGMEM = "{\"name\":\"";
-static const char ESP8266_FIREBASE_STR_21[] PROGMEM = "\r\n";
-static const char ESP8266_FIREBASE_STR_22[] PROGMEM = "GET ";
-static const char ESP8266_FIREBASE_STR_23[] PROGMEM = "PUT";
-static const char ESP8266_FIREBASE_STR_24[] PROGMEM = "POST";
-static const char ESP8266_FIREBASE_STR_25[] PROGMEM = "GET";
-static const char ESP8266_FIREBASE_STR_26[] PROGMEM = "PATCH";
-static const char ESP8266_FIREBASE_STR_27[] PROGMEM = "DELETE";
-static const char ESP8266_FIREBASE_STR_28[] PROGMEM = "&download=";
-static const char ESP8266_FIREBASE_STR_29[] PROGMEM = "&print=silent";
-static const char ESP8266_FIREBASE_STR_30[] PROGMEM = " HTTP/1.1\r\n";
-static const char ESP8266_FIREBASE_STR_31[] PROGMEM = "Host: ";
-static const char ESP8266_FIREBASE_STR_32[] PROGMEM = "User-Agent: ESP8266\r\n";
-static const char ESP8266_FIREBASE_STR_33[] PROGMEM = "X-Firebase-Decoding: 1\r\n";
-static const char ESP8266_FIREBASE_STR_34[] PROGMEM = "Connection: close\r\n";
-static const char ESP8266_FIREBASE_STR_35[] PROGMEM = "Accept: text/event-stream\r\n";
-static const char ESP8266_FIREBASE_STR_36[] PROGMEM = "Connection: keep-alive\r\n";
-static const char ESP8266_FIREBASE_STR_37[] PROGMEM = "Keep-Alive: timeout=30, max=100\r\n";
-static const char ESP8266_FIREBASE_STR_38[] PROGMEM = "Accept-Encoding: identity;q=1,chunked;q=0.1,*;q=0\r\n";
-static const char ESP8266_FIREBASE_STR_39[] PROGMEM = "connection refused";
-static const char ESP8266_FIREBASE_STR_40[] PROGMEM = "send header failed";
-static const char ESP8266_FIREBASE_STR_41[] PROGMEM = "send payload failed";
-static const char ESP8266_FIREBASE_STR_42[] PROGMEM = "not connected";
-static const char ESP8266_FIREBASE_STR_43[] PROGMEM = "connection lost";
-static const char ESP8266_FIREBASE_STR_44[] PROGMEM = "no HTTP server";
-static const char ESP8266_FIREBASE_STR_45[] PROGMEM = "bad request";
-static const char ESP8266_FIREBASE_STR_46[] PROGMEM = "non-authoriative information";
-static const char ESP8266_FIREBASE_STR_47[] PROGMEM = "no content";
-static const char ESP8266_FIREBASE_STR_48[] PROGMEM = "moved permanently";
-static const char ESP8266_FIREBASE_STR_49[] PROGMEM = "use proxy";
-static const char ESP8266_FIREBASE_STR_50[] PROGMEM = "temporary redirect";
-static const char ESP8266_FIREBASE_STR_51[] PROGMEM = "permanent redirect";
-static const char ESP8266_FIREBASE_STR_52[] PROGMEM = "unauthorized";
-static const char ESP8266_FIREBASE_STR_53[] PROGMEM = "forbidden";
-static const char ESP8266_FIREBASE_STR_54[] PROGMEM = "not found";
-static const char ESP8266_FIREBASE_STR_55[] PROGMEM = "method not allow";
-static const char ESP8266_FIREBASE_STR_56[] PROGMEM = "not acceptable";
-static const char ESP8266_FIREBASE_STR_57[] PROGMEM = "proxy authentication required";
-static const char ESP8266_FIREBASE_STR_58[] PROGMEM = "request timeout";
-static const char ESP8266_FIREBASE_STR_59[] PROGMEM = "length required";
-static const char ESP8266_FIREBASE_STR_60[] PROGMEM = "too many requests";
-static const char ESP8266_FIREBASE_STR_61[] PROGMEM = "request header fields too larg";
-static const char ESP8266_FIREBASE_STR_62[] PROGMEM = "internal server error";
-static const char ESP8266_FIREBASE_STR_63[] PROGMEM = "bad gateway";
-static const char ESP8266_FIREBASE_STR_64[] PROGMEM = "service unavailable";
-static const char ESP8266_FIREBASE_STR_65[] PROGMEM = "gateway timeout";
-static const char ESP8266_FIREBASE_STR_66[] PROGMEM = "http version not support";
-static const char ESP8266_FIREBASE_STR_67[] PROGMEM = "network authentication required";
-static const char ESP8266_FIREBASE_STR_68[] PROGMEM = "data buffer overflow";
-static const char ESP8266_FIREBASE_STR_69[] PROGMEM = "read Timeout";
-static const char ESP8266_FIREBASE_STR_70[] PROGMEM = "data type mismatch";
-static const char ESP8266_FIREBASE_STR_71[] PROGMEM = "path not exist";
-static const char ESP8266_FIREBASE_STR_72[] PROGMEM = "task";
-static const char ESP8266_FIREBASE_STR_73[] PROGMEM = "/esp.8266";
-static const char ESP8266_FIREBASE_STR_74[] PROGMEM = "json";
-static const char ESP8266_FIREBASE_STR_75[] PROGMEM = "string";
-static const char ESP8266_FIREBASE_STR_76[] PROGMEM = "float";
-static const char ESP8266_FIREBASE_STR_77[] PROGMEM = "int";
-static const char ESP8266_FIREBASE_STR_78[] PROGMEM = "null";
-static const char ESP8266_FIREBASE_STR_79[] PROGMEM = ";";
-static const char ESP8266_FIREBASE_STR_80[] PROGMEM = "Content-Disposition: ";
-static const char ESP8266_FIREBASE_STR_81[] PROGMEM = "application/octet-stream";
-static const char ESP8266_FIREBASE_STR_82[] PROGMEM = "attachment";
-static const char ESP8266_FIREBASE_STR_83[] PROGMEM = "Backup file was not exist";
-static const char ESP8266_FIREBASE_STR_84[] PROGMEM = "SD card is in used";
-static const char ESP8266_FIREBASE_STR_85[] PROGMEM = "SD card was not available";
-static const char ESP8266_FIREBASE_STR_86[] PROGMEM = "Could not read/write backup file";
-static const char ESP8266_FIREBASE_STR_87[] PROGMEM = "Transmission error, ";
-static const char ESP8266_FIREBASE_STR_88[] PROGMEM = "Node path is not exist";
-static const char ESP8266_FIREBASE_STR_89[] PROGMEM = ".json";
-static const char ESP8266_FIREBASE_STR_90[] PROGMEM = "/root.json";
-static const char ESP8266_FIREBASE_STR_91[] PROGMEM = "blob";
-static const char ESP8266_FIREBASE_STR_92[] PROGMEM = "\"blob,base64,";
-static const char ESP8266_FIREBASE_STR_93[] PROGMEM = "\"file,base64,";
-static const char ESP8266_FIREBASE_STR_94[] PROGMEM = "http connection was used by other processes";
-static const char ESP8266_FIREBASE_STR_95[] PROGMEM = "Location: ";
-static const char ESP8266_FIREBASE_STR_96[] PROGMEM = "&orderBy=";
-static const char ESP8266_FIREBASE_STR_97[] PROGMEM = "&limitToFirst=";
-static const char ESP8266_FIREBASE_STR_98[] PROGMEM = "&limitToLast=";
-static const char ESP8266_FIREBASE_STR_99[] PROGMEM = "&startAt=";
-static const char ESP8266_FIREBASE_STR_100[] PROGMEM = "&endAt=";
-static const char ESP8266_FIREBASE_STR_101[] PROGMEM = "&equalTo=";
-static const char ESP8266_FIREBASE_STR_102[] PROGMEM = "\"error\" : ";
-static const char ESP8266_FIREBASE_STR_103[] PROGMEM = "/.settings/rules";
-static const char ESP8266_FIREBASE_STR_104[] PROGMEM = "{\"status\":\"ok\"}";
-static const char ESP8266_FIREBASE_STR_105[] PROGMEM = "boolean";
-static const char ESP8266_FIREBASE_STR_106[] PROGMEM = "false";
-static const char ESP8266_FIREBASE_STR_107[] PROGMEM = "true";
-static const char ESP8266_FIREBASE_STR_108[] PROGMEM = "double";
-static const char ESP8266_FIREBASE_STR_109[] PROGMEM = "cancel";
-static const char ESP8266_FIREBASE_STR_110[] PROGMEM = "auth_revoked";
-static const char ESP8266_FIREBASE_STR_111[] PROGMEM = "http://";
-static const char ESP8266_FIREBASE_STR_112[] PROGMEM = "https://";
-static const char ESP8266_FIREBASE_STR_113[] PROGMEM = "\".sv\"";
-static const char ESP8266_FIREBASE_STR_114[] PROGMEM = "Transfer-Encoding";
-static const char ESP8266_FIREBASE_STR_115[] PROGMEM = "chunked";
-static const char ESP8266_FIREBASE_STR_116[] PROGMEM = "Maximum Redirection reached";
-static const char ESP8266_FIREBASE_STR_117[] PROGMEM = "?auth=";
-static const char ESP8266_FIREBASE_STR_118[] PROGMEM = "&auth=";
-static const char ESP8266_FIREBASE_STR_119[] PROGMEM = "&";
+enum fb_esp_fcm_msg_type
+{
+  msg_single,
+  msg_multicast,
+  msg_topic
+};
 
-static const char ESP8266_FIREBASE_STR_120[] PROGMEM = "fcm.googleapis.com";
-static const char ESP8266_FIREBASE_STR_121[] PROGMEM = "/fcm/send";
-static const char ESP8266_FIREBASE_STR_122[] PROGMEM = "\"notification\":{";
-static const char ESP8266_FIREBASE_STR_123[] PROGMEM = "\"title\":\"";
-static const char ESP8266_FIREBASE_STR_124[] PROGMEM = "\"body\":\"";
-static const char ESP8266_FIREBASE_STR_125[] PROGMEM = "\"icon\":\"";
-static const char ESP8266_FIREBASE_STR_126[] PROGMEM = "\"click_action\":\"";
-static const char ESP8266_FIREBASE_STR_127[] PROGMEM = "}";
-static const char ESP8266_FIREBASE_STR_128[] PROGMEM = "\"to\":\"";
-static const char ESP8266_FIREBASE_STR_129[] PROGMEM = "application/json";
-static const char ESP8266_FIREBASE_STR_130[] PROGMEM = "\"registration_ids\":[";
-static const char ESP8266_FIREBASE_STR_131[] PROGMEM = "Authorization: key=";
-static const char ESP8266_FIREBASE_STR_132[] PROGMEM = ",";
-static const char ESP8266_FIREBASE_STR_133[] PROGMEM = "]";
-static const char ESP8266_FIREBASE_STR_134[] PROGMEM = "/topics/";
-static const char ESP8266_FIREBASE_STR_135[] PROGMEM = "\"data\":";
-static const char ESP8266_FIREBASE_STR_136[] PROGMEM = "\"priority\":\"";
-static const char ESP8266_FIREBASE_STR_137[] PROGMEM = "\"time_to_live\":";
-static const char ESP8266_FIREBASE_STR_138[] PROGMEM = "\"collapse_key\":\"";
-static const char ESP8266_FIREBASE_STR_139[] PROGMEM = "\"multicast_id\":";
-static const char ESP8266_FIREBASE_STR_140[] PROGMEM = "\"success\":";
-static const char ESP8266_FIREBASE_STR_141[] PROGMEM = "\"failure\":";
-static const char ESP8266_FIREBASE_STR_142[] PROGMEM = "\"canonical_ids\":";
-static const char ESP8266_FIREBASE_STR_143[] PROGMEM = "\"results\":";
-static const char ESP8266_FIREBASE_STR_144[] PROGMEM = "No topic provided";
-static const char ESP8266_FIREBASE_STR_145[] PROGMEM = "No device token provided";
-static const char ESP8266_FIREBASE_STR_146[] PROGMEM = "No server key provided";
-static const char ESP8266_FIREBASE_STR_147[] PROGMEM = "The index of recipient device registered token not found";
-static const char ESP8266_FIREBASE_STR_148[] PROGMEM = "X-Firebase-ETag: true\r\n";
-static const char ESP8266_FIREBASE_STR_149[] PROGMEM = "if-match: ";
-static const char ESP8266_FIREBASE_STR_150[] PROGMEM = "ETag: ";
-static const char ESP8266_FIREBASE_STR_151[] PROGMEM = "null_etag";
-static const char ESP8266_FIREBASE_STR_152[] PROGMEM = "Precondition Failed (ETag is not match)";
-static const char ESP8266_FIREBASE_STR_153[] PROGMEM = "X-HTTP-Method-Override: ";
-static const char ESP8266_FIREBASE_STR_154[] PROGMEM = "{\".sv\": \"timestamp\"}";
-static const char ESP8266_FIREBASE_STR_155[] PROGMEM = "&shallow=true";
-static const char ESP8266_FIREBASE_STR_156[] PROGMEM = "/.priority";
-static const char ESP8266_FIREBASE_STR_157[] PROGMEM = ",\".priority\":";
-static const char ESP8266_FIREBASE_STR_158[] PROGMEM = "&timeout=";
-static const char ESP8266_FIREBASE_STR_159[] PROGMEM = "ms";
-static const char ESP8266_FIREBASE_STR_160[] PROGMEM = "&writeSizeLimit=";
-static const char ESP8266_FIREBASE_STR_161[] PROGMEM = "value\":";
-static const char ESP8266_FIREBASE_STR_162[] PROGMEM = "&format=export";
-static const char ESP8266_FIREBASE_STR_163[] PROGMEM = "Flash memory was not ready";
+enum fb_esp_data_type
+{
+  d_any,
+  d_null,
+  d_integer,
+  d_float,
+  d_double,
+  d_boolean,
+  d_string,
+  d_json,
+  d_array,
+  d_blob,
+  d_file,
+  d_timestamp,
+  d_shallow,
+};
 
-static const char ESP8266_FIREBASE_STR_164[] PROGMEM = "get";
-static const char ESP8266_FIREBASE_STR_165[] PROGMEM = "set";
-static const char ESP8266_FIREBASE_STR_166[] PROGMEM = "push";
-static const char ESP8266_FIREBASE_STR_167[] PROGMEM = "update";
-static const char ESP8266_FIREBASE_STR_168[] PROGMEM = "delete";
+enum fb_esp_method
+{
+  m_put,
+  m_put_nocontent,
+  m_post,
+  m_get,
+  m_get_nocontent,
+  m_stream,
+  m_patch,
+  m_patch_nocontent,
+  m_delete,
+  m_download,
+  m_restore,
+  m_read_rules,
+  m_set_rules,
+  m_get_shallow,
+  m_get_priority,
+  m_set_priority,
+};
 
-static const char ESP8266_FIREBASE_STR_169[] PROGMEM = "{";
-static const char ESP8266_FIREBASE_STR_170[] PROGMEM = "%d";
-static const char ESP8266_FIREBASE_STR_171[] PROGMEM = "%f";
-static const char ESP8266_FIREBASE_STR_172[] PROGMEM = "[";
-static const char ESP8266_FIREBASE_STR_173[] PROGMEM = "]";
-static const char ESP8266_FIREBASE_STR_174[] PROGMEM = "array";
-static const char ESP8266_FIREBASE_STR_175[] PROGMEM = "unknown";
-static const char ESP8266_FIREBASE_STR_176[] PROGMEM = "pool.ntp.org";
-static const char ESP8266_FIREBASE_STR_177[] PROGMEM = "time.nist.gov";
-static const char ESP8266_FIREBASE_STR_178[] PROGMEM = "?";
-static const char ESP8266_FIREBASE_STR_179[] PROGMEM = ".com";
-static const char ESP8266_FIREBASE_STR_180[] PROGMEM = ".net";
-static const char ESP8266_FIREBASE_STR_181[] PROGMEM = ".int";
-static const char ESP8266_FIREBASE_STR_182[] PROGMEM = ".edu";
-static const char ESP8266_FIREBASE_STR_183[] PROGMEM = ".gov";
-static const char ESP8266_FIREBASE_STR_184[] PROGMEM = ".mil";
+struct server_response_data_t
+{
+  int httpCode = -1;
+  int payloadLen = -1;
+  int contentLen = -1;
+  fb_esp_data_type dataType = fb_esp_data_type::d_any;
+  int payloadOfs = 0;
+  bool boolData = false;
+  int intData = 0;
+  float floatData = 0.0f;
+  double doubleData = 0.0f;
+  std::vector<uint8_t> blobData;
+  bool isEvent = false;
+  bool noEvent = false;
+  bool isChunkedEnc = false;
+  bool hasEventData = false;
+  bool noContent = false;
+  bool eventPathChanged = false;
+  bool dataChanged = false;
+  std::string location = "";
+  std::string contentType = "";
+  std::string connection = "";
+  std::string eventPath = "";
+  std::string eventType = "";
+  std::string eventData = "";
+  std::string etag = "";
+  std::string pushName = "";
+  std::string fbError = "";
+  std::string transferEnc = "";
+};
+
+static const char fb_esp_pgm_str_1[] PROGMEM = "/";
+static const char fb_esp_pgm_str_2[] PROGMEM = ".json?auth=";
+static const char fb_esp_pgm_str_3[] PROGMEM = "\"";
+static const char fb_esp_pgm_str_4[] PROGMEM = ".";
+static const char fb_esp_pgm_str_5[] PROGMEM = "HTTP/1.1 ";
+static const char fb_esp_pgm_str_6[] PROGMEM = " ";
+static const char fb_esp_pgm_str_7[] PROGMEM = ":";
+static const char fb_esp_pgm_str_8[] PROGMEM = "Content-Type: ";
+static const char fb_esp_pgm_str_9[] PROGMEM = "text/event-stream";
+static const char fb_esp_pgm_str_10[] PROGMEM = "Connection: ";
+static const char fb_esp_pgm_str_11[] PROGMEM = "keep-alive";
+static const char fb_esp_pgm_str_12[] PROGMEM = "Content-Length: ";
+static const char fb_esp_pgm_str_13[] PROGMEM = "event: ";
+static const char fb_esp_pgm_str_14[] PROGMEM = "data: ";
+static const char fb_esp_pgm_str_15[] PROGMEM = "put";
+static const char fb_esp_pgm_str_16[] PROGMEM = "patch";
+static const char fb_esp_pgm_str_17[] PROGMEM = "\"path\":\"";
+static const char fb_esp_pgm_str_18[] PROGMEM = "\"data\":";
+static const char fb_esp_pgm_str_19[] PROGMEM = "null";
+static const char fb_esp_pgm_str_20[] PROGMEM = "{\"name\":\"";
+static const char fb_esp_pgm_str_21[] PROGMEM = "\r\n";
+static const char fb_esp_pgm_str_22[] PROGMEM = "GET ";
+static const char fb_esp_pgm_str_23[] PROGMEM = "PUT";
+static const char fb_esp_pgm_str_24[] PROGMEM = "POST";
+static const char fb_esp_pgm_str_25[] PROGMEM = "GET";
+static const char fb_esp_pgm_str_26[] PROGMEM = "PATCH";
+static const char fb_esp_pgm_str_27[] PROGMEM = "DELETE";
+static const char fb_esp_pgm_str_28[] PROGMEM = "&download=";
+static const char fb_esp_pgm_str_29[] PROGMEM = "&print=silent";
+static const char fb_esp_pgm_str_30[] PROGMEM = " HTTP/1.1\r\n";
+static const char fb_esp_pgm_str_31[] PROGMEM = "Host: ";
+static const char fb_esp_pgm_str_32[] PROGMEM = "User-Agent: ESP\r\n";
+static const char fb_esp_pgm_str_33[] PROGMEM = "X-Firebase-Decoding: 1\r\n";
+static const char fb_esp_pgm_str_34[] PROGMEM = "Connection: close\r\n";
+static const char fb_esp_pgm_str_35[] PROGMEM = "Accept: text/event-stream\r\n";
+static const char fb_esp_pgm_str_36[] PROGMEM = "Connection: keep-alive\r\n";
+static const char fb_esp_pgm_str_37[] PROGMEM = "Keep-Alive: timeout=30, max=100\r\n";
+static const char fb_esp_pgm_str_38[] PROGMEM = "Accept-Encoding: identity;q=1,chunked;q=0.1,*;q=0\r\n";
+static const char fb_esp_pgm_str_39[] PROGMEM = "connection refused";
+static const char fb_esp_pgm_str_40[] PROGMEM = "send header failed";
+static const char fb_esp_pgm_str_41[] PROGMEM = "send payload failed";
+static const char fb_esp_pgm_str_42[] PROGMEM = "not connected";
+static const char fb_esp_pgm_str_43[] PROGMEM = "connection lost";
+static const char fb_esp_pgm_str_44[] PROGMEM = "no HTTP server";
+static const char fb_esp_pgm_str_45[] PROGMEM = "bad request, verify the Firebase credentials and the node path";
+static const char fb_esp_pgm_str_46[] PROGMEM = "non-authoriative information";
+static const char fb_esp_pgm_str_47[] PROGMEM = "no content";
+static const char fb_esp_pgm_str_48[] PROGMEM = "moved permanently";
+static const char fb_esp_pgm_str_49[] PROGMEM = "use proxy";
+static const char fb_esp_pgm_str_50[] PROGMEM = "temporary redirect";
+static const char fb_esp_pgm_str_51[] PROGMEM = "permanent redirect";
+static const char fb_esp_pgm_str_52[] PROGMEM = "unauthorized";
+static const char fb_esp_pgm_str_53[] PROGMEM = "forbidden";
+static const char fb_esp_pgm_str_54[] PROGMEM = "not found";
+static const char fb_esp_pgm_str_55[] PROGMEM = "method not allow";
+static const char fb_esp_pgm_str_56[] PROGMEM = "not acceptable";
+static const char fb_esp_pgm_str_57[] PROGMEM = "proxy authentication required";
+static const char fb_esp_pgm_str_58[] PROGMEM = "request timeout";
+static const char fb_esp_pgm_str_59[] PROGMEM = "length required";
+static const char fb_esp_pgm_str_60[] PROGMEM = "too many requests";
+static const char fb_esp_pgm_str_61[] PROGMEM = "request header fields too larg";
+static const char fb_esp_pgm_str_62[] PROGMEM = "internal server error";
+static const char fb_esp_pgm_str_63[] PROGMEM = "bad gateway";
+static const char fb_esp_pgm_str_64[] PROGMEM = "service unavailable";
+static const char fb_esp_pgm_str_65[] PROGMEM = "gateway timeout";
+static const char fb_esp_pgm_str_66[] PROGMEM = "http version not support";
+static const char fb_esp_pgm_str_67[] PROGMEM = "network authentication required";
+static const char fb_esp_pgm_str_68[] PROGMEM = "data buffer overflow";
+static const char fb_esp_pgm_str_69[] PROGMEM = "read Timeout";
+static const char fb_esp_pgm_str_70[] PROGMEM = "data type mismatch";
+static const char fb_esp_pgm_str_71[] PROGMEM = "path not exist";
+static const char fb_esp_pgm_str_72[] PROGMEM = "task";
+static const char fb_esp_pgm_str_73[] PROGMEM = "/esp.x";
+static const char fb_esp_pgm_str_74[] PROGMEM = "json";
+static const char fb_esp_pgm_str_75[] PROGMEM = "string";
+static const char fb_esp_pgm_str_76[] PROGMEM = "float";
+static const char fb_esp_pgm_str_77[] PROGMEM = "int";
+static const char fb_esp_pgm_str_78[] PROGMEM = "null";
+static const char fb_esp_pgm_str_79[] PROGMEM = ";";
+static const char fb_esp_pgm_str_80[] PROGMEM = "Content-Disposition: ";
+static const char fb_esp_pgm_str_81[] PROGMEM = "application/octet-stream";
+static const char fb_esp_pgm_str_82[] PROGMEM = "attachment";
+static const char fb_esp_pgm_str_83[] PROGMEM = "The backup file is not exist";
+static const char fb_esp_pgm_str_84[] PROGMEM = "The SD card is in use";
+static const char fb_esp_pgm_str_85[] PROGMEM = "The SD card is not available";
+static const char fb_esp_pgm_str_86[] PROGMEM = "Could not read/write the backup file";
+static const char fb_esp_pgm_str_87[] PROGMEM = "Transmission error, ";
+static const char fb_esp_pgm_str_88[] PROGMEM = "Node path is not exist";
+static const char fb_esp_pgm_str_89[] PROGMEM = ".json";
+static const char fb_esp_pgm_str_90[] PROGMEM = "/root.json";
+static const char fb_esp_pgm_str_91[] PROGMEM = "blob";
+static const char fb_esp_pgm_str_92[] PROGMEM = "\"blob,base64,";
+static const char fb_esp_pgm_str_93[] PROGMEM = "\"file,base64,";
+static const char fb_esp_pgm_str_94[] PROGMEM = "http connection was used by other processes";
+static const char fb_esp_pgm_str_95[] PROGMEM = "Location: ";
+static const char fb_esp_pgm_str_96[] PROGMEM = "&orderBy=";
+static const char fb_esp_pgm_str_97[] PROGMEM = "&limitToFirst=";
+static const char fb_esp_pgm_str_98[] PROGMEM = "&limitToLast=";
+static const char fb_esp_pgm_str_99[] PROGMEM = "&startAt=";
+static const char fb_esp_pgm_str_100[] PROGMEM = "&endAt=";
+static const char fb_esp_pgm_str_101[] PROGMEM = "&equalTo=";
+static const char fb_esp_pgm_str_102[] PROGMEM = "\"error\" : ";
+static const char fb_esp_pgm_str_103[] PROGMEM = "/.settings/rules";
+static const char fb_esp_pgm_str_104[] PROGMEM = "{\"status\":\"ok\"}";
+static const char fb_esp_pgm_str_105[] PROGMEM = "boolean";
+static const char fb_esp_pgm_str_106[] PROGMEM = "false";
+static const char fb_esp_pgm_str_107[] PROGMEM = "true";
+static const char fb_esp_pgm_str_108[] PROGMEM = "double";
+static const char fb_esp_pgm_str_109[] PROGMEM = "cancel";
+static const char fb_esp_pgm_str_110[] PROGMEM = "auth_revoked";
+static const char fb_esp_pgm_str_111[] PROGMEM = "http://";
+static const char fb_esp_pgm_str_112[] PROGMEM = "https://";
+static const char fb_esp_pgm_str_113[] PROGMEM = "_stream";
+static const char fb_esp_pgm_str_114[] PROGMEM = "_error_queue";
+static const char fb_esp_pgm_str_115[] PROGMEM = "get";
+static const char fb_esp_pgm_str_116[] PROGMEM = "set";
+static const char fb_esp_pgm_str_117[] PROGMEM = "push";
+static const char fb_esp_pgm_str_118[] PROGMEM = "update";
+static const char fb_esp_pgm_str_119[] PROGMEM = "delete";
+
+static const char fb_esp_pgm_str_120[] PROGMEM = "fcm.googleapis.com";
+static const char fb_esp_pgm_str_121[] PROGMEM = "/fcm/send";
+static const char fb_esp_pgm_str_122[] PROGMEM = "\"notification\":{";
+static const char fb_esp_pgm_str_123[] PROGMEM = "\"title\":\"";
+static const char fb_esp_pgm_str_124[] PROGMEM = "\"body\":\"";
+static const char fb_esp_pgm_str_125[] PROGMEM = "\"icon\":\"";
+static const char fb_esp_pgm_str_126[] PROGMEM = "\"click_action\":\"";
+static const char fb_esp_pgm_str_127[] PROGMEM = "}";
+static const char fb_esp_pgm_str_128[] PROGMEM = "\"to\":\"";
+static const char fb_esp_pgm_str_129[] PROGMEM = "application/json";
+static const char fb_esp_pgm_str_130[] PROGMEM = "\"registration_ids\":[";
+static const char fb_esp_pgm_str_131[] PROGMEM = "Authorization: key=";
+static const char fb_esp_pgm_str_132[] PROGMEM = ",";
+static const char fb_esp_pgm_str_133[] PROGMEM = "]";
+static const char fb_esp_pgm_str_134[] PROGMEM = "/topics/";
+static const char fb_esp_pgm_str_135[] PROGMEM = "\"data\":";
+static const char fb_esp_pgm_str_136[] PROGMEM = "\"priority\":\"";
+static const char fb_esp_pgm_str_137[] PROGMEM = "\"time_to_live\":";
+static const char fb_esp_pgm_str_138[] PROGMEM = "\"collapse_key\":\"";
+static const char fb_esp_pgm_str_139[] PROGMEM = "\"multicast_id\":";
+static const char fb_esp_pgm_str_140[] PROGMEM = "\"success\":";
+static const char fb_esp_pgm_str_141[] PROGMEM = "\"failure\":";
+static const char fb_esp_pgm_str_142[] PROGMEM = "\"canonical_ids\":";
+static const char fb_esp_pgm_str_143[] PROGMEM = "\"results\":";
+static const char fb_esp_pgm_str_144[] PROGMEM = "No topic provided";
+static const char fb_esp_pgm_str_145[] PROGMEM = "No device token provided";
+static const char fb_esp_pgm_str_146[] PROGMEM = "No server key provided";
+static const char fb_esp_pgm_str_147[] PROGMEM = "The index of recipient device registered token not found";
+static const char fb_esp_pgm_str_148[] PROGMEM = "X-Firebase-ETag: true\r\n";
+static const char fb_esp_pgm_str_149[] PROGMEM = "if-match: ";
+static const char fb_esp_pgm_str_150[] PROGMEM = "ETag: ";
+static const char fb_esp_pgm_str_151[] PROGMEM = "null_etag";
+static const char fb_esp_pgm_str_152[] PROGMEM = "Precondition Failed (ETag is not match)";
+static const char fb_esp_pgm_str_153[] PROGMEM = "X-HTTP-Method-Override: ";
+static const char fb_esp_pgm_str_154[] PROGMEM = "{\".sv\": \"timestamp\"}";
+static const char fb_esp_pgm_str_155[] PROGMEM = "&shallow=true";
+static const char fb_esp_pgm_str_156[] PROGMEM = "/.priority";
+static const char fb_esp_pgm_str_157[] PROGMEM = ",\".priority\":";
+static const char fb_esp_pgm_str_158[] PROGMEM = "&timeout=";
+static const char fb_esp_pgm_str_159[] PROGMEM = "ms";
+static const char fb_esp_pgm_str_160[] PROGMEM = "&writeSizeLimit=";
+static const char fb_esp_pgm_str_161[] PROGMEM = "{\".value\":";
+static const char fb_esp_pgm_str_162[] PROGMEM = "&format=export";
+static const char fb_esp_pgm_str_163[] PROGMEM = "{";
+static const char fb_esp_pgm_str_164[] PROGMEM = "Flash memory was not ready";
+static const char fb_esp_pgm_str_165[] PROGMEM = "array";
+static const char fb_esp_pgm_str_166[] PROGMEM = "\".sv\"";
+static const char fb_esp_pgm_str_167[] PROGMEM = "Transfer-Encoding: ";
+static const char fb_esp_pgm_str_168[] PROGMEM = "chunked";
+static const char fb_esp_pgm_str_169[] PROGMEM = "Maximum Redirection reached";
+static const char fb_esp_pgm_str_170[] PROGMEM = "?auth=";
+static const char fb_esp_pgm_str_171[] PROGMEM = "&auth=";
+static const char fb_esp_pgm_str_172[] PROGMEM = "&";
+static const char fb_esp_pgm_str_173[] PROGMEM = "?";
+static const char fb_esp_pgm_str_174[] PROGMEM = ".com";
+static const char fb_esp_pgm_str_175[] PROGMEM = ".net";
+static const char fb_esp_pgm_str_176[] PROGMEM = ".int";
+static const char fb_esp_pgm_str_177[] PROGMEM = ".edu";
+static const char fb_esp_pgm_str_178[] PROGMEM = ".gov";
+static const char fb_esp_pgm_str_179[] PROGMEM = ".mil";
+static const char fb_esp_pgm_str_180[] PROGMEM = "\n";
+static const char fb_esp_pgm_str_181[] PROGMEM = "\r\n\r\n";
+static const char fb_esp_pgm_str_182[] PROGMEM = "[";
+static const char fb_esp_pgm_str_183[] PROGMEM = "file";
+static const char fb_esp_pgm_str_184[] PROGMEM = "/fb_bin_0.tmp";
+static const char fb_esp_pgm_str_185[] PROGMEM = "The backup data should be the JSON object";
+static const char fb_esp_pgm_str_186[] PROGMEM = "object";
+static const char fb_esp_pgm_str_187[] PROGMEM = "pool.ntp.org";
+static const char fb_esp_pgm_str_188[] PROGMEM = "time.nist.gov";
+static const char fb_esp_pgm_str_189[] PROGMEM = "payload too large";
+static const char fb_esp_pgm_str_190[] PROGMEM = "cannot config time";
+static const char fb_esp_pgm_str_191[] PROGMEM = "SSL client rx buffer size is too small";
 
 static const unsigned char ESP8266_FIREBASE_base64_table[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -273,9 +351,8 @@ class FirebaseESP8266;
 class FCMObject;
 
 typedef std::function<void(void)> callback_function_t;
-
-static std::vector<std::reference_wrapper<FirebaseData>> firebaseDataObject;
-static uint8_t dataObjectIndex __attribute__((used)) = 0;
+static std::vector<std::reference_wrapper<FirebaseData>> fbso;
+static uint8_t fbdoIdx __attribute__((used)) = 0;
 
 class FCMObject
 {
@@ -327,7 +404,7 @@ public:
     
     @param title - The title text of notification message.
     @param body - The body text of notification message.
-    @param icon - The name and/or included URI/URL of the icon to show on notifying the message.
+    @param icon - The name and/or included URI/URL of the icon to show on notifying message.
 
    */
   void setNotifyMessage(const String &title, const String &body, const String &icon);
@@ -337,7 +414,7 @@ public:
     
     @param title - The title text of notification message.
     @param body - The body text of notification message.
-    @param icon - The name and/or included URI/URL of the icon to show on notifying the message.
+    @param icon - The name and/or included URI/URL of the icon to show on notifying message.
     @param click_action - The URL or intent to accept click event on the notification message.
 
    */
@@ -396,7 +473,7 @@ public:
   void setTimeToLive(uint32_t seconds);
 
   /*
-    Set the topic of the message which will be sent to.
+    Set the topic of the message will be sent to.
     
     @param topic - Topic string.
 
@@ -411,15 +488,15 @@ public:
   */
   String getSendResult();
 
-  friend FirebaseESP8266;
-  friend FirebaseData;
-
 private:
-  bool fcm_connect(FirebaseHTTPClient &net);
-  bool fcm_send(FirebaseHTTPClient &net, int &httpcode, uint8_t messageType);
-  void fcm_buildHeader(char *header, size_t payloadSize);
-  void fcm_buildPayload(char *msg, uint8_t messageType);
-  bool getFCMServerResponse(FirebaseHTTPClient &net, int &httpcode);
+  void fcm_begin(FirebaseData &fbdo);
+
+  bool fcm_send(FirebaseData &fbdo, fb_esp_fcm_msg_type messageType);
+
+  void fcm_prepareHeader(std::string &header, size_t payloadSize);
+
+  void fcm_preparePayload(std::string &msg, fb_esp_fcm_msg_type messageType);
+
   void clear();
 
   std::string _notify_title = "";
@@ -434,8 +511,11 @@ private:
   std::string _sendResult = "";
   int _ttl = -1;
   uint16_t _index = 0;
-  uint16_t _port = 443;
+  uint16_t _port = FIREBASE_PORT;
   std::vector<std::string> _deviceToken;
+
+  friend class FirebaseESP8266;
+  friend class FirebaseData;
 };
 
 class QueryFilter
@@ -465,12 +545,6 @@ protected:
   std::string _equalTo = "";
 };
 
-struct StorageType
-{
-  static const uint8_t FLASH = 0;
-  static const uint8_t SD = 1;
-};
-
 class QueueInfo
 {
 public:
@@ -483,9 +557,7 @@ public:
   String firebaseMethod();
   String dataPath();
 
-  friend FirebaseESP8266;
-
-protected:
+private:
   void clear();
   uint8_t _totalQueue = 0;
   uint32_t _currentQueueID = 0;
@@ -494,12 +566,14 @@ protected:
   std::string _dataType = "";
   std::string _method = "";
   std::string _path = "";
+
+  friend class FirebaseESP8266;
 };
 
 struct QueueItem
 {
-  uint8_t firebaseDataType = 0;
-  uint8_t firebaseMethod = 0;
+  fb_esp_data_type dataType = fb_esp_data_type::d_any;
+  fb_esp_method method = fb_esp_method::m_put;
   uint32_t qID = 0;
   uint32_t timestamp = 0;
   uint8_t runCount = 0;
@@ -548,10 +622,6 @@ public:
   friend class QueryFilter;
   friend class MultiPathStreamData;
 
-  struct FirebaseDataType;
-  struct FirebaseMethod;
-  struct FCMMessageType;
-
   typedef void (*StreamEventCallback)(StreamData);
   typedef void (*MultiPathStreamEventCallback)(MultiPathStreamData);
 
@@ -566,8 +636,8 @@ public:
 
     @param host - Your Firebase database project host e.g. Your_ProjectID.firebaseio.com.
     @param auth - Your database secret.
-    @param rootCA - Root CA certificate base64 string (PEM file).
-    @param rootCAFile - Root CA certificate DER file (binary).
+    @param caCert - Root CA certificate base64 string (PEM file).
+    @param caCertFile - Root CA certificate DER file (binary).
     @param StorageType - Type of storage, StorageType::SD and StorageType::FLASH.
     @param GMTOffset - GMT time offset in hour is required to set time in order to make BearSSL 
                        data decryption/encryption to work.
@@ -578,9 +648,17 @@ public:
   */
   void begin(const String &host, const String &auth);
 
-  void begin(const String &host, const String &auth, const char *rootCA, float GMTOffset = 0.0);
+  void begin(const String &host, const String &auth, const char *caCert, float GMTOffset = 0.0);
 
-  void begin(const String &host, const String &auth, const String &rootCAFile, uint8_t storageType, float GMTOffset = 0.0);
+  void begin(const String &host, const String &auth, const String &caCertFile, uint8_t storageType, float GMTOffset = 0.0);
+
+  /*
+    Stop Firebase and release all resources.
+    
+    @param fbdo - Firebase Data Object to hold data and instances.
+
+  */
+  void end(FirebaseData &fbdo);
 
   /*
     Reconnect WiFi if lost connection.
@@ -591,31 +669,47 @@ public:
   void reconnectWiFi(bool reconnect);
 
   /*
+    Set the decimal places for float value to be stored in database.
+
+    @param digits - The decimal places. 
+
+  */
+  void setFloatDigits(uint8_t digits);
+
+  /*
+    Set the decimal places for double value to be stored in database.
+
+    @param digits - The decimal places. 
+
+  */
+  void setDoubleDigits(uint8_t digits);
+
+  /*
     Set the timeout of Firebase.get functions.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
 
     @param millisec - The milliseconds to limit the request (0 - 900,000 ms or 15 min).
 
   */
-  void setReadTimeout(FirebaseData &dataObj, int millisec);
+  void setReadTimeout(FirebaseData &fbdo, int millisec);
 
   /*
     Set the size limit of payload data that will write to the database for each request.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
 
     @param size - The size identified string e.g. tiny, small, medium, large and unlimited.
 
     Size string and its write timeout in seconds e.g. tiny (1s), small (10s), medium (30s) and large (60s).
 
   */
-  void setwriteSizeLimit(FirebaseData &dataObj, const String &size);
+  void setwriteSizeLimit(FirebaseData &fbdo, const String &size);
 
   /*
     Read the database rules.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
 
     @return - Boolean type status indicates the success of the operation.
 
@@ -623,29 +717,29 @@ public:
     database rules returned from the server.
 
   */
-  bool getRules(FirebaseData &dataObj);
+  bool getRules(FirebaseData &fbdo);
 
   /*
     Write the database rules.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param rules - Database rules in JSON String format.
 
     @return - Boolean type status indicates the success of the operation.
 
   */
-  bool setRules(FirebaseData &dataObj, const String &rules);
+  bool setRules(FirebaseData &fbdo, const String &rules);
 
   /*
     Determine whether the defined database path exists or not.
     
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Database path to be checked.
 
     @return - Boolean type result indicates whether the defined path existed or not.
 
    */
-  bool pathExist(FirebaseData &dataObj, const String &path);
+  bool pathExist(FirebaseData &fbdo, const String &path);
 
   /*
     Determine the unique identifier (ETag) of current data at the defined database path.
@@ -653,12 +747,12 @@ public:
     @return String of unique identifier.
 
   */
-  String getETag(FirebaseData &dataObj, const String &path);
+  String getETag(FirebaseData &fbdo, const String &path);
 
   /*
     Get the shallowed data at a defined node path.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
 
     @param path - Database path being read the data.
 
@@ -669,12 +763,12 @@ public:
     Call [FirebaseData object].stringData() to get shallowed string data (number, string and JSON object).
 
   */
-  bool getShallowData(FirebaseData &dataObj, const String &path);
+  bool getShallowData(FirebaseData &fbdo, const String &path);
 
   /*
     Enable the library to use only classic HTTP GET and POST methods.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
 
     @param flag - Boolean value to enable.
 
@@ -683,12 +777,12 @@ public:
     HTTP PATCH request was sent as PATCH which not affected by this option.
 
   */
-  void enableClassicRequest(FirebaseData &dataObj, bool flag);
+  void enableClassicRequest(FirebaseData &fbdo, bool flag);
 
   /*
     Set the virtual child node ".priority" to the defined database path. 
     
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Target database path which to set the priority value.
     @param priority - The priority value.
     
@@ -699,12 +793,12 @@ public:
     The returned priority value from server can read from function [FirebaseData object].priority().
 
    */
-  bool setPriority(FirebaseData &dataObj, const String &path, float priority);
+  bool setPriority(FirebaseData &fbdo, const String &path, float priority);
 
   /*
     Read the virtual child node ".priority" value at the defined database path. 
     
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Target database path which to set the priority value.
     
     @return - Boolean type status indicates the success of the operation.
@@ -712,12 +806,12 @@ public:
     The priority value from server can read from function [FirebaseData object].priority().
 
    */
-  bool getPriority(FirebaseData &dataObj, const String &path);
+  bool getPriority(FirebaseData &fbdo, const String &path);
 
   /*
     Append new integer value to the defined database path.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Target database path which integer value will be appended.
     @param intValue - The appended value.
 
@@ -727,23 +821,23 @@ public:
     which its value can be accessed via function [FirebaseData object].pushName().
 
   */
-  bool pushInt(FirebaseData &dataObj, const String &path, int intValue);
+  bool pushInt(FirebaseData &fbdo, const String &path, int intValue);
 
-  bool push(FirebaseData &dataObj, const String &path, int intValue);
+  bool push(FirebaseData &fbdo, const String &path, int intValue);
 
   /*
 
     Append new integer value and the virtual child ".priority" to the defined database path.
 
   */
-  bool pushInt(FirebaseData &dataObj, const String &path, int intValue, float priority);
+  bool pushInt(FirebaseData &fbdo, const String &path, int intValue, float priority);
 
-  bool push(FirebaseData &dataObj, const String &path, int intValue, float priority);
+  bool push(FirebaseData &fbdo, const String &path, int intValue, float priority);
 
   /*
     Append new float value to the defined database path.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Target database path in which float value will be appended.
     @param floatValue - The appended value.
 
@@ -753,23 +847,23 @@ public:
     which its value can be accessed via function [FirebaseData object].pushName().
 
   */
-  bool pushFloat(FirebaseData &dataObj, const String &path, float floatValue);
+  bool pushFloat(FirebaseData &fbdo, const String &path, float floatValue);
 
-  bool push(FirebaseData &dataObj, const String &path, float floatValue);
+  bool push(FirebaseData &fbdo, const String &path, float floatValue);
 
   /*
 
     Append new float value and the virtual child ".priority" to the defined database path.
 
   */
-  bool pushFloat(FirebaseData &dataObj, const String &path, float floatValue, float priority);
+  bool pushFloat(FirebaseData &fbdo, const String &path, float floatValue, float priority);
 
-  bool push(FirebaseData &dataObj, const String &path, float floatValue, float priority);
+  bool push(FirebaseData &fbdo, const String &path, float floatValue, float priority);
 
   /*
     Append new double value (8 bytes) to the defined database path.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Target database path in which float value will be appended.
     @param doubleValue - The appended value.
 
@@ -779,23 +873,23 @@ public:
     which its value can be accessed via function [FirebaseData object].pushName().
 
   */
-  bool pushDouble(FirebaseData &dataObj, const String &path, double doubleValue);
+  bool pushDouble(FirebaseData &fbdo, const String &path, double doubleValue);
 
-  bool push(FirebaseData &dataObj, const String &path, double doubleValue);
+  bool push(FirebaseData &fbdo, const String &path, double doubleValue);
 
   /*
 
     Append new double value (8 bytes) and the virtual child ".priority" to the defined database path.
 
   */
-  bool pushDouble(FirebaseData &dataObj, const String &path, double doubleValue, float priority);
+  bool pushDouble(FirebaseData &fbdo, const String &path, double doubleValue, float priority);
 
-  bool push(FirebaseData &dataObj, const String &path, double doubleValue, float priority);
+  bool push(FirebaseData &fbdo, const String &path, double doubleValue, float priority);
 
   /*
     Append new Boolean value to the defined database path.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Target database path which Boolean value will be appended.
     @param boolValue - The appended value.
 
@@ -805,23 +899,23 @@ public:
     which its value can be accessed via function [FirebaseData object].pushName().
 
   */
-  bool pushBool(FirebaseData &dataObj, const String &path, bool boolValue);
+  bool pushBool(FirebaseData &fbdo, const String &path, bool boolValue);
 
-  bool push(FirebaseData &dataObj, const String &path, bool boolValue);
+  bool push(FirebaseData &fbdo, const String &path, bool boolValue);
 
   /*
 
     Append the new Boolean value and the virtual child ".priority" to the defined database path.
 
   */
-  bool pushBool(FirebaseData &dataObj, const String &path, bool boolValue, float priority);
+  bool pushBool(FirebaseData &fbdo, const String &path, bool boolValue, float priority);
 
-  bool push(FirebaseData &dataObj, const String &path, bool boolValue, float priority);
+  bool push(FirebaseData &fbdo, const String &path, bool boolValue, float priority);
 
   /*
     Append a new string (text) to the defined database path.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Target database path which string will be appended.
     @param StringValue - The appended value.
 
@@ -831,31 +925,31 @@ public:
     which can be accessed via function [FirebaseData object].pushName().
 
   */
-  bool pushString(FirebaseData &dataObj, const String &path, const String &stringValue);
+  bool pushString(FirebaseData &fbdo, const String &path, const String &stringValue);
 
-  bool push(FirebaseData &dataObj, const String &path, const char *stringValue);
+  bool push(FirebaseData &fbdo, const String &path, const char *stringValue);
 
-  bool push(FirebaseData &dataObj, const String &path, const String &stringValue);
+  bool push(FirebaseData &fbdo, const String &path, const String &stringValue);
 
-  bool push(FirebaseData &dataObj, const String &path, const StringSumHelper &stringValue);
+  bool push(FirebaseData &fbdo, const String &path, const StringSumHelper &stringValue);
 
   /*
 
     Append new string (text) and the virtual child ".priority" to the defined database path.
 
   */
-  bool pushString(FirebaseData &dataObj, const String &path, const String &stringValue, float priority);
+  bool pushString(FirebaseData &fbdo, const String &path, const String &stringValue, float priority);
 
-  bool push(FirebaseData &dataObj, const String &path, const char *stringValue, float priority);
+  bool push(FirebaseData &fbdo, const String &path, const char *stringValue, float priority);
 
-  bool push(FirebaseData &dataObj, const String &path, const String &stringValue, float priority);
+  bool push(FirebaseData &fbdo, const String &path, const String &stringValue, float priority);
 
-  bool push(FirebaseData &dataObj, const String &path, const StringSumHelper &stringValue, float priority);
+  bool push(FirebaseData &fbdo, const String &path, const StringSumHelper &stringValue, float priority);
 
   /*
     Append new child nodes key and value (using FirebaseJson object) to the defined database path.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Target database path which key and value in FirebaseJson object will be appended.
     @param json - The appended FirebaseJson object.
 
@@ -865,9 +959,9 @@ public:
     which its value can be accessed via function [FirebaseData object].pushName().
 
   */
-  bool pushJSON(FirebaseData &dataObj, const String &path, FirebaseJson &json);
+  bool pushJSON(FirebaseData &fbdo, const String &path, FirebaseJson &json);
 
-  bool push(FirebaseData &dataObj, const String &path, FirebaseJson &json);
+  bool push(FirebaseData &fbdo, const String &path, FirebaseJson &json);
 
   /*
 
@@ -875,9 +969,9 @@ public:
 
   */
 
-  bool pushJSON(FirebaseData &dataObj, const String &path, FirebaseJson &json, float priority);
+  bool pushJSON(FirebaseData &fbdo, const String &path, FirebaseJson &json, float priority);
 
-  bool push(FirebaseData &dataObj, const String &path, FirebaseJson &json, float priority);
+  bool push(FirebaseData &fbdo, const String &path, FirebaseJson &json, float priority);
 
   /*
 
@@ -885,7 +979,7 @@ public:
 
     This will replace any child nodes inside the defined path with array defined in FirebaseJsonArray object.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Target database path which key and value in FirebaseJsonArray object will be appended.
     @param arr - The appended FirebaseJsonArray object.
 
@@ -895,9 +989,9 @@ public:
     which its value can be accessed via function [FirebaseData object].pushName().
 
   */
-  bool pushArray(FirebaseData &dataObj, const String &path, FirebaseJsonArray &arr);
+  bool pushArray(FirebaseData &fbdo, const String &path, FirebaseJsonArray &arr);
 
-  bool push(FirebaseData &dataObj, const String &path, FirebaseJsonArray &arr);
+  bool push(FirebaseData &fbdo, const String &path, FirebaseJsonArray &arr);
 
   /*
 
@@ -905,14 +999,14 @@ public:
 
   */
 
-  bool pushArray(FirebaseData &dataObj, const String &path, FirebaseJsonArray &arr, float priority);
+  bool pushArray(FirebaseData &fbdo, const String &path, FirebaseJsonArray &arr, float priority);
 
-  bool push(FirebaseData &dataObj, const String &path, FirebaseJsonArray &arr, float priority);
+  bool push(FirebaseData &fbdo, const String &path, FirebaseJsonArray &arr, float priority);
 
   /*
     Append new blob (binary data) to the defined database path.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Target database path which binary data will be appended.
     @param blob - Byte array of data.
     @param size - Size of the byte array.
@@ -923,23 +1017,23 @@ public:
     which its value can be accessed via function [FirebaseData object].pushName().
 
   */
-  bool pushBlob(FirebaseData &dataObj, const String &path, uint8_t *blob, size_t size);
+  bool pushBlob(FirebaseData &fbdo, const String &path, uint8_t *blob, size_t size);
 
-  bool push(FirebaseData &dataObj, const String &path, uint8_t *blob, size_t size);
+  bool push(FirebaseData &fbdo, const String &path, uint8_t *blob, size_t size);
 
   /*
 
     Append new blob (binary data) and the virtual child ".priority" to the defined database path.
 
   */
-  bool pushBlob(FirebaseData &dataObj, const String &path, uint8_t *blob, size_t size, float priority);
+  bool pushBlob(FirebaseData &fbdo, const String &path, uint8_t *blob, size_t size, float priority);
 
-  bool push(FirebaseData &dataObj, const String &path, uint8_t *blob, size_t size, float priority);
+  bool push(FirebaseData &fbdo, const String &path, uint8_t *blob, size_t size, float priority);
 
   /*
     Append new binary data from the file stores on SD card/Flash memory to the defined database path.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param storageType - Type of storage to read file data, StorageType::SPIFS or StorageType::SD.
     @param path - Target database path in which binary data from the file will be appended.
     @param fileName - File name included its path in SD card/Flash memory.
@@ -950,23 +1044,23 @@ public:
     which its value can be accessed via function [FirebaseData object].pushName().
 
   */
-  bool pushFile(FirebaseData &dataObj, uint8_t storageType, const String &path, const String &fileName);
+  bool pushFile(FirebaseData &fbdo, uint8_t storageType, const String &path, const String &fileName);
 
-  bool push(FirebaseData &dataObj, uint8_t storageType, const String &path, const String &fileName);
+  bool push(FirebaseData &fbdo, uint8_t storageType, const String &path, const String &fileName);
 
   /*
 
     Append new binary data from the file stores on SD card/Flash memory and the virtual child ".priority" to the defined database path.
 
   */
-  bool pushFile(FirebaseData &dataObj, uint8_t storageType, const String &path, const String &fileName, float priority);
+  bool pushFile(FirebaseData &fbdo, uint8_t storageType, const String &path, const String &fileName, float priority);
 
-  bool push(FirebaseData &dataObj, uint8_t storageType, const String &path, const String &fileName, float priority);
+  bool push(FirebaseData &fbdo, uint8_t storageType, const String &path, const String &fileName, float priority);
 
   /*
     Append the new Firebase server's timestamp to the defined database path.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Target database path which timestamp will be appended.
 
     @return - Boolean type status indicates the success of the operation.
@@ -975,12 +1069,12 @@ public:
     which its value can be accessed via function [FirebaseData object].pushName().
 
    */
-  bool pushTimestamp(FirebaseData &dataObj, const String &path);
+  bool pushTimestamp(FirebaseData &fbdo, const String &path);
 
   /*
     Set integer data at the defined database path.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Target database path which integer data will be set.
     @param intValue - Integer value to set.
 
@@ -992,23 +1086,23 @@ public:
     payload returned from server.
 
   */
-  bool setInt(FirebaseData &dataObj, const String &path, int intValue);
+  bool setInt(FirebaseData &fbdo, const String &path, int intValue);
 
-  bool set(FirebaseData &dataObj, const String &path, int intValue);
+  bool set(FirebaseData &fbdo, const String &path, int intValue);
 
   /*
 
     Set integer data and virtual child ".priority" at the defined database path.
 
   */
-  bool setInt(FirebaseData &dataObj, const String &path, int intValue, float priority);
+  bool setInt(FirebaseData &fbdo, const String &path, int intValue, float priority);
 
-  bool set(FirebaseData &dataObj, const String &path, int intValue, float priority);
+  bool set(FirebaseData &fbdo, const String &path, int intValue, float priority);
 
   /*
     Set integer data at the defined database path if defined database path's ETag matched the ETag value.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Target database path which integer data will be set.
     @param intValue - Integer value to set.
     @param ETag - Known unique identifier string (ETag) of defined database path.
@@ -1025,23 +1119,23 @@ public:
     
 
    */
-  bool setInt(FirebaseData &dataObj, const String &path, int intValue, const String &ETag);
+  bool setInt(FirebaseData &fbdo, const String &path, int intValue, const String &ETag);
 
-  bool set(FirebaseData &dataObj, const String &path, int intValue, const String &ETag);
+  bool set(FirebaseData &fbdo, const String &path, int intValue, const String &ETag);
 
   /*
 
     Set integer data and the virtual child ".priority" if defined ETag matches at the defined database path 
 
   */
-  bool setInt(FirebaseData &dataObj, const String &path, int intValue, float priority, const String &ETag);
+  bool setInt(FirebaseData &fbdo, const String &path, int intValue, float priority, const String &ETag);
 
-  bool set(FirebaseData &dataObj, const String &path, int intValue, float priority, const String &ETag);
+  bool set(FirebaseData &fbdo, const String &path, int intValue, float priority, const String &ETag);
 
   /*
     Set float data at the defined database path.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Target database path in which float data will be set.
     @param floatValue - Float value to set.
 
@@ -1053,23 +1147,23 @@ public:
     payload returned from server.
 
   */
-  bool setFloat(FirebaseData &dataObj, const String &path, float floatValue);
+  bool setFloat(FirebaseData &fbdo, const String &path, float floatValue);
 
-  bool set(FirebaseData &dataObj, const String &path, float floatValue);
+  bool set(FirebaseData &fbdo, const String &path, float floatValue);
 
   /*
 
     Set float data and virtual child ".priority" at the defined database path.
 
   */
-  bool setFloat(FirebaseData &dataObj, const String &path, float floatValue, float priority);
+  bool setFloat(FirebaseData &fbdo, const String &path, float floatValue, float priority);
 
-  bool set(FirebaseData &dataObj, const String &path, float floatValue, float priority);
+  bool set(FirebaseData &fbdo, const String &path, float floatValue, float priority);
 
   /*
     Set float data at the defined database path if defined database path's ETag matched the ETag value.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Target database path in which float data will be set.
     @param floatValue - Float value to set.
     @param ETag - Known unique identifier string (ETag) of defined database path.
@@ -1088,23 +1182,23 @@ public:
     Also call [FirebaseData object].floatData to get the current float value.
 
    */
-  bool setFloat(FirebaseData &dataObj, const String &path, float floatValue, const String &ETag);
+  bool setFloat(FirebaseData &fbdo, const String &path, float floatValue, const String &ETag);
 
-  bool set(FirebaseData &dataObj, const String &path, float floatValue, const String &ETag);
+  bool set(FirebaseData &fbdo, const String &path, float floatValue, const String &ETag);
 
   /*
 
     Set float data and the virtual child ".priority" if defined ETag matches at the defined database path 
 
   */
-  bool setFloat(FirebaseData &dataObj, const String &path, float floatValue, float priority, const String &ETag);
+  bool setFloat(FirebaseData &fbdo, const String &path, float floatValue, float priority, const String &ETag);
 
-  bool set(FirebaseData &dataObj, const String &path, float floatValue, float priority, const String &ETag);
+  bool set(FirebaseData &fbdo, const String &path, float floatValue, float priority, const String &ETag);
 
   /*
     Set double data at the defined database path.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Target database path in which float data will be set.
     @param doubleValue - Double value to set.
 
@@ -1119,23 +1213,23 @@ public:
     use printf("%.9lf\n", firebaseData.doubleData()); for print the returned double value up to 9 decimal places.
 
   */
-  bool setDouble(FirebaseData &dataObj, const String &path, double doubleValue);
+  bool setDouble(FirebaseData &fbdo, const String &path, double doubleValue);
 
-  bool set(FirebaseData &dataObj, const String &path, double doubleValue);
+  bool set(FirebaseData &fbdo, const String &path, double doubleValue);
 
   /*
 
     Set double data and virtual child ".priority" at the defined database path.
 
   */
-  bool setDouble(FirebaseData &dataObj, const String &path, double doubleValue, float priority);
+  bool setDouble(FirebaseData &fbdo, const String &path, double doubleValue, float priority);
 
-  bool set(FirebaseData &dataObj, const String &path, double doubleValue, float priority);
+  bool set(FirebaseData &fbdo, const String &path, double doubleValue, float priority);
 
   /*
     Set double data at the defined database path if defined database path's ETag matched the ETag value.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Target database path in which float data will be set.
     @param doubleValue - Double value to set.
     @param ETag - Known unique identifier string (ETag) of defined database path.
@@ -1154,23 +1248,23 @@ public:
     Also call [FirebaseData object].doubeData to get the current double value.
 
   */
-  bool setDouble(FirebaseData &dataObj, const String &path, double doubleValue, const String &ETag);
+  bool setDouble(FirebaseData &fbdo, const String &path, double doubleValue, const String &ETag);
 
-  bool set(FirebaseData &dataObj, const String &path, double doubleValue, const String &ETag);
+  bool set(FirebaseData &fbdo, const String &path, double doubleValue, const String &ETag);
 
   /*
 
     Set double data and the virtual child ".priority" if defined ETag matches at the defined database path 
 
   */
-  bool setDouble(FirebaseData &dataObj, const String &path, double doubleValue, float priority, const String &ETag);
+  bool setDouble(FirebaseData &fbdo, const String &path, double doubleValue, float priority, const String &ETag);
 
-  bool set(FirebaseData &dataObj, const String &path, double doubleValue, float priority, const String &ETag);
+  bool set(FirebaseData &fbdo, const String &path, double doubleValue, float priority, const String &ETag);
 
   /*
     Set Boolean data at the defined database path.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Target database path which Boolean data will be set.
     @param boolValue - Boolean value to set.
 
@@ -1182,23 +1276,23 @@ public:
     the payload returned from the server.
 
   */
-  bool setBool(FirebaseData &dataObj, const String &path, bool boolValue);
+  bool setBool(FirebaseData &fbdo, const String &path, bool boolValue);
 
-  bool set(FirebaseData &dataObj, const String &path, bool boolValue);
+  bool set(FirebaseData &fbdo, const String &path, bool boolValue);
 
   /*
 
     Set boolean data and virtual child ".priority" at the defined database path.
 
   */
-  bool setBool(FirebaseData &dataObj, const String &path, bool boolValue, float priority);
+  bool setBool(FirebaseData &fbdo, const String &path, bool boolValue, float priority);
 
-  bool set(FirebaseData &dataObj, const String &path, bool boolValue, float priority);
+  bool set(FirebaseData &fbdo, const String &path, bool boolValue, float priority);
 
   /*
     Set Boolean data at the defined database path if defined database path's ETag matched the ETag value.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Target database path which Boolean data will be set.
     @param boolValue - Boolean value to set.
     @param ETag - Known unique identifier string (ETag) of defined database path.
@@ -1217,23 +1311,23 @@ public:
     Also call [FirebaseData object].doubeData to get the current boolean value.
 
   */
-  bool setBool(FirebaseData &dataObj, const String &path, bool boolValue, const String &ETag);
+  bool setBool(FirebaseData &fbdo, const String &path, bool boolValue, const String &ETag);
 
-  bool set(FirebaseData &dataObj, const String &path, bool boolValue, const String &ETag);
+  bool set(FirebaseData &fbdo, const String &path, bool boolValue, const String &ETag);
 
   /*
 
     Set boolean data and the virtual child ".priority" if defined ETag matches at the defined database path 
 
   */
-  bool setBool(FirebaseData &dataObj, const String &path, bool boolValue, float priority, const String &ETag);
+  bool setBool(FirebaseData &fbdo, const String &path, bool boolValue, float priority, const String &ETag);
 
-  bool set(FirebaseData &dataObj, const String &path, bool boolValue, float priority, const String &ETag);
+  bool set(FirebaseData &fbdo, const String &path, bool boolValue, float priority, const String &ETag);
 
   /*
     Set string (text) at the defined database path.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Target database path in which string data will be set.
     @param stringValue - String or text to set.
 
@@ -1246,31 +1340,31 @@ public:
     the payload returned from the server.
 
   */
-  bool setString(FirebaseData &dataObj, const String &path, const String &stringValue);
+  bool setString(FirebaseData &fbdo, const String &path, const String &stringValue);
 
-  bool set(FirebaseData &dataObj, const String &path, const char *stringValue);
+  bool set(FirebaseData &fbdo, const String &path, const char *stringValue);
 
-  bool set(FirebaseData &dataObj, const String &path, const String &stringValue);
+  bool set(FirebaseData &fbdo, const String &path, const String &stringValue);
 
-  bool set(FirebaseData &dataObj, const String &path, const StringSumHelper &stringValue);
+  bool set(FirebaseData &fbdo, const String &path, const StringSumHelper &stringValue);
 
   /*
 
     Set string data and virtual child ".priority" at the defined database path.
 
   */
-  bool setString(FirebaseData &dataObj, const String &path, const String &stringValue, float priority);
+  bool setString(FirebaseData &fbdo, const String &path, const String &stringValue, float priority);
 
-  bool set(FirebaseData &dataObj, const String &path, const char *stringValue, float priority);
+  bool set(FirebaseData &fbdo, const String &path, const char *stringValue, float priority);
 
-  bool set(FirebaseData &dataObj, const String &path, const String &stringValue, float priority);
+  bool set(FirebaseData &fbdo, const String &path, const String &stringValue, float priority);
 
-  bool set(FirebaseData &dataObj, const String &path, const StringSumHelper &stringValue, float priority);
+  bool set(FirebaseData &fbdo, const String &path, const StringSumHelper &stringValue, float priority);
 
   /*
     Set string (text) at the defined database path if defined database path's ETag matched the ETag value.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Target database path in which string data will be set.
     @param stringValue - String or text to set.
     @param ETag - Known unique identifier string (ETag) of defined database path.
@@ -1289,26 +1383,26 @@ public:
     Also, call [FirebaseData object].stringData to get the current string value.
 
    */
-  bool setString(FirebaseData &dataObj, const String &path, const String &stringValue, const String &ETag);
+  bool setString(FirebaseData &fbdo, const String &path, const String &stringValue, const String &ETag);
 
-  bool set(FirebaseData &dataObj, const String &path, const char *stringValue, const String &ETag);
+  bool set(FirebaseData &fbdo, const String &path, const char *stringValue, const String &ETag);
 
-  bool set(FirebaseData &dataObj, const String &path, const String &stringValue, const String &ETag);
+  bool set(FirebaseData &fbdo, const String &path, const String &stringValue, const String &ETag);
 
-  bool set(FirebaseData &dataObj, const String &path, const StringSumHelper &stringValue, const String &ETag);
+  bool set(FirebaseData &fbdo, const String &path, const StringSumHelper &stringValue, const String &ETag);
 
   /*
 
     Set string data and the virtual child ".priority" if defined ETag matches at the defined database path 
 
   */
-  bool setString(FirebaseData &dataObj, const String &path, const String &stringValue, float priority, const String &ETag);
+  bool setString(FirebaseData &fbdo, const String &path, const String &stringValue, float priority, const String &ETag);
 
-  bool set(FirebaseData &dataObj, const String &path, const char *stringValue, float priority, const String &ETag);
+  bool set(FirebaseData &fbdo, const String &path, const char *stringValue, float priority, const String &ETag);
 
-  bool set(FirebaseData &dataObj, const String &path, const String &stringValue, float priority, const String &ETag);
+  bool set(FirebaseData &fbdo, const String &path, const String &stringValue, float priority, const String &ETag);
 
-  bool set(FirebaseData &dataObj, const String &path, const StringSumHelper &stringValue, float priority, const String &ETag);
+  bool set(FirebaseData &fbdo, const String &path, const StringSumHelper &stringValue, float priority, const String &ETag);
 
   /*
 
@@ -1317,7 +1411,7 @@ public:
     This will replace any child nodes inside the defined path with node' s key
     and value defined in FirebaseJson object.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Target database path which key and value in FirebaseJson object will be replaced or set.
     @param json - The FirebaseJson object.
 
@@ -1329,9 +1423,9 @@ public:
     payload returned from server.
 
   */
-  bool setJSON(FirebaseData &dataObj, const String &path, FirebaseJson &json);
+  bool setJSON(FirebaseData &fbdo, const String &path, FirebaseJson &json);
 
-  bool set(FirebaseData &dataObj, const String &path, FirebaseJson &json);
+  bool set(FirebaseData &fbdo, const String &path, FirebaseJson &json);
 
   /*
 
@@ -1339,9 +1433,9 @@ public:
 
   */
 
-  bool setJSON(FirebaseData &dataObj, const String &path, FirebaseJson &json, float priority);
+  bool setJSON(FirebaseData &fbdo, const String &path, FirebaseJson &json, float priority);
 
-  bool set(FirebaseData &dataObj, const String &path, FirebaseJson &json, float priority);
+  bool set(FirebaseData &fbdo, const String &path, FirebaseJson &json, float priority);
 
   /*
 
@@ -1350,7 +1444,7 @@ public:
     This will replace any child nodes inside the defined path with node' s key
     and value defined in JSON data or FirebaseJson object.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Target database path which key and value in JSON data will be replaced or set.
     @param json - The FirebaseJson object.
     @param ETag - Known unique identifier string (ETag) of defined database path.
@@ -1370,9 +1464,9 @@ public:
 
    */
 
-  bool setJSON(FirebaseData &dataObj, const String &path, FirebaseJson &json, const String &ETag);
+  bool setJSON(FirebaseData &fbdo, const String &path, FirebaseJson &json, const String &ETag);
 
-  bool set(FirebaseData &dataObj, const String &path, FirebaseJson &json, const String &ETag);
+  bool set(FirebaseData &fbdo, const String &path, FirebaseJson &json, const String &ETag);
 
   /*
 
@@ -1380,9 +1474,9 @@ public:
 
   */
 
-  bool setJSON(FirebaseData &dataObj, const String &path, FirebaseJson &json, float priority, const String &ETag);
+  bool setJSON(FirebaseData &fbdo, const String &path, FirebaseJson &json, float priority, const String &ETag);
 
-  bool set(FirebaseData &dataObj, const String &path, FirebaseJson &json, float priority, const String &ETag);
+  bool set(FirebaseData &fbdo, const String &path, FirebaseJson &json, float priority, const String &ETag);
 
   /*
 
@@ -1390,7 +1484,7 @@ public:
 
     This will replace any child nodes inside the defined path with array defined in FirebaseJsonArray object.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Target database path which key and value in FirebaseJsonArray object will be replaced or set.
     @param arr - The FirebaseJsonArray object.
 
@@ -1403,9 +1497,9 @@ public:
     payload returned from server, get the array payload using FirebaseJsonArray *arr = firebaseData.jsonArray();
 
   */
-  bool setArray(FirebaseData &dataObj, const String &path, FirebaseJsonArray &arr);
+  bool setArray(FirebaseData &fbdo, const String &path, FirebaseJsonArray &arr);
 
-  bool set(FirebaseData &dataObj, const String &path, FirebaseJsonArray &arr);
+  bool set(FirebaseData &fbdo, const String &path, FirebaseJsonArray &arr);
 
   /*
 
@@ -1413,9 +1507,9 @@ public:
 
   */
 
-  bool setArray(FirebaseData &dataObj, const String &path, FirebaseJsonArray &arr, float priority);
+  bool setArray(FirebaseData &fbdo, const String &path, FirebaseJsonArray &arr, float priority);
 
-  bool set(FirebaseData &dataObj, const String &path, FirebaseJsonArray &arr, float priority);
+  bool set(FirebaseData &fbdo, const String &path, FirebaseJsonArray &arr, float priority);
 
   /*
 
@@ -1423,7 +1517,7 @@ public:
 
     This will replace any child nodes inside the defined path with array defined in FirebaseJsonArray object.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Target database path which key and value in JSON data will be replaced or set.
     @param arr - The FirebaseJsonArray object.
     @param ETag - Known unique identifier string (ETag) of defined database path.
@@ -1443,9 +1537,9 @@ public:
 
    */
 
-  bool setArray(FirebaseData &dataObj, const String &path, FirebaseJsonArray &arr, const String &ETag);
+  bool setArray(FirebaseData &fbdo, const String &path, FirebaseJsonArray &arr, const String &ETag);
 
-  bool set(FirebaseData &dataObj, const String &path, FirebaseJsonArray &arr, const String &ETag);
+  bool set(FirebaseData &fbdo, const String &path, FirebaseJsonArray &arr, const String &ETag);
 
   /*
 
@@ -1453,16 +1547,16 @@ public:
 
   */
 
-  bool setArray(FirebaseData &dataObj, const String &path, FirebaseJsonArray &arr, float priority, const String &ETag);
+  bool setArray(FirebaseData &fbdo, const String &path, FirebaseJsonArray &arr, float priority, const String &ETag);
 
-  bool set(FirebaseData &dataObj, const String &path, FirebaseJsonArray &arr, float priority, const String &ETag);
+  bool set(FirebaseData &fbdo, const String &path, FirebaseJsonArray &arr, float priority, const String &ETag);
 
   /*
     Set blob (binary data) at the defined database path.
 
     This will replace any child nodes inside the defined path with a blob or binary data.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Target database path which binary data will be set.
     @param blob - Byte array of data.
     @param size - Size of the byte array.
@@ -1472,25 +1566,25 @@ public:
     No payload returned from the server.
 
   */
-  bool setBlob(FirebaseData &dataObj, const String &path, uint8_t *blob, size_t size);
+  bool setBlob(FirebaseData &fbdo, const String &path, uint8_t *blob, size_t size);
 
-  bool set(FirebaseData &dataObj, const String &path, uint8_t *blob, size_t size);
+  bool set(FirebaseData &fbdo, const String &path, uint8_t *blob, size_t size);
 
   /*
 
     Set blob data and virtual child ".priority" at the defined database path.
 
   */
-  bool setBlob(FirebaseData &dataObj, const String &path, uint8_t *blob, size_t size, float priority);
+  bool setBlob(FirebaseData &fbdo, const String &path, uint8_t *blob, size_t size, float priority);
 
-  bool set(FirebaseData &dataObj, const String &path, uint8_t *blob, size_t size, float priority);
+  bool set(FirebaseData &fbdo, const String &path, uint8_t *blob, size_t size, float priority);
 
   /*
     Set blob (binary data) at the defined database path if defined database path's ETag matched the ETag value.
 
     This will replace any child nodes inside the defined path with a blob or binary data.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Target database path which binary data will be set.
     @param blob - Byte array of data.
     @param size - Size of the byte array.
@@ -1504,23 +1598,23 @@ public:
     the operation will fail with HTTP code 412, Precondition Failed (ETag is not matched).
 
    */
-  bool setBlob(FirebaseData &dataObj, const String &path, uint8_t *blob, size_t size, const String &ETag);
+  bool setBlob(FirebaseData &fbdo, const String &path, uint8_t *blob, size_t size, const String &ETag);
 
-  bool set(FirebaseData &dataObj, const String &path, uint8_t *blob, size_t size, const String &ETag);
+  bool set(FirebaseData &fbdo, const String &path, uint8_t *blob, size_t size, const String &ETag);
 
   /*
 
     Set blob data and the virtual child ".priority" if defined ETag matches at the defined database path 
 
   */
-  bool setBlob(FirebaseData &dataObj, const String &path, uint8_t *blob, size_t size, float priority, const String &ETag);
+  bool setBlob(FirebaseData &fbdo, const String &path, uint8_t *blob, size_t size, float priority, const String &ETag);
 
-  bool set(FirebaseData &dataObj, const String &path, uint8_t *blob, size_t size, float priority, const String &ETag);
+  bool set(FirebaseData &fbdo, const String &path, uint8_t *blob, size_t size, float priority, const String &ETag);
 
   /*
     Set binary data from the file store on SD card/Flash memory to the defined database path.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param storageType - Type of storage to read file data, StorageType::SPIFS or StorageType::SD.
     @param path - Target database path in which binary data from the file will be set.
     @param fileName - File name included its path in SD card/Flash memory
@@ -1530,23 +1624,23 @@ public:
     No payload returned from the server.
 
   */
-  bool setFile(FirebaseData &dataObj, uint8_t storageType, const String &path, const String &fileName);
+  bool setFile(FirebaseData &fbdo, uint8_t storageType, const String &path, const String &fileName);
 
-  bool set(FirebaseData &dataObj, uint8_t storageType, const String &path, const String &fileName);
+  bool set(FirebaseData &fbdo, uint8_t storageType, const String &path, const String &fileName);
 
   /*
 
     Set binary data from the file and virtual child ".priority" at the defined database path.
 
   */
-  bool setFile(FirebaseData &dataObj, uint8_t storageType, const String &path, const String &fileName, float priority);
+  bool setFile(FirebaseData &fbdo, uint8_t storageType, const String &path, const String &fileName, float priority);
 
-  bool set(FirebaseData &dataObj, uint8_t storageType, const String &path, const String &fileName, float priority);
+  bool set(FirebaseData &fbdo, uint8_t storageType, const String &path, const String &fileName, float priority);
 
   /*
     Set binary data from file stored on SD card/Flash memory to the defined database path if defined database path's ETag matched the ETag value.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param storageType - Type of storage to read file data, StorageType::SPIFS or StorageType::SD.
     @param path - Target database path in which binary data from the file will be set.
     @param fileName - File name included its path in SD card/Flash memory.
@@ -1560,23 +1654,23 @@ public:
     the operation will fail with HTTP code 412, Precondition Failed (ETag is not matched).
 
    */
-  bool setFile(FirebaseData &dataObj, uint8_t storageType, const String &path, const String &fileName, const String &ETag);
+  bool setFile(FirebaseData &fbdo, uint8_t storageType, const String &path, const String &fileName, const String &ETag);
 
-  bool set(FirebaseData &dataObj, uint8_t storageType, const String &path, const String &fileName, const String &ETag);
+  bool set(FirebaseData &fbdo, uint8_t storageType, const String &path, const String &fileName, const String &ETag);
 
   /*
 
     Set binary data from the file and the virtual child ".priority" if defined ETag matches at the defined database path 
 
   */
-  bool setFile(FirebaseData &dataObj, uint8_t storageType, const String &path, const String &fileName, float priority, const String &ETag);
+  bool setFile(FirebaseData &fbdo, uint8_t storageType, const String &path, const String &fileName, float priority, const String &ETag);
 
-  bool set(FirebaseData &dataObj, uint8_t storageType, const String &path, const String &fileName, float priority, const String &ETag);
+  bool set(FirebaseData &fbdo, uint8_t storageType, const String &path, const String &fileName, float priority, const String &ETag);
 
   /*
     Set Firebase server's timestamp to the defined database path.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Target database path which timestamp will be set.
 
     @return - Boolean type status indicates the success of the operation.
@@ -1588,12 +1682,12 @@ public:
     use printf("%.0lf\n", firebaseData.doubleData());.
 
    */
-  bool setTimestamp(FirebaseData &dataObj, const String &path);
+  bool setTimestamp(FirebaseData &fbdo, const String &path);
 
   /*
     Update the child node key or existing key's value (using FirebaseJson object) under the defined database path.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Target database path which key and value in FirebaseJson object will be updated.
     @param json - The FirebaseJson object used for the update.
 
@@ -1607,7 +1701,7 @@ public:
     To reduce network data usage, use updateNodeSilent instead.
 
   */
-  bool updateNode(FirebaseData &dataObj, const String path, FirebaseJson &json);
+  bool updateNode(FirebaseData &fbdo, const String path, FirebaseJson &json);
 
   /*
 
@@ -1615,12 +1709,12 @@ public:
 
   */
 
-  bool updateNode(FirebaseData &dataObj, const String &path, FirebaseJson &json, float priority);
+  bool updateNode(FirebaseData &fbdo, const String &path, FirebaseJson &json, float priority);
 
   /*
     Update the child node key or existing key's value (using FirebaseJson object) under the defined database path.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Target database path which key and value in FirebaseJson object will be updated.
     @param json - The FirebaseJson object used for the update.
 
@@ -1630,7 +1724,7 @@ public:
     no payload will be returned from the server.
 
   */
-  bool updateNodeSilent(FirebaseData &dataObj, const String &path, FirebaseJson &json);
+  bool updateNodeSilent(FirebaseData &fbdo, const String &path, FirebaseJson &json);
 
   /*
 
@@ -1638,12 +1732,12 @@ public:
 
   */
 
-  bool updateNodeSilent(FirebaseData &dataObj, const String &path, FirebaseJson &json, float priority);
+  bool updateNodeSilent(FirebaseData &fbdo, const String &path, FirebaseJson &json, float priority);
 
   /*
     Read any type of value at the defined database path.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Database path in which the float value is being read.
 
     @return - Boolean type status indicates the success of the operation.
@@ -1656,12 +1750,12 @@ public:
     its type from [FirebaseData object].dataType.
 
   */
-  bool get(FirebaseData &dataObj, const String &path);
+  bool get(FirebaseData &fbdo, const String &path);
 
   /*
     Read the integer value at the defined database path.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Database path in which the float value is being read.
 
     @return - Boolean type status indicates the success of the operation.
@@ -1675,12 +1769,12 @@ public:
     the function [FirebaseData object].intData will return zero (0).
 
   */
-  bool getInt(FirebaseData &dataObj, const String &path);
+  bool getInt(FirebaseData &fbdo, const String &path);
 
   /*
     Read the integer value at the defined database path.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Database path in which the float value is being read.
     @param target - The integer type variable to store value.
 
@@ -1690,12 +1784,12 @@ public:
     the target variable's value will be zero (0).
 
   */
-  bool getInt(FirebaseData &dataObj, const String &path, int &target);
+  bool getInt(FirebaseData &fbdo, const String &path, int &target);
 
   /*
     Read the float value at the defined database path.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Database path in which the float value is being read.
 
     @return - Boolean type status indicates the success of the operation.
@@ -1709,12 +1803,12 @@ public:
     the function [FirebaseData object].floatData will return zero (0).
 
    */
-  bool getFloat(FirebaseData &dataObj, const String &path);
+  bool getFloat(FirebaseData &fbdo, const String &path);
 
   /*
     Read the float value at the defined database path.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Database path in which the float value is being read.
     @param target - The float type variable to store value.
 
@@ -1725,12 +1819,12 @@ public:
     the target variable's value will be zero (0).
 
    */
-  bool getFloat(FirebaseData &dataObj, const String &path, float &target);
+  bool getFloat(FirebaseData &fbdo, const String &path, float &target);
 
   /*
     Read the double value at the defined database path.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Database path in which the float value is being read.
 
     @return - Boolean type status indicates the success of the operation.
@@ -1747,12 +1841,12 @@ public:
     use printf("%.9lf\n", firebaseData.doubleData()); for print value up to 9 decimal places.
 
    */
-  bool getDouble(FirebaseData &dataObj, const String &path);
+  bool getDouble(FirebaseData &fbdo, const String &path);
 
   /*
     Read the float value at the defined database path.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Database path in which the float value is being read.
     @param target - The double type variable to store value.
 
@@ -1763,12 +1857,12 @@ public:
     the target variable's value will be zero (0).
 
    */
-  bool getDouble(FirebaseData &dataObj, const String &path, double &target);
+  bool getDouble(FirebaseData &fbdo, const String &path, double &target);
 
   /*
     Read the Boolean value at the defined database path.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Database path in which the Boolean value is being read.
 
     @return - Boolean type status indicates the success of the operation.
@@ -1782,12 +1876,12 @@ public:
     the function [FirebaseData object].boolData will return false.
 
    */
-  bool getBool(FirebaseData &dataObj, const String &path);
+  bool getBool(FirebaseData &fbdo, const String &path);
 
   /*
     Read the Boolean value at the defined database path.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Database path in which the Boolean value is being read.
     @param target - The boolean type variable to store value.
 
@@ -1798,12 +1892,12 @@ public:
     the target variable's value will be false.
 
    */
-  bool getBool(FirebaseData &dataObj, const String &path, bool &target);
+  bool getBool(FirebaseData &fbdo, const String &path, bool &target);
 
   /*
     Read the string at the defined database path.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Database path in which the string value is being read.
 
     @return - Boolean type status indicates the success of the operation.
@@ -1818,12 +1912,12 @@ public:
     the function [FirebaseData object].stringData will return empty string (String object).
 
   */
-  bool getString(FirebaseData &dataObj, const String &path);
+  bool getString(FirebaseData &fbdo, const String &path);
 
   /*
     Read the string at the defined database path.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Database path in which the string value is being read.
     @param target - The String object to store value.
 
@@ -1833,13 +1927,13 @@ public:
     the target String object's value will be empty.
 
   */
-  bool getString(FirebaseData &dataObj, const String &path, String &target);
+  bool getString(FirebaseData &fbdo, const String &path, String &target);
 
   /*
     Read the JSON string at the defined database path.
     The returned payload JSON string represents the child nodes and their value.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Database path in which the JSON string value is being read.
 
     @return - Boolean type status indicates the success of the operation.
@@ -1854,13 +1948,13 @@ public:
     the function [FirebaseData object].jsonObject will contain empty object.
 
   */
-  bool getJSON(FirebaseData &dataObj, const String &path);
+  bool getJSON(FirebaseData &fbdo, const String &path);
 
   /*
     Read the JSON string at the defined database path.
     The returned the pointer to FirebaseJson that contains JSON payload represents the child nodes and their value.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Database path in which the JSON string value is being read.
     @param target - The FirebaseJson object pointer to get JSON data.
 
@@ -1871,13 +1965,13 @@ public:
 
 
   */
-  bool getJSON(FirebaseData &dataObj, const String &path, FirebaseJson *target);
+  bool getJSON(FirebaseData &fbdo, const String &path, FirebaseJson *target);
 
   /*
     Read the JSON string at the defined database path.
     The returned the pointer to FirebaseJson that contains JSON payload represents the child nodes and their value.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Database path in which the JSON string value is being read.
     @param query - QueryFilter class to set query parameters to filter data.
 
@@ -1909,12 +2003,12 @@ public:
 
 
   */
-  bool getJSON(FirebaseData &dataObj, const String &path, QueryFilter &query);
+  bool getJSON(FirebaseData &fbdo, const String &path, QueryFilter &query);
 
   /*
      Read the JSON string at the defined database path as above
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Database path in which the JSON string value is being read.
     @param target - The FirebaseJson object pointer to get JSON data.
 
@@ -1924,12 +2018,12 @@ public:
     the target FirebaseJson object will contain an empty object.
 
   */
-  bool getJSON(FirebaseData &dataObj, const String &path, QueryFilter &query, FirebaseJson *target);
+  bool getJSON(FirebaseData &fbdo, const String &path, QueryFilter &query, FirebaseJson *target);
 
   /*
     Read the array data at the defined database path.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Database path in which the array is being read.
 
     @return - Boolean type status indicates the success of the operation.
@@ -1944,12 +2038,12 @@ public:
     the array element in [FirebaseData object].jsonArray will be empty.
 
   */
-  bool getArray(FirebaseData &dataObj, const String &path);
+  bool getArray(FirebaseData &fbdo, const String &path);
 
   /*
     Read the array data at the defined database path, and assign data to the target.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Database path in which the array is being read.
     @param target - The FirebaseJsonArray object pointer to get array value.
 
@@ -1959,12 +2053,12 @@ public:
     the target FirebaseJsonArray object will contain an empty array.
 
   */
-  bool getArray(FirebaseData &dataObj, const String &path, FirebaseJsonArray *target);
+  bool getArray(FirebaseData &fbdo, const String &path, FirebaseJsonArray *target);
 
   /*
     Read the array data at the defined database path.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Database path in which the array is being read.
     @param query - QueryFilter class to set query parameters to filter data.
 
@@ -1997,12 +2091,12 @@ public:
 
 
   */
-  bool getArray(FirebaseData &dataObj, const String &path, QueryFilter &query);
+  bool getArray(FirebaseData &fbdo, const String &path, QueryFilter &query);
 
   /*
     Read the array data at the defined database path as above
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Database path in which the array is being read.
     @param target - The FirebaseJsonArray object to get array value.
 
@@ -2012,12 +2106,12 @@ public:
     the target FirebaseJsonArray object will contain an empty array.
 
   */
-  bool getArray(FirebaseData &dataObj, const String &path, QueryFilter &query, FirebaseJsonArray *target);
+  bool getArray(FirebaseData &fbdo, const String &path, QueryFilter &query, FirebaseJsonArray *target);
 
   /*
     Read the blob (binary data) at the defined database path.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Database path in which the binary data is being read.
 
     @return - Boolean type status indicates the success of the operation.
@@ -2031,12 +2125,12 @@ public:
     the function [FirebaseData object].blobData will return empty array.
 
   */
-  bool getBlob(FirebaseData &dataObj, const String &path);
+  bool getBlob(FirebaseData &fbdo, const String &path);
 
   /*
     Read the blob (binary data) at the defined database path.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Database path in which the binary data is being read.
     @param target - Dynamic array of unsigned 8-bit data (i.e. std::vector<uint8_t>) to store value.
 
@@ -2047,14 +2141,14 @@ public:
     the target variable value will be an empty array.
 
   */
-  bool getBlob(FirebaseData &dataObj, const String &path, std::vector<uint8_t> &target);
+  bool getBlob(FirebaseData &fbdo, const String &path, std::vector<uint8_t> &target);
 
   /*
     Download file data in a database at the defined database path and save it to SD card/Flash memory.
 
     The downloaded data will be decoded to binary and save to SD card/Flash memory, then please make sure that data at the defined database path is the file type.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param storageType - Type of storage to write file data, StorageType::SPIFS or StorageType::SD.
     @param nodePath - Database path that file data will be downloaded.
     @param fileName - File name included its path in SD card/Flash memory.
@@ -2063,23 +2157,23 @@ public:
     @return Boolean type status indicates the success of the operation.
 
   */
-  bool getFile(FirebaseData &dataObj, uint8_t storageType, const String &nodePath, const String &fileName);
+  bool getFile(FirebaseData &fbdo, uint8_t storageType, const String &nodePath, const String &fileName);
 
   /*
     Delete all child nodes at the defined database path.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Database path to be deleted.
 
     @return - Boolean type status indicates the success of the operation.
 
   */
-  bool deleteNode(FirebaseData &dataObj, const String &path);
+  bool deleteNode(FirebaseData &fbdo, const String &path);
 
   /*
     Delete all child nodes at the defined database path if defined database path's ETag matched the ETag value.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Database path to be deleted.
     @param ETag - Known unique identifier string (ETag) of defined database path.
 
@@ -2089,23 +2183,23 @@ public:
     the operation will fail with HTTP code 412, Precondition Failed (ETag is not matched).
 
    */
-  bool deleteNode(FirebaseData &dataObj, const String &path, const String &ETag);
+  bool deleteNode(FirebaseData &fbdo, const String &path, const String &ETag);
 
   /*
     Start subscribe to the value changes at the defined path and its children.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param path - Database path to subscribe.
 
     @return - Boolean type status indicates the success of the operation.
 
   */
-  bool beginStream(FirebaseData &dataObj, const String &path);
+  bool beginStream(FirebaseData &fbdo, const String &path);
 
   /*
     Start subscribe to the value changes at the defined parent node path with multiple nodes paths parsing.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param parentPath - Database parent node path to subscribe.
     @param childPath - The string array of child nodes paths for parsing.
     @param size - The size of string array of child nodes paths for parsing.
@@ -2113,7 +2207,7 @@ public:
     @return - Boolean type status indicates the success of the operation.
 
   */
-  bool beginMultiPathStream(FirebaseData &dataObj, const String &parentPath, const String *childPath, size_t size);
+  bool beginMultiPathStream(FirebaseData &fbdo, const String &parentPath, const String *childPath, size_t size);
 
   /*
     Read the stream event data at the defined database path.
@@ -2121,7 +2215,7 @@ public:
     Once beginStream was called e.g. in setup(), the readStream function
     should call inside the loop function.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
 
     @return - Boolean type status indicates the success of the operation.
 
@@ -2132,26 +2226,26 @@ public:
     The stream will be resumed or reconnected automatically when calling readStream.
 
   */
-  bool readStream(FirebaseData &dataObj);
+  bool readStream(FirebaseData &fbdo);
 
   /*
     End the stream connection at a defined path.
 
     It can be restart again by calling beginStream.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
 
     @return - Boolean type status indicates the success of the operation.
 
   */
-  bool endStream(FirebaseData &dataObj);
+  bool endStream(FirebaseData &fbdo);
 
   /*
     Set the stream callback functions.
 
     setStreamCallback should be called before Firebase.beginStream.
     
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param dataAvailablecallback - a Callback function that accepts streamData parameter.
     @param timeoutCallback - Callback function will be called when the stream connection was timed out (optional).
 
@@ -2166,14 +2260,14 @@ public:
     the payload returned from the server.
 
    */
-  void setStreamCallback(FirebaseData &dataObj, StreamEventCallback dataAvailablecallback, StreamTimeoutCallback timeoutCallback = NULL);
+  void setStreamCallback(FirebaseData &fbdo, StreamEventCallback dataAvailablecallback, StreamTimeoutCallback timeoutCallback = NULL);
 
   /*
     Set the multiple paths stream callback functions.
 
     setMultiPathStreamCallback should be called before Firebase.beginMultiPathStream.
     
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param multiPathDataCallback - a Callback function that accepts MultiPathStreamData parameter.
     @param timeoutCallback - a Callback function will be called when the stream connection was timed out (optional).
 
@@ -2189,26 +2283,26 @@ public:
     These properties will store the result from calling the function [MultiPathStreamData object].get.
 
    */
-  void setMultiPathStreamCallback(FirebaseData &dataObj, MultiPathStreamEventCallback multiPathDataCallback, StreamTimeoutCallback timeoutCallback = NULL);
+  void setMultiPathStreamCallback(FirebaseData &fbdo, MultiPathStreamEventCallback multiPathDataCallback, StreamTimeoutCallback timeoutCallback = NULL);
 
   /*
     Remove stream callback functions.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
    */
-  void removeStreamCallback(FirebaseData &dataObj);
+  void removeStreamCallback(FirebaseData &fbdo);
 
   /*
     Remove multiple paths stream callback functions.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
   */
-  void removeMultiPathStreamCallback(FirebaseData &dataObj);
+  void removeMultiPathStreamCallback(FirebaseData &fbdo);
 
   /*
     Backup (download) database at the defined database path to SD card/Flash memory.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param storageType - Type of storage to save file, StorageType::SPIFS or StorageType::SD.
     @param nodePath - Database path to be backuped.
     @param fileName - File name to save.
@@ -2219,12 +2313,12 @@ public:
 
 
   */
-  bool backup(FirebaseData &dataObj, uint8_t storageType, const String &nodePath, const String &fileName);
+  bool backup(FirebaseData &fbdo, uint8_t storageType, const String &nodePath, const String &fileName);
 
   /*
     Restore database at a defined path using backup file saved on SD card/Flash memory.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param storageType - Type of storage to read file, StorageType::SPIFS or StorageType::SD.
     @param nodePath - Database path to  be restored.
     @param fileName - File name to read
@@ -2232,16 +2326,16 @@ public:
     @return Boolean type status indicates the success of the operation.
 
   */
-  bool restore(FirebaseData &dataObj, uint8_t storageType, const String &nodePath, const String &fileName);
+  bool restore(FirebaseData &fbdo, uint8_t storageType, const String &nodePath, const String &fileName);
 
   /*
 
     Set maximum Firebase read/store retry operation (0 - 255) in case of network problems and buffer overflow.
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param num - The maximum retry.
 
   */
-  void setMaxRetry(FirebaseData &dataObj, uint8_t num);
+  void setMaxRetry(FirebaseData &fbdo, uint8_t num);
 
   /*
    
@@ -2249,11 +2343,11 @@ public:
 
    Firebase read/store operation causes by network problems and buffer overflow will be added to Firebase Error Queues collection.
 
-   @param dataObj - Firebase Data Object to hold data and instances.
+   @param fbdo - Firebase Data Object to hold data and instances.
    @param num - The maximum Firebase Error Queues.
 
   */
-  void setMaxErrorQueue(FirebaseData &dataObj, uint8_t num);
+  void setMaxErrorQueue(FirebaseData &fbdo, uint8_t num);
 
   /*
    
@@ -2261,12 +2355,12 @@ public:
 
    Firebase read (get) operation will not be saved.
 
-   @param dataObj - Firebase Data Object to hold data and instances.
+   @param fbdo - Firebase Data Object to hold data and instances.
    @param filename - Filename to be saved.
    @param storageType - Type of storage to save file, StorageType::SPIFS or StorageType::SD.
     
   */
-  bool saveErrorQueue(FirebaseData &dataObj, const String &filename, uint8_t storageType);
+  bool saveErrorQueue(FirebaseData &fbdo, const String &filename, uint8_t storageType);
 
   /*
    
@@ -2282,81 +2376,81 @@ public:
    
    Restore Firebase Error Queues from the SPIFFS file.
 
-   @param dataObj - Firebase Data Object to hold data and instances.
+   @param fbdo - Firebase Data Object to hold data and instances.
    @param filename - Filename to be read and restore queues.
    @param storageType - Type of storage to read file, StorageType::SPIFS or StorageType::SD.
     
   */
-  bool restoreErrorQueue(FirebaseData &dataObj, const String &filename, uint8_t storageType);
+  bool restoreErrorQueue(FirebaseData &fbdo, const String &filename, uint8_t storageType);
 
   /*
     Determine the number of Firebase Error Queues stored in a defined SPIFFS file.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param filename - Filename to be read and count for queues.
     @param storageType - Type of storage to read file, StorageType::SPIFS or StorageType::SD.
 
     @return Number (0-255) of queues store in defined SPIFFS file.
 
   */
-  uint8_t errorQueueCount(FirebaseData &dataObj, const String &filename, uint8_t storageType);
+  uint8_t errorQueueCount(FirebaseData &fbdo, const String &filename, uint8_t storageType);
 
   /*
     Determine number of queues in Firebase Data object Firebase Error Queues collection.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @return Number (0-255) of queues in Firebase Data object queue collection.
 
   */
-  uint8_t errorQueueCount(FirebaseData &dataObj);
+  uint8_t errorQueueCount(FirebaseData &fbdo);
 
   /*
     Determine whether the  Firebase Error Queues collection was full or not.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
 
     @return Boolean type status indicates whether the  Firebase Error Queues collection was full or not.
 
   */
-  bool isErrorQueueFull(FirebaseData &dataObj);
+  bool isErrorQueueFull(FirebaseData &fbdo);
 
   /*
     Process all failed Firebase operation queue items when the network is available.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
 
     @param callback - a Callback function that accepts QueueInfo parameter.
   
   */
-  void processErrorQueue(FirebaseData &dataObj, QueueInfoCallback callback = NULL);
+  void processErrorQueue(FirebaseData &fbdo, QueueInfoCallback callback = NULL);
 
   /*
     Return Firebase Error Queue ID of last Firebase Error.
 
     Return 0 if there is no Firebase Error from the last operation.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     
     @return Number of Queue ID.
 
    */
-  uint32_t getErrorQueueID(FirebaseData &dataObj);
+  uint32_t getErrorQueueID(FirebaseData &fbdo);
 
   /*
     Determine whether the Firebase Error Queue currently exists is Error Queue collection or not.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param errorQueueID - The Firebase Error Queue ID get from getErrorQueueID.
     
    @return - Boolean type status indicates the queue existence.
 
    */
-  bool isErrorQueueExisted(FirebaseData &dataObj, uint32_t errorQueueID);
+  bool isErrorQueueExisted(FirebaseData &fbdo, uint32_t errorQueueID);
 
   /*
     Start the Firebase Error Queues Auto Run Process.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     @param callback - a Callback function that accepts QueueInfo Object as a parameter, optional.
 
     The following functions are available from QueueInfo Object accepted by callback.
@@ -2374,169 +2468,168 @@ public:
     queueInfo.path(), get a string of the Firebase call path that being process of current Error Queue.
 
    */
-  void beginAutoRunErrorQueue(FirebaseData &dataObj, QueueInfoCallback callback = NULL);
+  void beginAutoRunErrorQueue(FirebaseData &fbdo, QueueInfoCallback callback = NULL);
 
   /*
     Stop the Firebase Error Queues Auto Run Process.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
 
   */
-  void endAutoRunErrorQueue(FirebaseData &dataObj);
+  void endAutoRunErrorQueue(FirebaseData &fbdo);
 
   /*
     Clear all Firbase Error Queues in Error Queue collection.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
 
   */
-  void clearErrorQueue(FirebaseData &dataObj);
+  void clearErrorQueue(FirebaseData &fbdo);
 
   /*
     Send Firebase Cloud Messaging to the device with the first registration token which added by firebaseData.fcm.addDeviceToken.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
 
     @param index - The index (starts from 0) of recipient device token which added by firebaseData.fcm.addDeviceToken
     
     @return - Boolean type status indicates the success of the operation.
 
    */
-  bool sendMessage(FirebaseData &dataObj, uint16_t index);
+  bool sendMessage(FirebaseData &fbdo, uint16_t index);
 
   /*
     Send Firebase Cloud Messaging to all devices (multicast) which added by firebaseData.fcm.addDeviceToken.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     
     @return - Boolean type status indicates the success of the operation.
 
    */
-  bool broadcastMessage(FirebaseData &dataObj);
+  bool broadcastMessage(FirebaseData &fbdo);
 
   /*
     Send Firebase Cloud Messaging to devices that subscribed to the topic.
 
-    @param dataObj - Firebase Data Object to hold data and instances.
+    @param fbdo - Firebase Data Object to hold data and instances.
     
     @return - Boolean type status indicates the success of the operation.
 
    */
-  bool sendTopic(FirebaseData &dataObj);
+  bool sendTopic(FirebaseData &fbdo);
 
   void errorToString(int httpCode, std::string &buff);
 
   template <typename T>
-  bool set(FirebaseData &dataObj, const String &path, T value);
+  bool set(FirebaseData &fbdo, const String &path, T value);
 
   template <typename T>
-  bool set(FirebaseData &dataObj, const String &path, T value, size_t size);
+  bool set(FirebaseData &fbdo, const String &path, T value, size_t size);
 
   template <typename T>
-  bool set(FirebaseData &dataObj, const String &path, T value, float priority);
+  bool set(FirebaseData &fbdo, const String &path, T value, float priority);
 
   template <typename T>
-  bool set(FirebaseData &dataObj, const String &path, T value, size_t size, float priority);
+  bool set(FirebaseData &fbdo, const String &path, T value, size_t size, float priority);
 
   template <typename T>
-  bool set(FirebaseData &dataObj, const String &path, T value, const String &ETag);
+  bool set(FirebaseData &fbdo, const String &path, T value, const String &ETag);
 
   template <typename T>
-  bool set(FirebaseData &dataObj, const String &path, T value, size_t size, const String &ETag);
+  bool set(FirebaseData &fbdo, const String &path, T value, size_t size, const String &ETag);
 
   template <typename T>
-  bool set(FirebaseData &dataObj, const String &path, T value, float priority, const String &ETag);
+  bool set(FirebaseData &fbdo, const String &path, T value, float priority, const String &ETag);
 
   template <typename T>
-  bool set(FirebaseData &dataObj, const String &path, T value, size_t size, float priority, const String &ETag);
+  bool set(FirebaseData &fbdo, const String &path, T value, size_t size, float priority, const String &ETag);
 
   template <typename T>
-  bool push(FirebaseData &dataObj, const String &path, T value);
+  bool push(FirebaseData &fbdo, const String &path, T value);
 
   template <typename T>
-  bool push(FirebaseData &dataObj, const String &path, T value, size_t size);
+  bool push(FirebaseData &fbdo, const String &path, T value, size_t size);
 
   template <typename T>
-  bool push(FirebaseData &dataObj, const String &path, T value, float priority);
+  bool push(FirebaseData &fbdo, const String &path, T value, float priority);
 
   template <typename T>
-  bool push(FirebaseData &dataObj, const String &path, T value, size_t size, float priority);
+  bool push(FirebaseData &fbdo, const String &path, T value, size_t size, float priority);
 
 private:
   callback_function_t _callback_function = nullptr;
 
-  bool pushInt(FirebaseData &dataObj, const std::string &path, int intValue, bool queue, const std::string &priority);
-  bool pushFloat(FirebaseData &dataObj, const std::string &path, float floatValue, bool queue, const std::string &priority);
-  bool pushDouble(FirebaseData &dataObj, const std::string &path, double doubleValue, bool queue, const std::string &priority);
-  bool pushBool(FirebaseData &dataObj, const std::string &path, bool boolValue, bool queue, const std::string &priority);
-  bool pushBlob(FirebaseData &dataObj, const std::string &path, uint8_t *blob, size_t size, bool queue, const std::string &priority);
-  bool setInt(FirebaseData &dataObj, const std::string &path, int intValue, bool queue, const std::string &priority, const std::string &etag);
-  bool setFloat(FirebaseData &dataObj, const std::string &path, float floatValue, bool queue, const std::string &priority, const std::string &etag);
-  bool setDouble(FirebaseData &dataObj, const std::string &path, double doubleValue, bool queue, const std::string &priority, const std::string &etag);
-  bool setBool(FirebaseData &dataObj, const std::string &path, bool boolValue, bool queue, const std::string &priority, const std::string &etag);
-  bool setBlob(FirebaseData &dataObj, const std::string &path, uint8_t *blob, size_t size, bool queue, const std::string &priority, const std::string &etag);
+  bool pushInt(FirebaseData &fbdo, const std::string &path, int intValue, bool queue, const std::string &priority);
+  bool pushFloat(FirebaseData &fbdo, const std::string &path, float floatValue, bool queue, const std::string &priority);
+  bool pushDouble(FirebaseData &fbdo, const std::string &path, double doubleValue, bool queue, const std::string &priority);
+  bool pushBool(FirebaseData &fbdo, const std::string &path, bool boolValue, bool queue, const std::string &priority);
+  bool pushBlob(FirebaseData &fbdo, const std::string &path, uint8_t *blob, size_t size, bool queue, const std::string &priority);
+  bool setInt(FirebaseData &fbdo, const std::string &path, int intValue, bool queue, const std::string &priority, const std::string &etag);
+  bool setFloat(FirebaseData &fbdo, const std::string &path, float floatValue, bool queue, const std::string &priority, const std::string &etag);
+  bool setDouble(FirebaseData &fbdo, const std::string &path, double doubleValue, bool queue, const std::string &priority, const std::string &etag);
+  bool setBool(FirebaseData &fbdo, const std::string &path, bool boolValue, bool queue, const std::string &priority, const std::string &etag);
+  bool setBlob(FirebaseData &fbdo, const std::string &path, uint8_t *blob, size_t size, bool queue, const std::string &priority, const std::string &etag);
 
   void getUrlInfo(const std::string url, std::string &host, std::string &uri, std::string &auth);
-  bool buildRequest(FirebaseData &dataObj, uint8_t firebaseMethod, uint8_t firebaseDataType, const std::string &path, const char *buff, bool queue, const std::string &priority, const std::string &etag = "");
-  bool buildRequestFile(FirebaseData &dataObj, uint8_t storageType, uint8_t firebaseMethod, const std::string &path, const std::string &fileName, bool queue, const std::string &priority, const std::string &etag = "");
-  bool sendRequest(FirebaseData &dataObj, uint8_t storageType, const std::string &path, const uint8_t method, uint8_t dataType, const std::string &payload, const std::string &priority, const std::string &etag);
-  void buildFirebaseRequest(std::string &buf, FirebaseData &dataObj, const char *host, uint8_t method, uint8_t dataType, const char *path, const char *auth, size_t payloadLength, bool sv, bool send);
-  void endFileTransfer(FirebaseData &dataObj);
-  bool firebaseConnectStream(FirebaseData &dataObj, const std::string &path);
-  bool getServerStreamResponse(FirebaseData &dataObj);
+  bool processRequest(FirebaseData &fbdo, fb_esp_method method, fb_esp_data_type dataType, const std::string &path, const char *buff, bool queue, const std::string &priority, const std::string &etag = "");
+  bool processRequestFile(FirebaseData &fbdo, uint8_t storageType, fb_esp_method method, const std::string &path, const std::string &fileName, bool queue, const std::string &priority, const std::string &etag = "");
+  bool handleRequest(FirebaseData &fbdo, uint8_t storageType, const std::string &path, fb_esp_method method, fb_esp_data_type dataType, const std::string &payload, const std::string &priority, const std::string &etag);
+  bool handleStreamRequest(FirebaseData &fbdo, const std::string &path);
+  bool handleStreamRead(FirebaseData &fbdo);
+  void parseRespHeader(const char *buf, server_response_data_t &response);
+  void parseRespPayload(const char *buf, server_response_data_t &response, bool getOfs);
+  void setNumDataType(const char *buf, int ofs, server_response_data_t &response, bool dec);
+  char *getHeader(const char *buf, PGM_P beginH, PGM_P endH, int &beginPos, int endPos);
+  bool stringCompare(const char *buf, int ofs, PGM_P beginH);
+  int readLine(WiFiClient *stream, char *buf, int bufLen);
+  int readChunkedData(WiFiClient *stream, char *out, int &chunkState, int &chunkedSize, int &dataLen, int bufLen);
+  bool waitResponse(FirebaseData &fbdo);
+  void checkOvf(FirebaseData &fbdo, size_t len, server_response_data_t &resp);
+  bool handleResponse(FirebaseData &fbdo);
+  void closeFileHandle(FirebaseData &fbdo);
+  void handlePayload(FirebaseData &fbdo, server_response_data_t &response, char *payload);
+  bool reconnect(FirebaseData &fbdo, unsigned long dataTime = 0);
+  void delS(char *p);
+  char *newS(size_t len);
+  char *newS(char *p, size_t len);
+  char *newS(char *p, size_t len, char *d);
 
-  bool getServerResponse(FirebaseData &dataObj);
-  bool getDownloadResponse(FirebaseData &dataObj);
-  bool getUploadResponse(FirebaseData &dataObj);
-  bool clientAvailable(FirebaseData &dataObj, bool available);
+  void runStreamTask();
+  void runErrorQueueTask();
 
-  void sendHeader(FirebaseData &dataObj, const char *host, uint8_t _method, const char *path, const char *auth, size_t payloadLength);
-  void resetFirebasedataFlag(FirebaseData &dataObj);
-  bool handleNetClientNotConnected(FirebaseData &dataObj);
-  bool reconnect(FirebaseData &dataObj);
-  bool reconnect();
-  void forceEndHTTP(FirebaseData &dataObj);
-  bool apConnected(FirebaseData &dataObj);
-  int firebaseConnect(FirebaseData &dataObj, const std::string &path, const uint8_t method, uint8_t dataType, const std::string &payload, const std::string &priority);
-  bool cancelCurrentResponse(FirebaseData &dataObj);
-  void setDataType(FirebaseData &dataObj, const char *data);
-  void setSecure(FirebaseData &dataObj);
-  bool commError(FirebaseData &dataObj);
-  uint8_t openErrorQueue(FirebaseData &dataObj, const String &filename, uint8_t storageType, uint8_t mode);
+  void preparePayload(fb_esp_method method, fb_esp_data_type dataType, const std::string &priority, const std::string &payload, std::string &buf);
+  void prepareHeader(FirebaseData &fbdo, const std::string &host, fb_esp_method method, fb_esp_data_type dataType, const std::string &path, const std::string &auth, int payloadLength, std::string &header, bool sv);
+  void clearDataStatus(FirebaseData &fbdo);
+  void closeHTTP(FirebaseData &fbdo);
+  int sendRequest(FirebaseData &fbdo, const std::string &path, fb_esp_method method, fb_esp_data_type dataType, const std::string &payload, const std::string &priority);
+  void setSecure(FirebaseData &fbdo);
+  bool connectionError(FirebaseData &fbdo);
+  uint8_t openErrorQueue(FirebaseData &fbdo, const String &filename, uint8_t storageType, uint8_t mode);
   std::vector<std::string> splitString(int size, const char *str, const char delim);
-  void delPtr(char *p);
-  char *newPtr(size_t len);
-  char *newPtr(char *p, size_t len);
-  char *newPtr(char *p, size_t len, char *d);
 
-  void processFirebaseStream();
-  void processAllErrorQueues();
-
-  void p_memCopy(std::string &buff, PGM_P p, bool empty = false);
   char *getPGMString(PGM_P pgm);
-  void getPGMString(char *buf, PGM_P pgm, bool empty = false);
   char *getFloatString(float value);
   char *getDoubleString(double value);
   char *getIntString(int value);
   char *getBoolString(bool value);
-  void trimDouble(char *buf);
+  void pgm_appendStr(std::string &buf, PGM_P p, bool empty = false);
+  void trimDigits(char *buf);
+  void strcat_c(char *str, char c);
+  int strpos(const char *haystack, const char *needle, int offset);
+  char *rstrstr(const char *haystack, const char *needle);
+  int rstrpos(const char *haystack, const char *needle, int offset);
   bool sdTest();
   void createDirs(std::string dirs, uint8_t storageType);
   bool replace(std::string &str, const std::string &from, const std::string &to);
   std::string base64_encode_string(const unsigned char *src, size_t len);
-  void send_base64_encode_file(SSL_CLIENT *ssl_client, const std::string &filePath, uint8_t storageType);
+  void send_base64_encoded_stream(WiFiClient *client, const std::string &filePath, uint8_t storageType);
   bool base64_decode_string(const std::string src, std::vector<uint8_t> &out);
   bool base64_decode_file(File &file, const char *src, size_t len);
   bool base64_decode_flash(fs::File &file, const char *src, size_t len);
-
-  bool sendFCMMessage(FirebaseData &dataObj, uint8_t messageType);
-
-  void strcat_c(char *str, char c);
-  int strpos(const char *haystack, const char *needle, int offset);
-  int rstrpos(const char *haystack, const char *needle, int offset);
-  char *rstrstr(const char *haystack, const char *needle);
-  void setClock(float offset);
   uint32_t hex2int(const char *hex);
+
+  bool handleFCMRequest(FirebaseData &fbdo, fb_esp_fcm_msg_type messageType);
+  void setClock(float offset);
 
   void set_scheduled_callback(callback_function_t callback)
   {
@@ -2546,20 +2639,24 @@ private:
 
   std::string _host = "";
   std::string _auth = "";
-  std::string _rootCAFile = "";
-  uint8_t _rootCAFileStoreageType = StorageType::FLASH;
-  uint16_t _port = 443;
-  uint8_t _sdPin = 15;
-  std::shared_ptr<const char> _rootCA = nullptr;
+  std::shared_ptr<const char> _caCert = nullptr;
+  int _certType = -1;
+  std::string _caCertFile = "";
+  uint8_t _caCertFileStoreageType = StorageType::FLASH;
+
+  uint16_t _port = FIREBASE_PORT;
+  uint8_t _sdPin = SD_CS_PIN;
   bool _reconnectWiFi = false;
   bool _sdOk = false;
   bool _sdInUse = false;
   bool _clockReady = false;
   unsigned long _lastReconnectMillis = 0;
-  uint16_t _reconnectTimeout = 10000;
+  uint16_t _reconnectTimeout = WIFI_RECONNECT_TIMEOUT;
   File file;
   fs::File _file;
   float _gmtOffset = 0.0;
+  uint8_t _floatDigits = 5;
+  uint8_t _doubleDigits = 9;
 };
 
 class FirebaseData
@@ -2590,6 +2687,15 @@ public:
   void setResponseSize(uint16_t len);
 
   /*
+    Pause/Unpause WiFiClient from all Firebase operations.
+    
+    @param pause The boolean to set/unset pause operation.
+
+    @return - Boolean type status indicates the success of operation.
+   */
+  bool pauseFirebase(bool pause);
+
+  /*
 
     Get a WiFi client instance.
 
@@ -2600,22 +2706,19 @@ public:
 
   /*
 
-    Pause/Unpause WiFiClient from all Firebase operations.
+    Close the keep-alive connection of the internal WiFi client.
 
-    @param pause The boolean to set/unset pause operation.
-
-    @return - Boolean type status indicates the success of the operation.
+    This will release the memory used by internal WiFi client.
 
   */
-  bool pauseFirebase(bool pause);
+  void stopWiFiClient();
 
   /*
-
     Determine the data type of payload returned from the server.
 
-    @return The one of these data type e.g. integer, float, string, JSON and blob.
+    @return The one of these data type e.g. integer, float, double, boolean, string, JSON and blob.
 
-  */
+   */
   String dataType();
 
   /*
@@ -2623,7 +2726,7 @@ public:
 
     @return The one of these event type e.g. put, patch, cancel, and auth_revoked.
 
-    The event type "put" indicated that data at the event path relative to the stream path was completely changed. The event path can be determined by dataPath().
+    The event type "put" indicated that data at an event path relative to the stream path was completely changed. The event path can be determined by dataPath().
 
     The event type "patch" indicated that data at the event path relative to stream path was updated. The event path can be determined by dataPath().
 
@@ -2643,16 +2746,14 @@ public:
   String ETag();
 
   /*
-
     Determine the current stream path.
 
     @return The database streaming path.
 
-  */
+   */
   String streamPath();
 
   /*
-
     Determine the current data path.
 
     @return The database path which belongs to the server's returned payload.
@@ -2660,34 +2761,31 @@ public:
     The database path returned from this function in case of stream, also changed upon the child or parent's stream
     value changes.
 
-  */
+   */
   String dataPath();
 
   /*
-
     Determine the error reason String from the process.
 
     @return The error description string (String object).
 
-  */
+   */
   String errorReason();
 
   /*
-
     Return the integer data of server returned payload.
 
     @return integer value.
 
-  */
+   */
   int intData();
 
   /*
-
     Return the float data of server returned payload.
 
     @return Float value.
 
-  */
+   */
   float floatData();
 
   /*
@@ -2709,12 +2807,11 @@ public:
   bool boolData();
 
   /*
-
     Return the String data of server returned payload.
 
     @return String (String object).
 
-  */
+   */
   String stringData();
 
   /*
@@ -2782,87 +2879,87 @@ public:
   FirebaseJsonData *jsonDataPtr();
 
   /*
-
     Return the blob data (uint8_t) array of server returned payload.
 
     @return Dynamic array of 8-bit unsigned integer i.e. std::vector<uint8_t>.
 
-  */
+   */
   std::vector<uint8_t> blobData();
 
   /*
+    Return the file stream of server returned payload.
 
+    @return the file stream.
+
+   */
+  fs::File fileStream();
+
+  /*
     Return the new appended node's name or key of server returned payload when calling pushXXX function.
 
     @return String (String object).
 
-  */
+   */
   String pushName();
 
   /*
-
     Determine the stream connection status.
 
     @return Boolean type status indicates whether the Firebase Data object is working with a stream or not.
 
-  */
+   */
   bool isStream();
 
   /*
-
     Determine the server connection status.
 
     @return Boolean type status indicates whether the Firebase Data object is connected to the server or not.
 
-  */
+   */
   bool httpConnected();
 
   /*
-
     Determine the timeout event of the server's stream (30 sec is the default).
 
     Nothing to do when stream connection timeout, the stream connection will be automatically resumed.
 
-    @return Boolean type status indicates whether the stream was timed out or not.
+    @return Boolean type status indicates whether the stream was a timeout or not.
 
-  */
+   */
   bool streamTimeout();
 
   /*
-
     Determine the availability of data or payload returned from the server.
 
-    @return Boolean type status indicates whether the server returns the new payload or not.
+    @return Boolean type status indicates whether the server return the new payload or not.
 
-  */
+   */
   bool dataAvailable();
 
   /*
-
     Determine the availability of stream event-data payload returned from the server.
 
-    @return Boolean type status indicates whether the server returns the stream event-data
+    @return Boolean type status indicates whether the server returns the stream event-data 
     payload or not.
 
-  */
+   */
   bool streamAvailable();
 
   /*
-
     Determine the matching between data type that intends to get from/store to database and the server's return payload data type.
 
-    @return Boolean type status indicates whether the type of data being get from/store to database and the server's returned payload are matched or not.
+    @return Boolean type status indicates whether the type of data being get from/store to database 
+    and the server's returned payload is matched or not.
 
-  */
+   */
   bool mismatchDataType();
 
   /*
-
     Determine the HTTP status code return from the server.
 
     @return integer number of HTTP status.
 
-  */
+   */
   int httpCode();
 
   /*
@@ -2877,51 +2974,58 @@ public:
   bool bufferOverflow();
 
   /*
-
     Determine the name (full path) of the backup file in SD card/Flash memory.
-
+    
     @return String (String object) of the file name that stores on SD card/Flash memory after backup operation.
 
-  */
+   */
   String getBackupFilename();
 
   /*
-
     Determine the size of the backup file.
-
+    
     @return Size of backup file in byte after backup operation.
 
-  */
+   */
   size_t getBackupFileSize();
 
   /*
-
     Clear or empty data in Firebase Data object.
 
-  */
+   */
   void clear();
 
   /*
-    Determine the error description for file transferring (pushFile, setFile, backup and restore).
-
+    Determine the error description for file transferring (push file, set file, backup and restore).
+    
     @return Error description string (String object).
 
-  */
+   */
   String fileTransferError();
 
   /*
     Return the server's payload data.
-
+    
     @return Payload string (String object).
 
-  */
+    The returned String will be empty when the response data is File, BLOB, JSON and JSON Array objects.
+
+    For File data type, call fileStream to get the file stream.
+
+    For BLOB data type, call blobData to get the dynamic array of unsigned 8-bit data.
+
+    For JSON object data type, call jsonObject and jsonObjectPtr to get the object and its pointer.
+
+    For JSON Array data type, call jsonArray and jsonArrayPtr to get the object and its pointer.
+
+   */
   String payload();
 
   FCMObject fcm;
 
-  QueryFilter queryFilter;
+  FirebaseESP8266HTTPClient httpClient;
 
-  friend class QueueManager;
+  QueryFilter queryFilter;
 
 private:
   FirebaseESP8266::StreamEventCallback _dataAvailableCallback = NULL;
@@ -2929,41 +3033,36 @@ private:
   FirebaseESP8266::StreamTimeoutCallback _timeoutCallback = NULL;
   FirebaseESP8266::QueueInfoCallback _queueInfoCallback = NULL;
 
-  int _index = -1;
-  int _Qindex = -1;
+  int _QIdx = -1;
+  int _idx = -1;
+  uint8_t _dataTypeNum = 0;
 
-  FirebaseHTTPClient _net;
-  bool _firebaseCall = false;
-  bool _streamCall = false;
-  bool _fcmCall = false;
-  bool _isStreamTimeout = false;
+  bool _isDataTimeout = false;
   bool _isStream = false;
+  bool _isFCM = false;
+  bool _isRTDB = false;
   bool _streamStop = false;
-  bool _isSilentResponse = false;
-  bool _bufferOverflow = false;
+  bool _reqNoContent = false;
+
+  bool _bufOvf = false;
   bool _streamDataChanged = false;
   bool _streamPathChanged = false;
   bool _dataAvailable = false;
   bool _keepAlive = false;
+  bool _isChunkedEnc = false;
   bool _httpConnected = false;
-  bool _interruptRequest = false;
   bool _mismatchDataType = false;
   bool _pathNotExist = false;
   bool _pause = false;
-  bool _file_transfering = false;
   bool _classicRequest = false;
-  int _dataType = 0;
-  int _dataType2 = 0;
-  uint8_t _dataTypeNum = 0;
+  fb_esp_data_type resp_dataType = fb_esp_data_type::d_any;
   uint8_t _connectionStatus = 0;
   uint32_t _qID = 0;
   QueueManager _qMan;
-  uint8_t _maxRetry = 0;
-  uint8_t _r_method = 0;
-  uint8_t _r_dataType = 0;
-  uint8_t _storageType = 0;
-  uint8_t _redirectCount = 0;
-  int _redirect = 0;
+  uint8_t _maxAttempt = 0;
+
+  fb_esp_method _req_method = fb_esp_method::m_put;
+  fb_esp_data_type _req_dataType = fb_esp_data_type::d_any;
 
   std::string _path = "";
   std::string _data = "";
@@ -2973,20 +3072,25 @@ private:
   std::string _file_transfer_error = "";
   std::string _fileName = "";
   std::string _redirectURL = "";
-  std::string _firebaseError = "";
+  std::string _fbError = "";
   std::string _eventType = "";
-  std::string _etag = "";
-  std::string _etag2 = "";
+  std::string _resp_etag = "";
+  std::string _req_etag = "";
   std::string _priority = "";
+  uint8_t _storageType = 0;
+  uint8_t _redirectCount = 0;
+  int _redirect = 0;
   FirebaseJson _json;
   FirebaseJsonArray _jsonArr;
   FirebaseJsonData _jsonData;
 
-  uint16_t _maxBlobSize = 1024;
+  uint16_t _maxBlobSize = MAX_BLOB_PAYLOAD_SIZE;
   uint16_t _bsslRxSize = 512;
   uint16_t _bsslTxSize = 512;
-  uint16_t _responseBufSize = 400;
+  uint16_t _responseBufSize = 1024;
+
   unsigned long _streamTimeoutMillis = 0;
+  unsigned long _streamReconnectMillis = 0;
 
   std::vector<uint8_t> _blob = std::vector<uint8_t>();
   std::vector<std::string> _childNodeList = std::vector<std::string>();
@@ -3001,20 +3105,19 @@ private:
   std::string _writeLimit = "";
 
   unsigned long _dataMillis = 0;
-  unsigned long _streamMillis = 0;
-  unsigned long _streamResetMillis = 0;
-
   std::string _backupNodePath = "";
   std::string _backupDir = "";
   std::string _backupFilename = "";
-  size_t _backupFileSize = 0;
+  size_t _backupzFileSize = 0;
 
+  bool handleStreamRead();
+  bool handleResponse();
   std::string getDataType(uint8_t type);
   std::string getMethod(uint8_t method);
 
-  void addQueue(uint8_t firebaseMethod,
+  void addQueue(fb_esp_method method,
                 uint8_t storageType,
-                uint8_t firebaseDataType,
+                fb_esp_data_type dataType,
                 const std::string path,
                 const std::string filename,
                 const std::string payload,
@@ -3037,11 +3140,13 @@ private:
   void addNodeList(const String *childPath, size_t size);
 
   friend class FirebaseESP8266;
+  friend class QueueManager;
+  friend class StreamData;
+  friend class FCMObject;
 };
 
 class StreamData
 {
-
 public:
   StreamData();
   ~StreamData();
@@ -3059,10 +3164,12 @@ public:
   FirebaseJsonArray &jsonArray();
   FirebaseJsonData *jsonDataPtr();
   FirebaseJsonData &jsonData();
+  std::vector<uint8_t> blobData();
+  File fileStream();
   String dataType();
   String eventType();
   void empty();
-  friend FirebaseESP8266;
+
   FirebaseJson *_json = nullptr;
   FirebaseJsonArray *_jsonArr = nullptr;
   FirebaseJsonData *_jsonData = nullptr;
@@ -3075,6 +3182,9 @@ private:
   std::string _dataTypeStr = "";
   std::string _eventTypeStr = "";
   uint8_t _dataType = 0;
+  int _idx = -1;
+
+  friend class FirebaseESP8266;
 };
 
 class MultiPathStreamData

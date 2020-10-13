@@ -89,7 +89,7 @@ void setup()
    //Write demo data to file
   file = SPIFFS.open("/file1.txt", "w");
   uint8_t v = 0;
-  for (int i = 0; i < 200000; i++)
+  for (int i = 0; i < 512; i++)
   {
     file.write(v);
     v++;

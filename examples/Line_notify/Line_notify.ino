@@ -17,7 +17,7 @@
 
 //FirebaseESP8266.h must be included before ESP8266WiFi.h
 #include "FirebaseESP8266.h"
-#include "LineNotifyESP8266.h"
+#include <LineNotifyESP8266.h>
 #include <ESP8266WiFi.h>
 
 #define WIFI_SSID "YOUR_WIFI_AP"

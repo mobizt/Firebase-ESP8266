@@ -23,14 +23,12 @@
 #define FIREBASE_HOST "YOUR_FIREBASE_PROJECT.firebaseio.com" //Without http:// or https:// schemes
 #define FIREBASE_AUTH "YOUR_FIREBASE_DATABASE_SECRET"
 
-
 //Define Firebase Data Object
 FirebaseData firebaseData;
 
 FirebaseJsonArray arr;
 
 void printResult(FirebaseData &data);
-
 
 unsigned long sendDataPrevMillis = 0;
 
@@ -109,13 +107,13 @@ void loop()
 
         Serial.println("------------------------------------");
         Serial.println("Get Array...");
-        if (Firebase.get(firebaseData,  path + "/Data"))
-        {   
+        if (Firebase.get(firebaseData, path + "/Data"))
+        {
             Serial.println("PASSED");
             Serial.println("PATH: " + firebaseData.dataPath());
             Serial.println("TYPE: " + firebaseData.dataType());
             Serial.print("VALUE: ");
-            printResult(firebaseData);               
+            printResult(firebaseData);
             Serial.println("------------------------------------");
             Serial.println();
         }
@@ -238,6 +236,49 @@ void printResult(FirebaseData &data)
                      jsonData.typeNum == FirebaseJson::JSON_ARRAY)
                 Serial.println(jsonData.stringValue);
         }
+    }
+    else if (data.dataType() == "blob")
+    {
+
+        Serial.println();
+
+        for (int i = 0; i < data.blobData().size(); i++)
+        {
+            if (i > 0 && i % 16 == 0)
+                Serial.println();
+
+            if (i < 16)
+                Serial.print("0");
+
+            Serial.print(data.blobData()[i], HEX);
+            Serial.print(" ");
+        }
+        Serial.println();
+    }
+    else if (data.dataType() == "file")
+    {
+
+        Serial.println();
+
+        File file = data.fileStream();
+        int i = 0;
+
+        while (file.available())
+        {
+            if (i > 0 && i % 16 == 0)
+                Serial.println();
+
+            int v = file.read();
+
+            if (v < 16)
+                Serial.print("0");
+
+            Serial.print(v, HEX);
+            Serial.print(" ");
+            i++;
+        }
+        Serial.println();
+        file.close();
     }
     else
     {

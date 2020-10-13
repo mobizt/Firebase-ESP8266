@@ -104,7 +104,7 @@ void setup()
         if (i > 0 && i % 16 == 0)
           Serial.println();
 
-        if (i < 16)
+        if (blob[i] < 16)
           Serial.print("0");
 
         Serial.print(blob[i], HEX);

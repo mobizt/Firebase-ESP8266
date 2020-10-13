@@ -1,5 +1,5 @@
 /*
- * HTTP Client wrapper v1.1.2
+ * HTTP Client wrapper v1.1.3
  * 
  * The MIT License (MIT)
  * Copyright (c) 2019 K. Suwatchai (Mobizt)
@@ -30,52 +30,131 @@
 
 #include "FirebaseESP8266HTTPClient.h"
 
-FirebaseHTTPClient::FirebaseHTTPClient()
+FirebaseESP8266HTTPClient::FirebaseESP8266HTTPClient()
 {
 }
 
-FirebaseHTTPClient::~FirebaseHTTPClient()
+FirebaseESP8266HTTPClient::~FirebaseESP8266HTTPClient()
 {
-  _client->stop();
-  _client.reset();
-  _client.release();
+  if (_wcs)
+  {
+    _wcs->stop();
+    _wcs.reset(nullptr);
+    _wcs.release();
+  }
+  std::string().swap(_host);
+  std::string().swap(_CAFile);
+  _cacert.reset(new char);
+  _cacert = nullptr;
 }
 
-void FirebaseHTTPClient::setRootCA(const char *rootCA)
+bool FirebaseESP8266HTTPClient::begin(const char *host, uint16_t port)
+{
+  _host = host;
+  _port = port;
+  return true;
+}
+
+bool FirebaseESP8266HTTPClient::connected()
+{
+  if (_wcs)
+    return (_wcs->connected());
+  return false;
+}
+
+
+bool FirebaseESP8266HTTPClient::send(const char *header)
+{
+  if (!connected())
+    return false;
+  return (_wcs->write((uint8_t*)header, strlen(header)) == strlen(header));
+}
+
+int FirebaseESP8266HTTPClient::send(const char *header, const char *payload)
+{
+  size_t size = strlen(payload);
+  if (strlen(header) > 0)
+  {
+    if (!connect())
+    {
+      return FIREBASE_ERROR_HTTPC_ERROR_CONNECTION_REFUSED;
+    }
+
+    if (!send(header))
+    {
+      return FIREBASE_ERROR_HTTPC_ERROR_SEND_HEADER_FAILED;
+    }
+  }
+
+  if (size > 0)
+  {
+    if (_wcs->write((uint8_t *)&payload[0], size) != size)
+    {
+      return FIREBASE_ERROR_HTTPC_ERROR_SEND_PAYLOAD_FAILED;
+    }
+  }
+
+  return 0;
+}
+
+
+WiFiClient *FirebaseESP8266HTTPClient::stream(void)
+{
+  if (connected())
+    return _wcs.get();
+  return nullptr;
+}
+
+bool FirebaseESP8266HTTPClient::connect(void)
+{
+  if (connected())
+  {
+    while (_wcs->available() > 0)
+      _wcs->read();
+    return true;
+  }
+
+  if (!_wcs->connect(_host.c_str(), _port))
+    return false;
+
+  return connected();
+}
+
+void FirebaseESP8266HTTPClient::setCACert(const char *caCert)
 {
 
 #ifndef USING_AXTLS
-  _client->setBufferSizes(_bsslRxSize, _bsslTxSize);
+  _wcs->setBufferSizes(_bsslRxSize, _bsslTxSize);
 #endif
 
-  if (rootCA)
+  if (caCert)
   {
 #ifndef USING_AXTLS
-    _client->setTrustAnchors(new X509List(rootCA));
+    _wcs->setTrustAnchors(new X509List(caCert));
 #else
-    _client->setCACert_P(rootCA, strlen_P(rootCA));
+    _wcs->setCACert_P(caCert, strlen_P(caCert));
 #endif
     _certType = 1;
   }
   else
   {
 #ifndef USING_AXTLS
-    _client->setInsecure();
+    _wcs->setInsecure();
 #endif
     _certType = 0;
   }
 
-  _client->setNoDelay(true);
+  _wcs->setNoDelay(true);
 }
 
-void FirebaseHTTPClient::setRootCAFile(std::string &rootCAFile, uint8_t storageType, uint8_t sdPin)
+void FirebaseESP8266HTTPClient::setCACertFile(std::string &caCertFile, uint8_t storageType, uint8_t sdPin)
 {
 
 #ifndef USING_AXTLS
   _sdPin = sdPin;
-  _client->setBufferSizes(_bsslRxSize, _bsslTxSize);
+  _wcs->setBufferSizes(_bsslRxSize, _bsslTxSize);
 
-  if (_clockReady && rootCAFile.length() > 0)
+  if (_clockReady && caCertFile.length() > 0)
   {
 
     if (storageType == 0)
@@ -84,9 +163,9 @@ void FirebaseHTTPClient::setRootCAFile(std::string &rootCAFile, uint8_t storageT
       if (t)
       {
         fs::File f;
-        if (FLASH_FS.exists(rootCAFile.c_str()))
+        if (FLASH_FS.exists(caCertFile.c_str()))
         {
-          f = FLASH_FS.open(rootCAFile.c_str(), "r");
+          f = FLASH_FS.open(caCertFile.c_str(), "r");
           size_t len = f.size();
           uint8_t *der = new uint8_t[len];
 
@@ -94,7 +173,7 @@ void FirebaseHTTPClient::setRootCAFile(std::string &rootCAFile, uint8_t storageT
             f.read(der, len);
 
           f.close();
-          _client->setTrustAnchors(new X509List(der, len));
+          _wcs->setTrustAnchors(new X509List(der, len));
           delete[] der;
         }
       }
@@ -105,16 +184,16 @@ void FirebaseHTTPClient::setRootCAFile(std::string &rootCAFile, uint8_t storageT
       if (t)
       {
         File f;
-        if (SD.exists(rootCAFile.c_str()))
+        if (SD.exists(caCertFile.c_str()))
         {
-          f = SD.open(rootCAFile.c_str(), FILE_READ);
+          f = SD.open(caCertFile.c_str(), FILE_READ);
           size_t len = f.size();
           uint8_t *der = new uint8_t[len];
           if (f.available())
             f.read(der, len);
 
           f.close();
-          _client->setTrustAnchors(new X509List(der, len));
+          _wcs->setTrustAnchors(new X509List(der, len));
           delete[] der;
         }
       }
@@ -123,57 +202,11 @@ void FirebaseHTTPClient::setRootCAFile(std::string &rootCAFile, uint8_t storageT
   }
 #endif
 
-  _client->setNoDelay(true);
+  _wcs->setNoDelay(true);
 }
 
-bool FirebaseHTTPClient::begin(const std::string host, uint16_t port)
-{
-  _host = host;
-  _port = port;
-  return true;
-}
 
-bool FirebaseHTTPClient::connected()
-{
-  return _client->connected();
-}
 
-bool FirebaseHTTPClient::sendHeader(const char *header)
-{
-  if (!connected())
-    return false;
-  if(header != nullptr)
-    _client->print(header);
-  return true;
-}
-
-int FirebaseHTTPClient::sendRequest(const char *header, const char *payload)
-{
-  size_t size = strlen(payload);
-  if (!connect())
-    return _HTTPC_ERROR_CONNECTION_REFUSED;
-  if (!sendHeader(header))
-    return _HTTPC_ERROR_SEND_HEADER_FAILED;
-  if (size > 0)
-    _client->print(payload);
-
-  return 0;
-}
-
-bool FirebaseHTTPClient::connect(void)
-{
-  if (connected())
-  {
-    while (_client->available() > 0)
-      _client->read();
-    _client->stop();
-  }
-
-  if (!_client->connect(_host.c_str(), _port))
-    return false;
-
-  return connected();
-}
 
 #endif /* ESP8266 */
 
