@@ -3456,7 +3456,7 @@ bool FirebaseESP8266::handleResponse(FirebaseData &fbdo)
             else
                 fbdo._pathNotExist = false;
 
-            if (fbdo.resp_dataType != fb_esp_data_type::d_null && !response.noContent && !fbdo._req_method == fb_esp_method::m_post)
+            if (fbdo.resp_dataType != fb_esp_data_type::d_null && !response.noContent && fbdo._req_method != fb_esp_method::m_post)
             {
 
                 bool _reqType = fbdo._req_dataType == fb_esp_data_type::d_integer || fbdo._req_dataType == fb_esp_data_type::d_float || fbdo._req_dataType == fb_esp_data_type::d_double;

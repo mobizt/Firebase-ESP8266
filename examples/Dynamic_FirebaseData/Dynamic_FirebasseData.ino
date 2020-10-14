@@ -142,6 +142,8 @@ void loop()
             }
 
             Firebase.setStreamCallback(*firebaseData1, streamCallback, streamTimeoutCallback);
+
+            count = 0;
         }
 
         if (!deallocated)
@@ -155,8 +157,6 @@ void loop()
 
         if (deallocated)
             return;
-
-       
 
         Serial.println("------------------------------------");
         Serial.println("Set Int...");
@@ -179,7 +179,7 @@ void loop()
             Serial.println();
         }
 
-        if (count == 3)
+        if (count == 5)
         {
             Serial.println("Deallocate the Firebase Data objects after 3 times Firebasse call");
 
@@ -195,7 +195,6 @@ void loop()
 
             firebaseData1 = nullptr;
             firebaseData2 = nullptr;
-
         }
     }
 }
