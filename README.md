@@ -62,6 +62,7 @@ If you're using this SDK version, please update the ESP8266 Arduino Core SDK to 
 
 Don't be confused with other Firebase Arduino libraries, this library has different working functions, the following examples provide the basic usages.
 
+[IoT using Firebase and NodeMCU © CC BY-NC-SA](https://create.arduino.cc/projecthub/pibots555/iot-using-firebase-and-nodemcu-48a1fd)
 
 [ESP32 | FLUTTER | FIREBASE - Temperature & Humidity Check App](https://www.youtube.com/watch?v=nVrACWPXi8g&feature=youtu.be) <-- *For ESP32 which similar to ESSP8266 unless the include header file, use #include <FirebaseESP8266.h> instead
 
