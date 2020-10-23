@@ -1,10 +1,11 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.9.8
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.9.9
  * 
- * October 13, 2020
+ * October 23, 2020
  * 
  *   Updates:
- * - FirebaseJson bugs fixed 
+ * - Fix the invalid returned error, data type mismatch from getShallowData. 
+ * - Set the File I/O error response instead of the connection refused error.
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -338,6 +339,7 @@ static const char fb_esp_pgm_str_188[] PROGMEM = "time.nist.gov";
 static const char fb_esp_pgm_str_189[] PROGMEM = "payload too large";
 static const char fb_esp_pgm_str_190[] PROGMEM = "cannot config time";
 static const char fb_esp_pgm_str_191[] PROGMEM = "SSL client rx buffer size is too small";
+static const char fb_esp_pgm_str_192[] PROGMEM = "File I/O error";
 
 static const unsigned char ESP8266_FIREBASE_base64_table[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 

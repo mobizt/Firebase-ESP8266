@@ -1,10 +1,11 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.9.8
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 2.9.9
  * 
- * October 13, 2020
+ * October 23, 2020
  * 
  *   Updates:
- * - FirebaseJson bugs fixed 
+ * - Fix the invalid returned error, data type mismatch from getShallowData. 
+ * - Set the File I/O error response instead of the connection refused error. 
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -2078,7 +2079,7 @@ int FirebaseESP8266::sendRequest(FirebaseData &fbdo, const std::string &path, fb
             if (!FLASH_FS.begin())
             {
                 pgm_appendStr(fbdo._file_transfer_error, fb_esp_pgm_str_164, true);
-                return FIREBASE_ERROR_HTTPC_ERROR_CONNECTION_REFUSED;
+                return FIREBASE_ERROR_FILE_IO_ERROR;
             }
         }
         else if (fbdo._storageType == StorageType::SD)
@@ -2086,7 +2087,7 @@ int FirebaseESP8266::sendRequest(FirebaseData &fbdo, const std::string &path, fb
             if (_sdInUse)
             {
                 pgm_appendStr(fbdo._file_transfer_error, fb_esp_pgm_str_84, true);
-                return FIREBASE_ERROR_HTTPC_ERROR_CONNECTION_REFUSED;
+                return FIREBASE_ERROR_FILE_IO_ERROR;
             }
 
             if (!_sdOk)
@@ -2095,7 +2096,7 @@ int FirebaseESP8266::sendRequest(FirebaseData &fbdo, const std::string &path, fb
             if (!_sdOk)
             {
                 pgm_appendStr(fbdo._file_transfer_error, fb_esp_pgm_str_85, true);
-                return FIREBASE_ERROR_HTTPC_ERROR_CONNECTION_REFUSED;
+                return FIREBASE_ERROR_FILE_IO_ERROR;
             }
 
             _sdInUse = true;
@@ -2126,7 +2127,7 @@ int FirebaseESP8266::sendRequest(FirebaseData &fbdo, const std::string &path, fb
                 else
                 {
                     pgm_appendStr(fbdo._file_transfer_error, fb_esp_pgm_str_83, true);
-                    return FIREBASE_ERROR_HTTPC_ERROR_CONNECTION_REFUSED;
+                    return FIREBASE_ERROR_FILE_IO_ERROR;
                 }
 
                 if (fbdo._storageType == StorageType::FLASH)
@@ -2150,7 +2151,7 @@ int FirebaseESP8266::sendRequest(FirebaseData &fbdo, const std::string &path, fb
                     else
                     {
                         pgm_appendStr(fbdo._file_transfer_error, fb_esp_pgm_str_83, true);
-                        return FIREBASE_ERROR_HTTPC_ERROR_CONNECTION_REFUSED;
+                        return FIREBASE_ERROR_FILE_IO_ERROR;
                     }
                 }
                 else if (fbdo._storageType == StorageType::SD)
@@ -2160,7 +2161,7 @@ int FirebaseESP8266::sendRequest(FirebaseData &fbdo, const std::string &path, fb
                     else
                     {
                         pgm_appendStr(fbdo._file_transfer_error, fb_esp_pgm_str_83, true);
-                        return FIREBASE_ERROR_HTTPC_ERROR_CONNECTION_REFUSED;
+                        return FIREBASE_ERROR_FILE_IO_ERROR;
                     }
                 }
 
@@ -2204,7 +2205,7 @@ int FirebaseESP8266::sendRequest(FirebaseData &fbdo, const std::string &path, fb
             if ((!_file && fbdo._storageType == StorageType::FLASH) || (!file && fbdo._storageType == StorageType::SD))
             {
                 pgm_appendStr(fbdo._file_transfer_error, fb_esp_pgm_str_86, true);
-                return FIREBASE_ERROR_HTTPC_ERROR_CONNECTION_REFUSED;
+                return FIREBASE_ERROR_FILE_IO_ERROR;
             }
         }
 
@@ -2252,7 +2253,7 @@ int FirebaseESP8266::sendRequest(FirebaseData &fbdo, const std::string &path, fb
             if (ret == 0)
                 send_base64_encoded_stream(fbdo.httpClient.stream(), fbdo._fileName, fbdo._storageType);
             else
-                return FIREBASE_ERROR_HTTPC_ERROR_CONNECTION_REFUSED;
+                return FIREBASE_ERROR_HTTPC_ERROR_SEND_PAYLOAD_FAILED;
 
             buf = newS(2);
             buf[0] = '"';
@@ -2261,7 +2262,7 @@ int FirebaseESP8266::sendRequest(FirebaseData &fbdo, const std::string &path, fb
             delS(buf);
 
             if (ret != 0)
-                return FIREBASE_ERROR_HTTPC_ERROR_CONNECTION_REFUSED;
+                return FIREBASE_ERROR_HTTPC_ERROR_SEND_PAYLOAD_FAILED;
         }
         else
         {
@@ -2287,7 +2288,7 @@ int FirebaseESP8266::sendRequest(FirebaseData &fbdo, const std::string &path, fb
                 delS(buf);
 
                 if (ret != 0)
-                    return FIREBASE_ERROR_HTTPC_ERROR_CONNECTION_REFUSED;
+                    return FIREBASE_ERROR_HTTPC_ERROR_SEND_PAYLOAD_FAILED;
 
                 len -= toRead;
 
@@ -3456,7 +3457,7 @@ bool FirebaseESP8266::handleResponse(FirebaseData &fbdo)
             else
                 fbdo._pathNotExist = false;
 
-            if (fbdo.resp_dataType != fb_esp_data_type::d_null && !response.noContent && fbdo._req_method != fb_esp_method::m_post)
+            if (fbdo.resp_dataType != fb_esp_data_type::d_null && !response.noContent && fbdo._req_method != fb_esp_method::m_post && fbdo._req_method != fb_esp_method::m_get_shallow)
             {
 
                 bool _reqType = fbdo._req_dataType == fb_esp_data_type::d_integer || fbdo._req_dataType == fb_esp_data_type::d_float || fbdo._req_dataType == fb_esp_data_type::d_double;
@@ -3732,7 +3733,7 @@ bool FirebaseESP8266::handleStreamRead(FirebaseData &fbdo)
 
 void FirebaseESP8266::closeHTTP(FirebaseData &fbdo)
 {
-    //close the socket and free the resources used by the mbedTLS data
+    //close the socket and free the resources used by the BearSSL data
     if (fbdo._httpConnected)
     {
         if (fbdo.httpClient.stream())
@@ -4490,6 +4491,9 @@ void FirebaseESP8266::errorToString(int httpCode, std::string &buff)
         return;
     case FIREBASE_ERROR_SSL_RX_BUFFER_SIZE_TOO_SMALL:
         pgm_appendStr(buff, fb_esp_pgm_str_191);
+        return;
+    case FIREBASE_ERROR_FILE_IO_ERROR:
+        pgm_appendStr(buff, fb_esp_pgm_str_192);
         return;
 
     default:
