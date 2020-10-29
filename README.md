@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 2.9.9
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 3.0.0
 
 
 This library supports ESP8266 MCU from Espressif. The following are platforms in which libraries are also available.
