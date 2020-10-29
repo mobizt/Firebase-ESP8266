@@ -1,5 +1,5 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 3.0.0
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 3.0.1
  * 
  * October 29, 2020
  * 
@@ -6550,7 +6550,12 @@ void FCMObject::setNotifyMessage(const String &title, const String &body, const 
 
 void FCMObject::addCustomNotifyMessage(const String &key, const String &value)
 {
-    _fcmPayload.set(key, value);
+    std::string s;
+    Firebase.pgm_appendStr(s, fb_esp_pgm_str_122, true);
+    Firebase.pgm_appendStr(s, fb_esp_pgm_str_1, false);
+    s += key.c_str();
+    _fcmPayload.set(s.c_str(), value);
+    std::string().swap(s);
 }
 
 void FCMObject::clearNotifyMessage()
