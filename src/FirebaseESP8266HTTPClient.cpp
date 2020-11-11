@@ -1,5 +1,5 @@
 /*
- * HTTP Client wrapper v1.1.3
+ * HTTP Client wrapper v1.1.4
  * 
  * The MIT License (MIT)
  * Copyright (c) 2019 K. Suwatchai (Mobizt)
@@ -50,8 +50,28 @@ FirebaseESP8266HTTPClient::~FirebaseESP8266HTTPClient()
 
 bool FirebaseESP8266HTTPClient::begin(const char *host, uint16_t port)
 {
+  if (strcmp(_host.c_str(), host) != 0)
+    mflnChecked = false;
+
   _host = host;
   _port = port;
+
+  //probe for fragmentation support at the specified size
+  if (!mflnChecked)
+  {
+    fragmentable = _wcs->probeMaxFragmentLength(_host.c_str(), _port, chunkSize);
+    if (fragmentable)
+    {
+      _bsslRxSize = chunkSize;
+      _bsslTxSize = chunkSize;
+      _wcs->setBufferSizes(_bsslRxSize, _bsslTxSize);
+    }
+    mflnChecked = true;
+  }
+
+  if (!fragmentable)
+    _wcs->setBufferSizes(_bsslRxSize, _bsslTxSize);
+
   return true;
 }
 

@@ -1,10 +1,11 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 3.0.2
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 3.0.3
  * 
- * November 4, 2020
+ * November 12, 2020
  * 
- *   Updates:
- * - Fix the mismatch data type error from setTimestamp function. 
+ * Updates:
+ * - Fix the internal find string function error caused wdt reset. 
+ * - Fix the response buffer size issue.
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -2506,7 +2507,7 @@ bool FirebaseESP8266::handleRequest(FirebaseData &fbdo, uint8_t storageType, con
     return true;
 }
 
-void FirebaseESP8266::parseRespHeader(const char *buf, server_response_data_t &response)
+void FirebaseESP8266::parseRespHeader(const char *buf, struct server_response_data_t &response)
 {
     int beginPos = 0, pmax = 0, payloadPos = 0;
 
@@ -2603,7 +2604,7 @@ void FirebaseESP8266::parseRespHeader(const char *buf, server_response_data_t &r
     }
 }
 
-void FirebaseESP8266::parseRespPayload(const char *buf, server_response_data_t &response, bool getOfs)
+void FirebaseESP8266::parseRespPayload(const char *buf, struct server_response_data_t &response, bool getOfs)
 {
     int payloadPos = 0;
     int payloadOfs = 0;
@@ -2638,7 +2639,6 @@ void FirebaseESP8266::parseRespPayload(const char *buf, server_response_data_t &
                     payloadOfs = payloadPos;
                     response.eventPath = tmp;
                     delS(tmp);
-
                     tmp = getHeader(buf, fb_esp_pgm_str_18, fb_esp_pgm_str_180, payloadPos, 0);
 
                     if (tmp)
@@ -2727,7 +2727,7 @@ void FirebaseESP8266::parseRespPayload(const char *buf, server_response_data_t &
     }
 }
 
-void FirebaseESP8266::setNumDataType(const char *buf, int ofs, server_response_data_t &response, bool dec)
+void FirebaseESP8266::setNumDataType(const char *buf, int ofs, struct server_response_data_t &response, bool dec)
 {
 
     if (response.payloadLen > 0 && response.payloadLen <= (int)strlen(buf) && ofs < (int)strlen(buf) && ofs + response.payloadLen <= (int)strlen(buf))
@@ -2929,7 +2929,7 @@ bool FirebaseESP8266::waitResponse(FirebaseData &fbdo)
     return handleResponse(fbdo);
 }
 
-void FirebaseESP8266::checkOvf(FirebaseData &fbdo, size_t len, server_response_data_t &resp)
+void FirebaseESP8266::checkOvf(FirebaseData &fbdo, size_t len, struct server_response_data_t &resp)
 {
     if (fbdo._responseBufSize < len && !fbdo._bufOvf)
     {
@@ -2966,11 +2966,11 @@ bool FirebaseESP8266::handleResponse(FirebaseData &fbdo)
     char *payload = nullptr;
     bool isHeader = false;
 
-    server_response_data_t response;
+    struct server_response_data_t response;
 
     int chunkIdx = 0;
     int pChunkIdx = 0;
-    int payloadLen = 512;
+    int payloadLen = fbdo._responseBufSize;
     int pBufPos = 0;
     int hBufPos = 0;
     int chunkBufSize = stream->available();
@@ -2980,7 +2980,7 @@ bool FirebaseESP8266::handleResponse(FirebaseData &fbdo)
     int chunkedDataState = 0;
     int chunkedDataSize = 0;
     int chunkedDataLen = 0;
-    int defaultChunkSize = 512;
+    int defaultChunkSize = fbdo._responseBufSize;
 
     fbdo._httpCode = FIREBASE_ERROR_HTTP_CODE_OK;
     fbdo._contentLength = -1;
@@ -3357,6 +3357,7 @@ bool FirebaseESP8266::handleResponse(FirebaseData &fbdo)
 
                         if (stringCompare(response.eventType.c_str(), 0, fb_esp_pgm_str_15) || stringCompare(response.eventType.c_str(), 0, fb_esp_pgm_str_16))
                         {
+
                             handlePayload(fbdo, response, payload);
 
                             response.eventData.clear();
@@ -3458,7 +3459,7 @@ bool FirebaseESP8266::handleResponse(FirebaseData &fbdo)
             else
                 fbdo._pathNotExist = false;
 
-            if (fbdo.resp_dataType != fb_esp_data_type::d_null  && fbdo._req_dataType != fb_esp_data_type::d_timestamp && !response.noContent && fbdo._req_method != fb_esp_method::m_post && fbdo._req_method != fb_esp_method::m_get_shallow)
+            if (fbdo.resp_dataType != fb_esp_data_type::d_null && fbdo._req_dataType != fb_esp_data_type::d_timestamp && !response.noContent && fbdo._req_method != fb_esp_method::m_post && fbdo._req_method != fb_esp_method::m_get_shallow)
             {
 
                 bool _reqType = fbdo._req_dataType == fb_esp_data_type::d_integer || fbdo._req_dataType == fb_esp_data_type::d_float || fbdo._req_dataType == fb_esp_data_type::d_double;
@@ -3545,7 +3546,7 @@ bool FirebaseESP8266::handleResponse(FirebaseData &fbdo)
     }
 }
 
-void FirebaseESP8266::handlePayload(FirebaseData &fbdo, server_response_data_t &response, char *payload)
+void FirebaseESP8266::handlePayload(FirebaseData &fbdo, struct server_response_data_t &response, char *payload)
 {
 
     String rawArr;
@@ -4536,7 +4537,7 @@ bool FirebaseESP8266::handleFCMRequest(FirebaseData &fbdo, fb_esp_fcm_msg_type m
         closeHTTP(fbdo);
         setSecure(fbdo);
     }
-    
+
     fbdo.fcm.fcm_begin(fbdo);
 
     fbdo._isFCM = true;
@@ -4801,7 +4802,7 @@ int FirebaseESP8266::strpos(const char *haystack, const char *needle, int offset
 {
     size_t len = strlen(haystack);
     size_t len2 = strlen(needle);
-    if (len == 0 || len < len2 || len2 == 0)
+    if (len == 0 || len < len2 || len2 == 0 || offset >= (int)len)
         return -1;
     char *_haystack = newS(len - offset + 1);
     _haystack[len - offset] = 0;
@@ -4837,7 +4838,7 @@ int FirebaseESP8266::rstrpos(const char *haystack, const char *needle, int offse
 {
     size_t len = strlen(haystack);
     size_t len2 = strlen(needle);
-    if (len == 0 || len < len2 || len2 == 0)
+    if (len == 0 || len < len2 || len2 == 0 || offset >= (int)len)
         return -1;
     char *_haystack = newS(len - offset + 1);
     _haystack[len - offset] = 0;
@@ -5753,7 +5754,7 @@ void FirebaseData::setBSSLBufferSize(uint16_t rx, uint16_t tx)
 void FirebaseData::setResponseSize(uint16_t len)
 {
     if (len >= 1024)
-        _responseBufSize = len;
+        _responseBufSize = 4 * (1 + (len / 4));
 }
 
 SSL_CLIENT *FirebaseData::getWiFiClient()
@@ -6528,7 +6529,6 @@ void FCMObject::setNotifyMessage(const String &title, const String &body)
     key = Firebase.getPGMString(fb_esp_pgm_str_124);
     _fcmPayload.set(key, body);
     Firebase.delS(key);
-   
 }
 
 void FCMObject::setNotifyMessage(const String &title, const String &body, const String &icon)
@@ -6569,7 +6569,7 @@ void FCMObject::setDataMessage(const String &jsonString)
     char *key = Firebase.getPGMString(fb_esp_pgm_str_135);
     FirebaseJson js;
     js.setJsonData(jsonString);
-    _fcmPayload.set(key,js );
+    _fcmPayload.set(key, js);
     Firebase.delS(key);
     js.clear();
 }
@@ -6697,7 +6697,7 @@ void FCMObject::fcm_preparePayload(std::string &msg, fb_esp_fcm_msg_type message
 
 bool FCMObject::fcm_send(FirebaseData &fbdo, fb_esp_fcm_msg_type messageType)
 {
-    
+
     std::string msg = "";
     std::string header = "";
 
