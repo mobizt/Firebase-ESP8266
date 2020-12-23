@@ -1,5 +1,5 @@
 
-/*
+/**
  * Created by K. Suwatchai (Mobizt)
  * 
  * Email: k_suwatchai@hotmail.com
@@ -7,42 +7,44 @@
  * Github: https://github.com/mobizt
  * 
  * Copyright (c) 2020 mobizt
+ *
+*/
+
+/** 
+ * This example shows the basic example for automatic plant watering system.
+ * The sketch will set GPIO16 for Pump1, and GPIO12 for Pump2
+ * The status of pumps showed at /PlantWatering/status
  * 
+ * Two pumps will be set to turn on in the moring and evening for 120 second everyday
+ * To manually turn on and off both pumps, change the value under /PlantWatering/control
+ * 
+ * To control the device, send command at /PlantWatering/control/cmd and the result from process
+ * showed at /PlantWatering/status/terminal
+ * 
+ * The command and its description.
+ * 
+ * idle: nothing to do
+ * get-time: get time from NTP server
+ * boot: restart the device
+ * load-pump: load pump configuration
+ * load-schedule: load schedule configuration
+ * pump-count: show the number of pumps at /PlantWatering/status/terminal
+ * schedule-count: show the number of schedules at /PlantWatering/status/terminal
 */
 
-/*
-
-  This example shows the basic example for automatic plant watering system.
-  The sketch will set GPIO16 for Pump1, and GPIO12 for Pump2
-  The status of pumps showed at /PlantWatering/status
-  
-  Two pumps will be set to turn on in the moring and evening for 120 second everyday
-  To manually turn on and off both pumps, change the value under /PlantWatering/control
-
-  To control the device, send command at /PlantWatering/control/cmd and the result from process
-  showed at /PlantWatering/status/terminal
-
-  The command and its description.
-
-  idle: nothing to do
-  get-time: get time from NTP server
-  boot: restart the device
-  load-pump: load pump configuration
-  load-schedule: load schedule configuration
-  pump-count: show the number of pumps at /PlantWatering/status/terminal
-  schedule-count: show the number of schedules at /PlantWatering/status/terminal
-
-*/
-
-//FirebaseESP8266.h must be included before ESP8266WiFi.h
-#include <FirebaseESP8266.h>
 #include <ESP8266WiFi.h>
+#include <FirebaseESP8266.h>
 #include <time.h>
 
-#define WIFI_SSID "YOUR_WIFI_AP"
-#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
-#define FIREBASE_HOST "YOUR_FIREBASE_PROJECT.firebaseio.com" //Without http:// or https:// schemes
-#define FIREBASE_AUTH "YOUR_FIREBASE_DATABASE_SECRET"
+#define WIFI_SSID "WIFI_AP"
+#define WIFI_PASSWORD "WIFI_PASSWORD"
+
+#define FIREBASE_HOST "PROJECT_ID.firebaseio.com"
+
+/** The database secret is obsoleted, please use other authentication methods, 
+ * see examples in the Authentications folder. 
+*/
+#define FIREBASE_AUTH "DATABASE_SECRET"
 
 struct schedule_info_t
 {
@@ -66,8 +68,8 @@ struct pump_info_t
     int gpio;
 };
 
-FirebaseData firebaseData1;
-FirebaseData firebaseData2;
+FirebaseData fbdo1;
+FirebaseData fbdo2;
 
 String path = "/PlantWatering";
 bool timeReady = false;
@@ -115,19 +117,19 @@ void setup()
     Firebase.reconnectWiFi(true);
 
     //Set the size of WiFi rx/tx buffers in the case where we want to work with large data.
-    firebaseData2.setBSSLBufferSize(1024, 1024);
+    fbdo2.setBSSLBufferSize(1024, 1024);
 
     //Set the size of HTTP response buffers in the case where we want to work with large data.
-    firebaseData2.setResponseSize(1024);
+    fbdo2.setResponseSize(1024);
 
-    if (!Firebase.beginStream(firebaseData1, path + "/control"))
-        Serial.println(firebaseData1.errorReason());
+    if (!Firebase.beginStream(fbdo1, path + "/control"))
+        Serial.println(fbdo1.errorReason());
 
-    Firebase.setStreamCallback(firebaseData1, streamCallback, streamTimeoutCallback);
+    Firebase.setStreamCallback(fbdo1, streamCallback, streamTimeoutCallback);
 
-    Firebase.set(firebaseData2, path + "/control/cmd", "idle");
+    Firebase.set(fbdo2, path + "/control/cmd", "idle");
 
-    if (!Firebase.pathExist(firebaseData2, path + "/config/pump"))
+    if (!Firebase.pathExist(fbdo2, path + "/config/pump"))
     {
         //Setup initial pump data
 
@@ -137,12 +139,12 @@ void setup()
         addPump("P01", "Pump 1", "Garden", 16, 0,  &pumpConfig);
         addPump("P02", "Pump 2", "Garden", 12, 0, &pumpConfig);
 
-        Firebase.set(firebaseData2, path + "/config/pump", pumpConfig);
+        Firebase.set(fbdo2, path + "/config/pump", pumpConfig);
     }
     else
     {
-        if (Firebase.get(firebaseData2, path + "/config/pump"))
-            loadPump(firebaseData2);
+        if (Firebase.get(fbdo2, path + "/config/pump"))
+            loadPump(fbdo2);
     }
 
     //Set up node for pump if not exist.
@@ -151,10 +153,10 @@ void setup()
     {
         if (pumpInfo[i].id != "")
         {
-            if (!Firebase.pathExist(firebaseData2, path + "/control/" + pumpInfo[i].id))
+            if (!Firebase.pathExist(fbdo2, path + "/control/" + pumpInfo[i].id))
             {
-                Firebase.set(firebaseData2, path + "/control/" + pumpInfo[i].id, pumpInfo[i].state);
-                Firebase.set(firebaseData2, path + "/status/" + pumpInfo[i].id, pumpInfo[i].state);
+                Firebase.set(fbdo2, path + "/control/" + pumpInfo[i].id, pumpInfo[i].state);
+                Firebase.set(fbdo2, path + "/status/" + pumpInfo[i].id, pumpInfo[i].state);
             }
         }
     }
@@ -162,7 +164,7 @@ void setup()
     if (timeReady)
     {
 
-        if (!Firebase.pathExist(firebaseData2, path + "/config/schedule"))
+        if (!Firebase.pathExist(fbdo2, path + "/config/schedule"))
         {
 
             Serial.println("Setup schedule...");
@@ -181,12 +183,12 @@ void setup()
             //Set for Pump2 (P02) to turn on (1) 120 seconds from 17:30:00 then turn off (0)
             addSchedule("P02", 1, 0, 17, 30, 00, 120, &scheduleConfig);
 
-            Firebase.set(firebaseData2, path + "/config/schedule", scheduleConfig);
+            Firebase.set(fbdo2, path + "/config/schedule", scheduleConfig);
         }
         else
         {
-            if (Firebase.get(firebaseData2, path + "/config/schedule"))
-                loadSchedule(firebaseData2);
+            if (Firebase.get(fbdo2, path + "/config/schedule"))
+                loadSchedule(fbdo2);
         }
     }
 
@@ -210,7 +212,7 @@ void setPumpState(int pumpIndex, int state)
     digitalWrite(pumpInfo[pumpIndex].gpio, state);
     pumpInfo[pumpIndex].state = state;
 
-    Firebase.set(firebaseData2, path + "/status/" + pumpInfo[pumpIndex].id, state);
+    Firebase.set(fbdo2, path + "/status/" + pumpInfo[pumpIndex].id, state);
     if (state == 0)
         Serial.println(pumpInfo[pumpIndex].id + " OFF");
     else if (state == 1)
@@ -246,7 +248,7 @@ void streamCallback(StreamData data)
                     status += " OFF";
                 else if (data.intData() == 1)
                     status += " ON";
-                Firebase.set(firebaseData2, path + "/status/terminal", status);
+                Firebase.set(fbdo2, path + "/status/terminal", status);
             }
         }
     }
@@ -255,37 +257,37 @@ void streamCallback(StreamData data)
         if (data.stringData() == "get-time")
         {
             Serial.println("cmd: get time from NTP server");
-            Firebase.set(firebaseData2, path + "/status/terminal", "get time");
+            Firebase.set(fbdo2, path + "/status/terminal", "get time");
             setClock(time_zone, daylight_offset_in_sec);
         }
         else if (data.stringData() == "load-pump")
         {
             Serial.println("cmd: load pump");
-            Firebase.set(firebaseData2, path + "/status/terminal", "load pump");
-            if (Firebase.get(firebaseData2, path + "/config/pump"))
-                loadPump(firebaseData2);
+            Firebase.set(fbdo2, path + "/status/terminal", "load pump");
+            if (Firebase.get(fbdo2, path + "/config/pump"))
+                loadPump(fbdo2);
         }
         else if (data.stringData() == "load-schedule")
         {
             Serial.println("cmd: load schedule");
-            Firebase.set(firebaseData2, path + "/status/terminal", "load schedule");
-            if (Firebase.get(firebaseData2, path + "/config/schedule"))
-                loadSchedule(firebaseData2);
+            Firebase.set(fbdo2, path + "/status/terminal", "load schedule");
+            if (Firebase.get(fbdo2, path + "/config/schedule"))
+                loadSchedule(fbdo2);
         }
         if (data.stringData() == "schedule-count")
         {
             Serial.println("cmd: schedule-count");
-            Firebase.set(firebaseData2, path + "/status/terminal", String(scheduleInfo.size()));
+            Firebase.set(fbdo2, path + "/status/terminal", String(scheduleInfo.size()));
         }
         if (data.stringData() == "pump-count")
         {
             Serial.println("cmd: pump-count");
-            Firebase.set(firebaseData2, path + "/status/terminal", String(pumpInfo.size()));
+            Firebase.set(fbdo2, path + "/status/terminal", String(pumpInfo.size()));
         }
         else if (data.stringData() == "boot")
         {
             Serial.println("cmd: reboot device");
-            Firebase.set(firebaseData2, path + "/status/terminal", "restart device");
+            Firebase.set(fbdo2, path + "/status/terminal", "restart device");
             ESP.restart();
         }
     }
@@ -314,9 +316,9 @@ void setClock(float time_zone, float daylight_offset_in_sec)
 
     timeReady = now > 8 * 3600 * 2;
     if (timeReady)
-        Firebase.set(firebaseData2, path + "/status/terminal", "idle");
+        Firebase.set(fbdo2, path + "/status/terminal", "idle");
     else
-        Firebase.set(firebaseData2, path + "/status/terminal", "cannot get time");
+        Firebase.set(fbdo2, path + "/status/terminal", "cannot get time");
 }
 
 void addPump(String id, String name, String location, int gpio, int state, FirebaseJsonArray *pumpConfig)
@@ -427,9 +429,9 @@ void runSchedule()
                         Serial.println(status);
 
                         scheduleInfo[i].state = 2;
-                        Firebase.set(firebaseData2, path + "/control/" + pumpInfo[index].id, scheduleInfo[i].active);
+                        Firebase.set(fbdo2, path + "/control/" + pumpInfo[index].id, scheduleInfo[i].active);
                         setPumpState(index, scheduleInfo[i].active);
-                        Firebase.set(firebaseData2, path + "/status/terminal", status);
+                        Firebase.set(fbdo2, path + "/status/terminal", status);
                     }
                 }
             }
@@ -445,10 +447,10 @@ void runSchedule()
                     if (scheduleInfo[i].inactive != pumpInfo[index].state)
                     {
                         scheduleInfo[i].state = 1;
-                        Firebase.set(firebaseData2, path + "/control/" + pumpInfo[index].id, scheduleInfo[i].inactive);
+                        Firebase.set(fbdo2, path + "/control/" + pumpInfo[index].id, scheduleInfo[i].inactive);
                         setPumpState(index, scheduleInfo[i].inactive);
                         String status = pumpInfo[index].id + " OFF";
-                        Firebase.set(firebaseData2, path + "/status/terminal", status);
+                        Firebase.set(fbdo2, path + "/status/terminal", status);
                     }
                 }
             }

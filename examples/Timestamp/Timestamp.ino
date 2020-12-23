@@ -1,5 +1,5 @@
 
-/*
+/**
  * Created by K. Suwatchai (Mobizt)
  * 
  * Email: k_suwatchai@hotmail.com
@@ -12,17 +12,21 @@
 
 //This example shows how to set and push timestamp (server time) which is the server variable that suopported by Firebase
 
-//FirebaseESP8266.h must be included before ESP8266WiFi.h
-#include "FirebaseESP8266.h"
 #include <ESP8266WiFi.h>
+#include <FirebaseESP8266.h>
 
-#define FIREBASE_HOST "YOUR_FIREBASE_PROJECT.firebaseio.com"
-#define FIREBASE_AUTH "YOUR_FIREBASE_DATABASE_SECRET"
-#define WIFI_SSID "YOUR_WIFI_AP"
-#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
+#define WIFI_SSID "WIFI_AP"
+#define WIFI_PASSWORD "WIFI_PASSWORD"
+
+#define FIREBASE_HOST "PROJECT_ID.firebaseio.com"
+
+/** The database secret is obsoleted, please use other authentication methods, 
+ * see examples in the Authentications folder. 
+*/
+#define FIREBASE_AUTH "DATABASE_SECRET"
 
 //Define Firebase Data object
-FirebaseData firebaseData;
+FirebaseData fbdo;
 
 void setup()
 {
@@ -47,16 +51,16 @@ void setup()
   Firebase.reconnectWiFi(true);
 
   //Set the size of WiFi rx/tx buffers in the case where we want to work with large data.
-  firebaseData.setBSSLBufferSize(1024, 1024);
+  fbdo.setBSSLBufferSize(1024, 1024);
 
   //Set the size of HTTP response buffers in the case where we want to work with large data.
-  firebaseData.setResponseSize(1024);
+  fbdo.setResponseSize(1024);
 
   /*
   This option allows get and delete functions (PUT and DELETE HTTP requests) works for device connected behind the
   Firewall that allows only GET and POST requests.
   
-  Firebase.enableClassicRequest(firebaseData, true);
+  Firebase.enableClassicRequest(fbdo, true);
   */
 
   String path = "/Test";
@@ -64,34 +68,34 @@ void setup()
   Serial.println("------------------------------------");
   Serial.println("Set Timestamp test...");
 
-  if (Firebase.setTimestamp(firebaseData, path + "/Set/Timestamp"))
+  if (Firebase.setTimestamp(fbdo, path + "/Set/Timestamp"))
   {
     Serial.println("PASSED");
-    Serial.println("PATH: " + firebaseData.dataPath());
-    Serial.println("TYPE: " + firebaseData.dataType());
+    Serial.println("PATH: " + fbdo.dataPath());
+    Serial.println("TYPE: " + fbdo.dataType());
 
     //Timestamp saved in millisecond, get its seconds from intData()
     Serial.print("TIMESTAMP (Seconds): ");
-    Serial.println(firebaseData.intData());
+    Serial.println(fbdo.intData());
 
     //Or print the total milliseconds from doubleData()
     //Due to bugs in Serial.print in Arduino library, use printf to print double instead.
-    printf("TIMESTAMP (milliSeconds): %.0lf\n", firebaseData.doubleData());
+    printf("TIMESTAMP (milliSeconds): %.0lf\n", fbdo.doubleData());
 
     //Or print it from payload directly
     Serial.print("TIMESTAMP (milliSeconds): ");
-    Serial.println(firebaseData.payload());
+    Serial.println(fbdo.payload());
 
     //Due to some internal server error, ETag cannot get from setTimestamp
     //Try to get ETag manually
-    Serial.println("ETag: " + Firebase.getETag(firebaseData, path + "/Set/Timestamp"));
+    Serial.println("ETag: " + Firebase.getETag(fbdo, path + "/Set/Timestamp"));
     Serial.println("------------------------------------");
     Serial.println();
   }
   else
   {
     Serial.println("FAILED");
-    Serial.println("REASON: " + firebaseData.errorReason());
+    Serial.println("REASON: " + fbdo.errorReason());
     Serial.println("------------------------------------");
     Serial.println();
   }
@@ -99,20 +103,20 @@ void setup()
   Serial.println("------------------------------------");
   Serial.println("Get Timestamp (double of milliseconds) test...");
 
-  if (Firebase.getDouble(firebaseData, path + "/Set/Timestamp"))
+  if (Firebase.getDouble(fbdo, path + "/Set/Timestamp"))
   {
     Serial.println("PASSED");
-    Serial.println("PATH: " + firebaseData.dataPath());
-    Serial.println("TYPE: " + firebaseData.dataType());
+    Serial.println("PATH: " + fbdo.dataPath());
+    Serial.println("TYPE: " + fbdo.dataType());
 
-    printf("TIMESTAMP: %.0lf\n", firebaseData.doubleData());
+    printf("TIMESTAMP: %.0lf\n", fbdo.doubleData());
     Serial.println("------------------------------------");
     Serial.println();
   }
   else
   {
     Serial.println("FAILED");
-    Serial.println("REASON: " + firebaseData.errorReason());
+    Serial.println("REASON: " + fbdo.errorReason());
     Serial.println("------------------------------------");
     Serial.println();
   }
@@ -120,23 +124,23 @@ void setup()
   Serial.println("------------------------------------");
   Serial.println("Push Timestamp test...");
 
-  if (Firebase.pushTimestamp(firebaseData, path + "/Push/Timestamp"))
+  if (Firebase.pushTimestamp(fbdo, path + "/Push/Timestamp"))
   {
     Serial.println("PASSED");
-    Serial.println("PATH: " + firebaseData.dataPath());
+    Serial.println("PATH: " + fbdo.dataPath());
     Serial.print("PUSH NAME: ");
-    Serial.println(firebaseData.pushName());
+    Serial.println(fbdo.pushName());
 
     //Due to some internal server error, ETag cannot get from pushTimestamp
     //Try to get ETag manually
-    Serial.println("ETag: " + Firebase.getETag(firebaseData, path + "/Push/Timestamp/" + firebaseData.pushName()));
+    Serial.println("ETag: " + Firebase.getETag(fbdo, path + "/Push/Timestamp/" + fbdo.pushName()));
     Serial.println("------------------------------------");
     Serial.println();
   }
   else
   {
     Serial.println("FAILED");
-    Serial.println("REASON: " + firebaseData.errorReason());
+    Serial.println("REASON: " + fbdo.errorReason());
     Serial.println("------------------------------------");
     Serial.println();
   }

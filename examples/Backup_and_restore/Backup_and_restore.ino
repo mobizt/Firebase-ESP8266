@@ -1,4 +1,4 @@
-/*
+/**
  * Created by K. Suwatchai (Mobizt)
  * 
  * Email: k_suwatchai@hotmail.com
@@ -7,25 +7,25 @@
  * 
  * Copyright (c) 2020 mobizt
  *
- * 
- * This example is for FirebaseESP8266 Arduino library v 2.8.9 or later
 */
 
 //This example shows how to backup and restore database data
 
-
-
-//FirebaseESP8266.h must be included before ESP8266WiFi.h
-#include <FirebaseESP8266.h>
 #include <ESP8266WiFi.h>
+#include <FirebaseESP8266.h>
 
-#define FIREBASE_HOST "YOUR_FIREBASE_PROJECT.firebaseio.com" //Without http:// or https:// schemes
-#define FIREBASE_AUTH "YOUR_FIREBASE_DATABASE_SECRET"
-#define WIFI_SSID "YOUR_WIFI_AP"
-#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
+#define WIFI_SSID "WIFI_AP"
+#define WIFI_PASSWORD "WIFI_PASSWORD"
+
+#define FIREBASE_HOST "PROJECT_ID.firebaseio.com"
+
+/** The database secret is obsoleted, please use other authentication methods, 
+ * see examples in the Authentications folder. 
+*/
+#define FIREBASE_AUTH "DATABASE_SECRET"
 
 //Define Firebase Data object
-FirebaseData firebaseData;
+FirebaseData fbdo;
 
 void setup()
 {
@@ -48,10 +48,10 @@ void setup()
   Firebase.reconnectWiFi(true);
 
   //Set the size of WiFi rx/tx buffers in the case where we want to work with large data.
-  firebaseData.setBSSLBufferSize(1024, 1024);
+  fbdo.setBSSLBufferSize(1024, 1024);
 
   //Set the size of HTTP response buffers in the case where we want to work with large data.
-  firebaseData.setResponseSize(1024);
+  fbdo.setResponseSize(1024);
 
   Serial.println("------------------------------------");
   Serial.println("Backup test...");
@@ -60,18 +60,18 @@ void setup()
   //{TARGET_NODE_PATH} is the full path of database to backup and restore.
   //{FILE_NAME} is file name in 8.3 DOS format (max. 8 bytes file name and 3 bytes file extension)
 
-  if (!Firebase.backup(firebaseData, StorageType::SD, "/{TARGET_NODE_PATH}", "/{FILE_NAME}"))
+  if (!Firebase.backup(fbdo, StorageType::SD, "/{TARGET_NODE_PATH}", "/{FILE_NAME}"))
   {
     Serial.println("FAILED");
-    Serial.println("REASON: " + firebaseData.fileTransferError());
+    Serial.println("REASON: " + fbdo.fileTransferError());
 	Serial.println("------------------------------------");
     Serial.println();
   }
   else
   {
     Serial.println("PASSED");
-    Serial.println("BACKUP FILE: " + firebaseData.getBackupFilename());
-    Serial.println("FILE SIZE: " + String(firebaseData.getBackupFileSize()));
+    Serial.println("BACKUP FILE: " + fbdo.getBackupFilename());
+    Serial.println("FILE SIZE: " + String(fbdo.getBackupFileSize()));
 	Serial.println("------------------------------------");
     Serial.println();
   }
@@ -83,17 +83,17 @@ void setup()
   //{TARGET_NODE_PATH} is the full path of database to restore
   //{FILE_NAME} is file name in 8.3 DOS format (max. 8 bytes file name and 3 bytes file extension)
 
-  if (!Firebase.restore(firebaseData, StorageType::SD, "/{TARGET_NODE_PATH}", "/{FILE_NAME}"))
+  if (!Firebase.restore(fbdo, StorageType::SD, "/{TARGET_NODE_PATH}", "/{FILE_NAME}"))
   {
     Serial.println("FAILED");
-    Serial.println("REASON: " + firebaseData.fileTransferError());
+    Serial.println("REASON: " + fbdo.fileTransferError());
 	Serial.println("------------------------------------");
     Serial.println();
   }
   else
   {
     Serial.println("PASSED");
-    Serial.println("BACKUP FILE: " + firebaseData.getBackupFilename());
+    Serial.println("BACKUP FILE: " + fbdo.getBackupFilename());
 	Serial.println("------------------------------------");
     Serial.println();
   }

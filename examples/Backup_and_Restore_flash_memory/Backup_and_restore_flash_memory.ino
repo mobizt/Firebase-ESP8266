@@ -1,4 +1,4 @@
-/*
+/**
  * Created by K. Suwatchai (Mobizt)
  * 
  * Email: k_suwatchai@hotmail.com
@@ -7,20 +7,22 @@
  * 
  * Copyright (c) 2020 mobizt
  *
- * 
- * This example is for FirebaseESP8266 Arduino library v 2.8.9 or later
 */
 
 //This example shows how to backup and restore database data
 
-//FirebaseESP8266.h must be included before ESP8266WiFi.h
-#include <FirebaseESP8266.h>
 #include <ESP8266WiFi.h>
+#include <FirebaseESP8266.h>
 
-#define FIREBASE_HOST "YOUR_FIREBASE_PROJECT.firebaseio.com" //Without http:// or https:// schemes
-#define FIREBASE_AUTH "YOUR_FIREBASE_DATABASE_SECRET"
-#define WIFI_SSID "YOUR_WIFI_AP"
-#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
+#define WIFI_SSID "WIFI_AP"
+#define WIFI_PASSWORD "WIFI_PASSWORD"
+
+#define FIREBASE_HOST "PROJECT_ID.firebaseio.com"
+
+/** The database secret is obsoleted, please use other authentication methods, 
+ * see examples in the Authentications folder. 
+*/
+#define FIREBASE_AUTH "DATABASE_SECRET"
 
 //Define Firebase Data object
 FirebaseData firebaseData;

@@ -1,4 +1,4 @@
-/*
+/**
  * Created by K. Suwatchai (Mobizt)
  * 
  * Email: k_suwatchai@hotmail.com
@@ -6,23 +6,25 @@
  * Github: https://github.com/mobizt
  * 
  * Copyright (c) 2020 mobizt
- * 
- * This example is for FirebaseESP8266 Arduino library v 2.8.9 or later
  *
 */
 
-//FirebaseESP8266.h must be included before ESP8266WiFi.h
-#include "FirebaseESP8266.h"
 #include <ESP8266WiFi.h>
+#include <FirebaseESP8266.h>
 
-#define WIFI_SSID "YOUR_WIFI_AP"
-#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
-#define FIREBASE_HOST "YOUR_FIREBASE_PROJECT.firebaseio.com" //Without http:// or https:// schemes
-#define FIREBASE_AUTH "YOUR_FIREBASE_DATABASE_SECRET"
+#define WIFI_SSID "WIFI_AP"
+#define WIFI_PASSWORD "WIFI_PASSWORD"
+
+#define FIREBASE_HOST "PROJECT_ID.firebaseio.com"
+
+/** The database secret is obsoleted, please use other authentication methods, 
+ * see examples in the Authentications folder. 
+*/
+#define FIREBASE_AUTH "DATABASE_SECRET"
 
 //Define Firebase Data objects
-FirebaseData firebaseData1;
-FirebaseData firebaseData2;
+FirebaseData fbdo1;
+FirebaseData fbdo2;
 
 unsigned long sendDataPrevMillis1;
 
@@ -56,23 +58,23 @@ void setup()
   Firebase.reconnectWiFi(true);
 
   //Set the size of WiFi rx/tx buffers in the case where we want to work with large data.
-  firebaseData1.setBSSLBufferSize(1024, 1024);
+  fbdo1.setBSSLBufferSize(1024, 1024);
 
   //Set the size of HTTP response buffers in the case where we want to work with large data.
-  firebaseData1.setResponseSize(1024);
+  fbdo1.setResponseSize(1024);
 
   //Set the size of WiFi rx/tx buffers in the case where we want to work with large data.
-  firebaseData2.setBSSLBufferSize(1024, 1024);
+  fbdo2.setBSSLBufferSize(1024, 1024);
 
   //Set the size of HTTP response buffers in the case where we want to work with large data.
-  firebaseData2.setResponseSize(1024);
+  fbdo2.setResponseSize(1024);
 
   Serial.println("------------------------------------");
   Serial.println("Begin stream 1...");
-  if (!Firebase.beginStream(firebaseData2, path + "/Stream/data1"))
+  if (!Firebase.beginStream(fbdo2, path + "/Stream/data1"))
   {
     Serial.println("FAILED");
-    Serial.println("REASON: " + firebaseData2.errorReason());
+    Serial.println("REASON: " + fbdo2.errorReason());
     Serial.println();
   }
   else
@@ -86,32 +88,32 @@ void setup()
 void loop()
 {
 
-  if (!Firebase.readStream(firebaseData2))
+  if (!Firebase.readStream(fbdo2))
   {
     Serial.println("Can't read stream data");
-    Serial.println("REASON: " + firebaseData2.errorReason());
+    Serial.println("REASON: " + fbdo2.errorReason());
     Serial.println();
   }
 
-  if (firebaseData2.streamTimeout())
+  if (fbdo2.streamTimeout())
   {
     Serial.println("Stream timeout, resume streaming...");
     Serial.println();
   }
 
-  if (firebaseData2.streamAvailable())
+  if (fbdo2.streamAvailable())
   {
     Serial.println("------------------------------------");
     Serial.println("Stream Data Available...");
-    Serial.println("STREAM PATH: " + firebaseData2.streamPath());
-    Serial.println("EVENT PATH: " + firebaseData2.dataPath());
-    Serial.println("DATA TYPE: " + firebaseData2.dataType());
-    Serial.println("EVENT TYPE: " + firebaseData2.eventType());
+    Serial.println("STREAM PATH: " + fbdo2.streamPath());
+    Serial.println("EVENT PATH: " + fbdo2.dataPath());
+    Serial.println("DATA TYPE: " + fbdo2.dataType());
+    Serial.println("EVENT TYPE: " + fbdo2.eventType());
     Serial.print("VALUE: ");
-    printResult(firebaseData2);
-    if (firebaseData2.dataType() == "blob")
+    printResult(fbdo2);
+    if (fbdo2.dataType() == "blob")
     {
-      std::vector<uint8_t> blob = firebaseData2.blobData();
+      std::vector<uint8_t> blob = fbdo2.blobData();
 
       Serial.println();
 
@@ -145,7 +147,7 @@ void loop()
 
     Serial.println("------------------------------------");
     Serial.println("Set Blob Data 1...");
-    if (Firebase.setBlob(firebaseData1, path + "/Stream/data1", data, sizeof(data)))
+    if (Firebase.setBlob(fbdo1, path + "/Stream/data1", data, sizeof(data)))
     {
       Serial.println("PASSED");
       Serial.println("------------------------------------");
@@ -154,7 +156,7 @@ void loop()
     else
     {
       Serial.println("FAILED");
-      Serial.println("REASON: " + firebaseData1.errorReason());
+      Serial.println("REASON: " + fbdo1.errorReason());
       Serial.println("------------------------------------");
       Serial.println();
     }
@@ -163,20 +165,20 @@ void loop()
     json.add("data1-1",count1).add("data1-2",count1 + 1).add("data1-3",count1 + 2);
     Serial.println("------------------------------------");
     Serial.println("Update Data 1...");
-    if (Firebase.updateNode(firebaseData1, path + "/Stream/data1", json))
+    if (Firebase.updateNode(fbdo1, path + "/Stream/data1", json))
     {
       Serial.println("PASSED");
-      Serial.println("PATH: " + firebaseData1.dataPath());
-      Serial.println("TYPE: " + firebaseData1.dataType());
+      Serial.println("PATH: " + fbdo1.dataPath());
+      Serial.println("TYPE: " + fbdo1.dataType());
       Serial.print("VALUE: ");
-      printResult(firebaseData1);
+      printResult(fbdo1);
       Serial.println("------------------------------------");
       Serial.println();
     }
     else
     {
       Serial.println("FAILED");
-      Serial.println("REASON: " + firebaseData1.errorReason());
+      Serial.println("REASON: " + fbdo1.errorReason());
       Serial.println("------------------------------------");
       Serial.println();
     }

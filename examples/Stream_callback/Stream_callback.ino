@@ -1,4 +1,4 @@
-/*
+/**
  * Created by K. Suwatchai (Mobizt)
  * 
  * Email: k_suwatchai@hotmail.com
@@ -6,23 +6,25 @@
  * Github: https://github.com/mobizt
  * 
  * Copyright (c) 2020 mobizt
- * 
- * This example is for FirebaseESP8266 Arduino library v 2.8.9 and later
  *
 */
 
-//FirebaseESP8266.h must be included before ESP8266WiFi.h
-#include "FirebaseESP8266.h"
 #include <ESP8266WiFi.h>
+#include <FirebaseESP8266.h>
 
-#define FIREBASE_HOST "YOUR_FIREBASE_PROJECT.firebaseio.com"
-#define FIREBASE_AUTH "YOUR_FIREBASE_DATABASE_SECRET"
-#define WIFI_SSID "YOUR_WIFI_AP"
-#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
+#define WIFI_SSID "WIFI_AP"
+#define WIFI_PASSWORD "WIFI_PASSWORD"
+
+#define FIREBASE_HOST "PROJECT_ID.firebaseio.com"
+
+/** The database secret is obsoleted, please use other authentication methods, 
+ * see examples in the Authentications folder. 
+*/
+#define FIREBASE_AUTH "DATABASE_SECRET"
 
 //Define FirebaseESP8266 data object
-FirebaseData firebaseData1;
-FirebaseData firebaseData2;
+FirebaseData fbdo1;
+FirebaseData fbdo2;
 
 unsigned long sendDataPrevMillis = 0;
 
@@ -77,30 +79,27 @@ void setup()
   Firebase.reconnectWiFi(true);
 
   //Set the size of WiFi rx/tx buffers in the case where we want to work with large data.
-  firebaseData1.setBSSLBufferSize(1024, 1024);
+  fbdo1.setBSSLBufferSize(1024, 1024);
 
   //Set the size of HTTP response buffers in the case where we want to work with large data.
-  firebaseData1.setResponseSize(1024);
-
+  fbdo1.setResponseSize(1024);
 
   //Set the size of WiFi rx/tx buffers in the case where we want to work with large data.
-  firebaseData2.setBSSLBufferSize(1024, 1024);
+  fbdo2.setBSSLBufferSize(1024, 1024);
 
   //Set the size of HTTP response buffers in the case where we want to work with large data.
-  firebaseData2.setResponseSize(1024);
+  fbdo2.setResponseSize(1024);
 
-
-
-  if (!Firebase.beginStream(firebaseData1, path))
+  if (!Firebase.beginStream(fbdo1, path))
   {
     Serial.println("------------------------------------");
     Serial.println("Can't begin stream connection...");
-    Serial.println("REASON: " + firebaseData1.errorReason());
+    Serial.println("REASON: " + fbdo1.errorReason());
     Serial.println("------------------------------------");
     Serial.println();
   }
 
-  Firebase.setStreamCallback(firebaseData1, streamCallback, streamTimeoutCallback);
+  Firebase.setStreamCallback(fbdo1, streamCallback, streamTimeoutCallback);
 }
 
 void loop()
@@ -116,20 +115,20 @@ void loop()
 
     FirebaseJson json;
     json.add("data", "hello").add("num", count);
-    if (Firebase.setJSON(firebaseData2, path + "/Json", json))
+    if (Firebase.setJSON(fbdo2, path + "/Json", json))
     {
       Serial.println("PASSED");
-      Serial.println("PATH: " + firebaseData2.dataPath());
-      Serial.println("TYPE: " + firebaseData2.dataType());
+      Serial.println("PATH: " + fbdo2.dataPath());
+      Serial.println("TYPE: " + fbdo2.dataType());
       Serial.print("VALUE: ");
-      printResult(firebaseData2);
+      printResult(fbdo2);
       Serial.println("------------------------------------");
       Serial.println();
     }
     else
     {
       Serial.println("FAILED");
-      Serial.println("REASON: " + firebaseData2.errorReason());
+      Serial.println("REASON: " + fbdo2.errorReason());
       Serial.println("------------------------------------");
       Serial.println();
     }

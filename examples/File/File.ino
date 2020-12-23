@@ -1,4 +1,4 @@
-/*
+/**
  * Created by K. Suwatchai (Mobizt)
  * 
  * Email: k_suwatchai@hotmail.com
@@ -6,26 +6,26 @@
  * Github: https://github.com/mobizt
  * 
  * Copyright (c) 2020 mobizt
- * 
- * This example is for FirebaseESP8266 Arduino library v 2.8.9 or later
  *
 */
 
-
 //This example shows how to store and read binary data from file on SD card to database.
 
-//FirebaseESP8266.h must be included before ESP8266WiFi.h
-#include "FirebaseESP8266.h"
 #include <ESP8266WiFi.h>
-#include <SD.h>
+#include <FirebaseESP8266.h>
 
-#define FIREBASE_HOST "YOUR_FIREBASE_PROJECT.firebaseio.com"
-#define FIREBASE_AUTH "YOUR_FIREBASE_DATABASE_SECRET"
-#define WIFI_SSID "YOUR_WIFI_AP"
-#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
+#define WIFI_SSID "WIFI_AP"
+#define WIFI_PASSWORD "WIFI_PASSWORD"
+
+#define FIREBASE_HOST "PROJECT_ID.firebaseio.com"
+
+/** The database secret is obsoleted, please use other authentication methods, 
+ * see examples in the Authentications folder. 
+*/
+#define FIREBASE_AUTH "DATABASE_SECRET"
 
 //Define Firebase Data object
-FirebaseData firebaseData;
+FirebaseData fbdo;
 
 String path = "/Test";
 
@@ -54,10 +54,10 @@ void setup()
   Firebase.reconnectWiFi(true);
 
   //Set the size of WiFi rx/tx buffers in the case where we want to work with large data.
-  firebaseData.setBSSLBufferSize(1024, 1024);
+  fbdo.setBSSLBufferSize(1024, 1024);
 
   //Set the size of HTTP response buffers in the case where we want to work with large data.
-  firebaseData.setResponseSize(1024);
+  fbdo.setResponseSize(1024);
 
   //Mount SD card
   if (!SD.begin(15))
@@ -95,7 +95,7 @@ void setup()
 
   //Set file (read file from SD card and set to database)
   //File name must be in 8.3 DOS format (max. 8 bytes file name and 3 bytes file extension)
-  if (Firebase.setFile(firebaseData, StorageType::SD, path + "/Binary/File/data", "/file1.txt"))
+  if (Firebase.setFile(fbdo, StorageType::SD, path + "/Binary/File/data", "/file1.txt"))
   {
     Serial.println("PASSED");
     Serial.println("------------------------------------");
@@ -104,7 +104,7 @@ void setup()
   else
   {
     Serial.println("FAILED");
-    Serial.println("REASON: " + firebaseData.fileTransferError());
+    Serial.println("REASON: " + fbdo.fileTransferError());
     Serial.println("------------------------------------");
     Serial.println();
   }
@@ -114,7 +114,7 @@ void setup()
 
   //Get file (download file to SD card)
   //File name must be in 8.3 DOS format (max. 8 bytes file name and 3 bytes file extension)
-  if (Firebase.getFile(firebaseData, StorageType::SD, path + "/Binary/File/data", "/file2.txt"))
+  if (Firebase.getFile(fbdo, StorageType::SD, path + "/Binary/File/data", "/file2.txt"))
   {
 
     Serial.println("PASSED");
@@ -147,7 +147,7 @@ void setup()
   {
 
     Serial.println("FAILED");
-    Serial.println("REASON: " + firebaseData.fileTransferError());
+    Serial.println("REASON: " + fbdo.fileTransferError());
     Serial.println("------------------------------------");
     Serial.println();
   }
@@ -167,11 +167,11 @@ void setup()
 
   //Append file data to database
   //File name must be in 8.3 DOS format (max. 8 bytes file name and 3 bytes file extension)
-  if (Firebase.pushFile(firebaseData, StorageType::SD, path + "/Binary/File/Logs", "/file1.txt"))
+  if (Firebase.pushFile(fbdo, StorageType::SD, path + "/Binary/File/Logs", "/file1.txt"))
   {
     Serial.println("PASSED");
-    Serial.println("PATH: " + firebaseData.dataPath());
-    Serial.println("PUSH NAME: " + firebaseData.pushName());
+    Serial.println("PATH: " + fbdo.dataPath());
+    Serial.println("PUSH NAME: " + fbdo.pushName());
     Serial.println("------------------------------------");
 
     Serial.println();
@@ -181,7 +181,7 @@ void setup()
 
     //Get the recently appended file (download file to SD card)
     //File name must be in 8.3 DOS format (max. 8 bytes file name and 3 bytes file extension)
-    if (Firebase.getFile(firebaseData, StorageType::SD, path + "/Binary/File/Logs/" + firebaseData.pushName(), "/file3.txt"))
+    if (Firebase.getFile(fbdo, StorageType::SD, path + "/Binary/File/Logs/" + fbdo.pushName(), "/file3.txt"))
     {
 
       Serial.println("PASSED");
@@ -214,7 +214,7 @@ void setup()
     {
 
       Serial.println("FAILED");
-      Serial.println("REASON: " + firebaseData.fileTransferError());
+      Serial.println("REASON: " + fbdo.fileTransferError());
       Serial.println("------------------------------------");
       Serial.println();
     }
@@ -222,7 +222,7 @@ void setup()
   else
   {
     Serial.println("FAILED");
-    Serial.println("REASON: " + firebaseData.fileTransferError());
+    Serial.println("REASON: " + fbdo.fileTransferError());
     Serial.println("------------------------------------");
     Serial.println();
   }

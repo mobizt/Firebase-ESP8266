@@ -1,5 +1,4 @@
-
-/*
+/**
  * Created by K. Suwatchai (Mobizt)
  * 
  * Email: k_suwatchai@hotmail.com
@@ -7,25 +6,27 @@
  * Github: https://github.com/mobizt
  * 
  * Copyright (c) 2020 mobizt
- * 
- * This example is for FirebaseESP8266 Arduino library v 2.8.9 or later
  *
 */
 
 //This example shows how to set and delete data with checking the matching between node path ETag (unique identifier string)
 //and provided Etag
 
-//FirebaseESP8266.h must be included before ESP8266WiFi.h
-#include "FirebaseESP8266.h"
 #include <ESP8266WiFi.h>
+#include <FirebaseESP8266.h>
 
-#define WIFI_SSID "YOUR_WIFI_AP"
-#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
-#define FIREBASE_HOST "YOUR_FIREBASE_PROJECT.firebaseio.com"
-#define FIREBASE_AUTH "YOUR_FIREBASE_DATABASE_SECRET"
+#define WIFI_SSID "WIFI_AP"
+#define WIFI_PASSWORD "WIFI_PASSWORD"
+
+#define FIREBASE_HOST "PROJECT_ID.firebaseio.com"
+
+/** The database secret is obsoleted, please use other authentication methods, 
+ * see examples in the Authentications folder. 
+*/
+#define FIREBASE_AUTH "DATABASE_SECRET"
 
 //Define Firebase Data object
-FirebaseData firebaseData;
+FirebaseData fbdo;
 
 void printResult(FirebaseData &data);
 
@@ -53,10 +54,10 @@ void setup()
     Firebase.reconnectWiFi(true);
 
     //Set the size of WiFi rx/tx buffers in the case where we want to work with large data.
-    firebaseData.setBSSLBufferSize(1024, 1024);
+    fbdo.setBSSLBufferSize(1024, 1024);
 
     //Set the size of HTTP response buffers in the case where we want to work with large data.
-    firebaseData.setResponseSize(1024);
+    fbdo.setResponseSize(1024);
 
     String path = "/Test";
 
@@ -66,22 +67,22 @@ void setup()
     Serial.println("------------------------------------");
     Serial.println("Set integer without ETag test...");
 
-    if (Firebase.setInt(firebaseData, path + "/Int/Data", 100))
+    if (Firebase.setInt(fbdo, path + "/Int/Data", 100))
     {
         Serial.println("PASSED");
-        Serial.println("PATH: " + firebaseData.dataPath());
-        Serial.println("TYPE: " + firebaseData.dataType());
-        Serial.println("CURRENT ETag: " + firebaseData.ETag());
-        ETag = firebaseData.ETag();
+        Serial.println("PATH: " + fbdo.dataPath());
+        Serial.println("TYPE: " + fbdo.dataType());
+        Serial.println("CURRENT ETag: " + fbdo.ETag());
+        ETag = fbdo.ETag();
         Serial.print("VALUE: ");
-        printResult(firebaseData);
+        printResult(fbdo);
         Serial.println("------------------------------------");
         Serial.println();
     }
     else
     {
         Serial.println("FAILED");
-        Serial.println("REASON: " + firebaseData.errorReason());
+        Serial.println("REASON: " + fbdo.errorReason());
         Serial.println("------------------------------------");
         Serial.println();
     }
@@ -89,22 +90,22 @@ void setup()
     Serial.println("------------------------------------");
     Serial.println("Set integer with valid ETag test...");
 
-    if (Firebase.setInt(firebaseData, path + "/Int/Data", 200))
+    if (Firebase.setInt(fbdo, path + "/Int/Data", 200))
     {
         Serial.println("PASSED");
-        Serial.println("PATH: " + firebaseData.dataPath());
-        Serial.println("TYPE: " + firebaseData.dataType());
-        Serial.println("CURRENT ETag: " + firebaseData.ETag());
-        ETag = firebaseData.ETag();
+        Serial.println("PATH: " + fbdo.dataPath());
+        Serial.println("TYPE: " + fbdo.dataType());
+        Serial.println("CURRENT ETag: " + fbdo.ETag());
+        ETag = fbdo.ETag();
         Serial.print("VALUE: ");
-        printResult(firebaseData);
+        printResult(fbdo);
         Serial.println("------------------------------------");
         Serial.println();
     }
     else
     {
         Serial.println("FAILED");
-        Serial.println("REASON: " + firebaseData.errorReason());
+        Serial.println("REASON: " + fbdo.errorReason());
         Serial.println("------------------------------------");
         Serial.println();
     }
@@ -112,33 +113,33 @@ void setup()
     Serial.println("------------------------------------");
     Serial.println("Set integer with wrong ETag test...");
 
-    if (Firebase.setInt(firebaseData, path + "/Int/Data", 300, wrong_ETag))
+    if (Firebase.setInt(fbdo, path + "/Int/Data", 300, wrong_ETag))
     {
         Serial.println("PASSED");
-        Serial.println("PATH: " + firebaseData.dataPath());
-        Serial.println("TYPE: " + firebaseData.dataType());
-        Serial.println("ETag: " + firebaseData.ETag());
-        ETag = firebaseData.ETag();
+        Serial.println("PATH: " + fbdo.dataPath());
+        Serial.println("TYPE: " + fbdo.dataType());
+        Serial.println("ETag: " + fbdo.ETag());
+        ETag = fbdo.ETag();
         Serial.print("VALUE: ");
-        printResult(firebaseData);
+        printResult(fbdo);
         Serial.println("------------------------------------");
         Serial.println();
     }
     else
     {
         Serial.println("FAILED");
-        Serial.println("REASON: " + firebaseData.errorReason());
+        Serial.println("REASON: " + fbdo.errorReason());
 
         //If provided ETag is not match to current ETag (httpCode 412)
-        if (firebaseData.httpCode() == 412)
+        if (fbdo.httpCode() == 412)
         {
-            Serial.println("PATH: " + firebaseData.dataPath());
-            Serial.println("TYPE: " + firebaseData.dataType());
+            Serial.println("PATH: " + fbdo.dataPath());
+            Serial.println("TYPE: " + fbdo.dataType());
             Serial.println("PROVIDED ETag: " + wrong_ETag);
-            Serial.println("CURRENT ETag: " + firebaseData.ETag());
-            ETag = firebaseData.ETag();
+            Serial.println("CURRENT ETag: " + fbdo.ETag());
+            ETag = fbdo.ETag();
             Serial.print("CURRENT VALUE: ");
-            printResult(firebaseData);
+            printResult(fbdo);
         }
 
         Serial.println("------------------------------------");
@@ -147,11 +148,11 @@ void setup()
 
     Serial.println("------------------------------------");
     Serial.println("Delete node with wrong ETag test...");
-    if (Firebase.deleteNode(firebaseData, path + "/Int/Data", wrong_ETag))
+    if (Firebase.deleteNode(fbdo, path + "/Int/Data", wrong_ETag))
     {
 
         Serial.println("PASSED");
-        Serial.println("CURRENT ETag: " + firebaseData.ETag());
+        Serial.println("CURRENT ETag: " + fbdo.ETag());
         Serial.println("------------------------------------");
         Serial.println();
     }
@@ -159,7 +160,7 @@ void setup()
     {
 
         Serial.println("FAILED");
-        Serial.println("REASON: " + firebaseData.errorReason());
+        Serial.println("REASON: " + fbdo.errorReason());
         Serial.println("------------------------------------");
         Serial.println();
     }

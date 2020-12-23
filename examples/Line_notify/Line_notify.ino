@@ -1,4 +1,4 @@
-/*
+/**
  * Created by K. Suwatchai (Mobizt)
  * 
  * Email: k_suwatchai@hotmail.com
@@ -6,8 +6,6 @@
  * Github: https://github.com/mobizt
  * 
  * Copyright (c) 2020 mobizt
- * 
- * This example is for FirebaseESP8266 Arduino library v 2.8.9 or later
  *
 */
 
@@ -15,20 +13,22 @@
 
 //Required Line Notify Library for ESP8266 https://github.com/mobizt/Line-Notify-ESP8266
 
-//FirebaseESP8266.h must be included before ESP8266WiFi.h
-#include "FirebaseESP8266.h"
-#include <LineNotifyESP8266.h>
 #include <ESP8266WiFi.h>
+#include <FirebaseESP8266.h>
+#include <LineNotifyESP8266.h>
 
-#define WIFI_SSID "YOUR_WIFI_AP"
-#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
-#define FIREBASE_HOST "YOUR_FIREBASE_PROJECT.firebaseio.com" //Without http:// or https:// schemes
-#define FIREBASE_AUTH "YOUR_FIREBASE_DATABASE_SECRET"
-#define LINE_TOKEN "YOUR_LINE_NOTIFY_TOKEN"
+#define WIFI_SSID "WIFI_AP"
+#define WIFI_PASSWORD "WIFI_PASSWORD"
 
+#define FIREBASE_HOST "PROJECT_ID.firebaseio.com"
+
+/** The database secret is obsoleted, please use other authentication methods, 
+ * see examples in the Authentications folder. 
+*/
+#define FIREBASE_AUTH "DATABASE_SECRET"
 
 //Define Firebase Data object
-FirebaseData firebaseData;
+FirebaseData fbdo;
 
 LineNotifyHTTPClient net;
 
@@ -69,17 +69,17 @@ void setup()
   Firebase.reconnectWiFi(true);
 
   //Set the size of WiFi rx/tx buffers in the case where we want to work with large data.
-  firebaseData.setBSSLBufferSize(1024, 1024);
+  fbdo.setBSSLBufferSize(1024, 1024);
 
   //Set the size of HTTP response buffers in the case where we want to work with large data.
-  firebaseData.setResponseSize(1024);
+  fbdo.setResponseSize(1024);
 
   Serial.println("------------------------------------");
   Serial.println("Begin stream...");
-  if (!Firebase.beginStream(firebaseData, path + "/Stream/String"))
+  if (!Firebase.beginStream(fbdo, path + "/Stream/String"))
   {
     Serial.println("FAILED");
-    Serial.println("REASON: " + firebaseData.errorReason());
+    Serial.println("REASON: " + fbdo.errorReason());
     Serial.println("------------------------------------");
     Serial.println();
   }
@@ -101,31 +101,31 @@ void loop()
 
     Serial.println("------------------------------------");
     Serial.println("Set Data...");
-    if (Firebase.set(firebaseData, path + "/Stream/String", "Hello World! " + String(count)))
+    if (Firebase.set(fbdo, path + "/Stream/String", "Hello World! " + String(count)))
     {
       Serial.println("PASSED");
-      Serial.println("PATH: " + firebaseData.dataPath());
-      Serial.println("TYPE: " + firebaseData.dataType());
+      Serial.println("PATH: " + fbdo.dataPath());
+      Serial.println("TYPE: " + fbdo.dataType());
       Serial.print("VALUE: ");
-      printResult(firebaseData);
+      printResult(fbdo);
       Serial.println("------------------------------------");
       Serial.println();
     }
     else
     {
       Serial.println("FAILED");
-      Serial.println("REASON: " + firebaseData.errorReason());
+      Serial.println("REASON: " + fbdo.errorReason());
       Serial.println("------------------------------------");
       Serial.println();
     }
 
-    if (firebaseData.pauseFirebase(true))
+    if (fbdo.pauseFirebase(true))
     {
 
       Serial.println("------------------------------------");
       Serial.println("Send Line Message...");
 
-      //Pause Firebase and use WiFiClient accessed through firebaseData.http
+      //Pause Firebase and use WiFiClient accessed through fbdo.http
       uint8_t status = lineNotify.sendLineMessage("Instant sending message after call!");
       if (status == LineNotifyESP8266::LineStatus::SENT_COMPLETED)
       {
@@ -142,7 +142,7 @@ void loop()
       Serial.println();
 
       //Unpause Firebase
-      firebaseData.pauseFirebase(false);
+      fbdo.pauseFirebase(false);
     }
     else
     {
@@ -154,7 +154,7 @@ void loop()
   if (millis() - sendMessagePrevMillis > 60000)
   {
     sendMessagePrevMillis = millis();
-    if (firebaseData.pauseFirebase(true))
+    if (fbdo.pauseFirebase(true))
     {
 
       Serial.println("------------------------------------");
@@ -176,7 +176,7 @@ void loop()
       Serial.println();
 
       //Unpause Firebase
-      firebaseData.pauseFirebase(false);
+      fbdo.pauseFirebase(false);
     }
     else
     {
@@ -184,32 +184,32 @@ void loop()
     }
   }
 
-  if (!Firebase.readStream(firebaseData))
+  if (!Firebase.readStream(fbdo))
   {
     Serial.println("------------------------------------");
     Serial.println("Read stream...");
     Serial.println("FAILED");
-    Serial.println("REASON: " + firebaseData.errorReason());
+    Serial.println("REASON: " + fbdo.errorReason());
     Serial.println("------------------------------------");
     Serial.println();
   }
 
-  if (firebaseData.streamTimeout())
+  if (fbdo.streamTimeout())
   {
     Serial.println("Stream timeout, resume streaming...");
     Serial.println();
   }
 
-  if (firebaseData.streamAvailable())
+  if (fbdo.streamAvailable())
   {
     Serial.println("------------------------------------");
     Serial.println("Stream Data available...");
-    Serial.println("STREAM PATH: " + firebaseData.streamPath());
-    Serial.println("EVENT PATH: " + firebaseData.dataPath());
-    Serial.println("DATA TYPE: " + firebaseData.dataType());
-    Serial.println("EVENT TYPE: " + firebaseData.eventType());
+    Serial.println("STREAM PATH: " + fbdo.streamPath());
+    Serial.println("EVENT PATH: " + fbdo.dataPath());
+    Serial.println("DATA TYPE: " + fbdo.dataType());
+    Serial.println("EVENT TYPE: " + fbdo.eventType());
     Serial.print("VALUE: ");
-    printResult(firebaseData);
+    printResult(fbdo);
     Serial.println("------------------------------------");
     Serial.println();
   }

@@ -1,11 +1,12 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 3.0.3
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 3.0.4
  * 
- * November 12, 2020
+ * December 24, 2020
  * 
- * Updates:
- * - Fix the internal find string function error caused wdt reset. 
- * - Fix the response buffer size issue.
+ *   Updates:
+ * - Add support for more authentication methods.
+ * - Remove the domain name checking for the host name parsing.
+ * - Update examples and documents for new authentication support
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -47,54 +48,290 @@ FirebaseESP8266::FirebaseESP8266()
 
 FirebaseESP8266::~FirebaseESP8266()
 {
-    std::string().swap(_host);
-    std::string().swap(_auth);
-    _caCert.reset();
+    if (_caCert)
+        _caCert.reset();
     _caCert = nullptr;
+}
+
+void FirebaseESP8266::begin(FirebaseConfig *config, FirebaseAuth *auth)
+{
+    _auth = auth;
+    _cfg = config;
+
+    if (_cfg == nullptr)
+        _cfg = &_cfg_;
+
+    if (_auth == nullptr)
+        _auth = &_auth_;
+
+    _cfg->signer.signup = false;
+    _cfg_.signer.signup = false;
+    std::string().swap(_cfg_.signer.tokens.error.message);
+
+    if (_cfg->service_account.json.path.length() > 0)
+    {
+        if (!parseSAFile())
+            _cfg->signer.tokens.status = token_status_uninitialized;
+    }
+
+    if (tokenSigninDataReady())
+    {
+
+        if (_auth->token.uid.length() == 0)
+            setTokenType(token_type_oauth2_access_token);
+        else
+            setTokenType(token_type_custom_token);
+    }
+    else if (userSigninDataReady())
+        setTokenType(token_type_id_token);
+    else if (_cfg->signer.tokens.legacy_token.length() > 0)
+        setTokenType(token_type_legacy_token);
+
+    struct fb_esp_url_info_t uinfo;
+    getUrlInfo(_cfg->host.c_str(), uinfo);
+    _cfg->host = uinfo.host;
+
+    if (strlen_P(_cfg->cert.data))
+        _caCert = std::shared_ptr<const char>(_cfg->cert.data);
+
+    if (_cfg->cert.file.length() > 0)
+    {
+        if (_cfg->cert.file_storage == StorageType::SD && !_sdOk)
+            _sdOk = sdTest();
+        else if (_cfg->cert.file_storage == StorageType::FLASH && !_flashOk)
+            _flashOk = FLASH_FS.begin();
+    }
+
+    hanldeToken();
 }
 
 void FirebaseESP8266::begin(const String &host, const String &auth)
 {
-    std::string u, a;
-    _host.clear();
-    _auth.clear();
-    _caCert = nullptr;
-    _caCertFile.clear();
-    getUrlInfo(host.c_str(), _host, u, a);
-    std::string().swap(u);
-    std::string().swap(a);
-    _auth = auth.c_str();
-    _port = FIREBASE_PORT;
+    _cfg_.host = host.c_str();
+    _cfg_.signer.tokens.legacy_token = auth.c_str();
+    begin(&_cfg_, &_auth_);
 }
 
 void FirebaseESP8266::begin(const String &host, const String &auth, const char *caCert, float GMTOffset)
 {
-    begin(host, auth);
-    if (caCert)
+    _cfg_.host = host.c_str();
+    _cfg_.signer.tokens.legacy_token = auth.c_str();
+    if (strlen_P(caCert))
     {
+        _cfg_.cert.data = caCert;
         if (GMTOffset >= -12.0 && GMTOffset <= 14.0)
             _gmtOffset = GMTOffset;
-
         setClock(_gmtOffset);
-
-        _caCert = std::shared_ptr<const char>(caCert);
     }
+    begin(&_cfg_, &_auth_);
 }
 
 void FirebaseESP8266::begin(const String &host, const String &auth, const String &caCertFile, uint8_t storageType, float GMTOffset)
 {
-    begin(host, auth);
-
+    _cfg_.host = host.c_str();
+    _cfg_.signer.tokens.legacy_token = auth.c_str();
     if (caCertFile.length() > 0)
     {
+        _cfg_.cert.file = caCertFile.c_str();
+        _cfg_.cert.file_storage = storageType;
         if (GMTOffset >= -12.0 && GMTOffset <= 14.0)
             _gmtOffset = GMTOffset;
-
         setClock(_gmtOffset);
-        _caCertFile = caCertFile.c_str();
-        _caCertFileStoreageType = storageType;
-        if (storageType == StorageType::SD && !_sdOk)
-            _sdOk = sdTest();
+    }
+    begin(&_cfg_, &_auth_);
+}
+
+bool FirebaseESP8266::signUp(FirebaseConfig *config, FirebaseAuth *auth, const char *email, const char *password)
+{
+    _auth = auth;
+    _cfg = config;
+
+    if (_auth == nullptr)
+        _auth = &_auth_;
+    if (_cfg == nullptr)
+        _cfg = &_cfg_;
+
+    return getIdToken(true, email, password);
+}
+
+bool FirebaseESP8266::sendEmailVerification(FirebaseConfig *config, const char *idToken)
+{
+    _cfg = config;
+    if (_cfg == nullptr)
+        _cfg = &_cfg_;
+    return handleEmailSending(idToken, fb_esp_user_email_sending_type_verify);
+}
+
+bool FirebaseESP8266::sendResetPassword(FirebaseConfig *config, const char *email)
+{
+    _cfg = config;
+    if (_cfg == nullptr)
+        _cfg = &_cfg_;
+    return handleEmailSending(email, fb_esp_user_email_sending_type_reset_psw);
+}
+
+bool FirebaseESP8266::tokenSigninDataReady()
+{
+    if (!_cfg)
+        return false;
+    return (strlen_P(_cfg->service_account.data.private_key) > 0 || _cfg->signer.pk.length() > 0) && _cfg->service_account.data.client_email.length() > 0 && _cfg->service_account.data.project_id.length() > 0;
+}
+
+bool FirebaseESP8266::userSigninDataReady()
+{
+    if (!_auth || !_auth)
+        return false;
+    return _cfg->api_key.length() > 0 && _auth->user.email.length() > 0 && _auth->user.password.length() > 0;
+}
+
+void FirebaseESP8266::clearSA()
+{
+    _cfg->service_account.data.private_key = "";
+    _cfg->service_account.data.project_id.clear();
+    _cfg->service_account.data.private_key_id.clear();
+    _cfg->service_account.data.client_email.clear();
+    std::string().swap(_cfg->signer.pk);
+}
+
+bool FirebaseESP8266::parseSAFile()
+{
+    if (_cfg->signer.pk.length() > 0)
+        return false;
+
+    if (_cfg->service_account.json.storage_type == StorageType::SD && !_sdOk)
+        _sdOk = sdTest();
+    else if (_cfg->service_account.json.storage_type == StorageType::FLASH && !_flashOk)
+        _flashOk = FLASH_FS.begin();
+
+    if (_sdOk || _flashOk)
+    {
+        if (_cfg->service_account.json.storage_type == StorageType::FLASH)
+        {
+            if (SPIFFS.exists(_cfg->service_account.json.path.c_str()))
+                _file = FLASH_FS.open(_cfg->service_account.json.path.c_str(), "r");
+        }
+        else
+        {
+            if (SD.exists(_cfg->service_account.json.path.c_str()))
+                file = SD.open(_cfg->service_account.json.path.c_str(), "r");
+        }
+
+        if (file || _file)
+        {
+            clearSA();
+            _cfg->signer.json = new FirebaseJson();
+            _cfg->signer.data = new FirebaseJsonData();
+            char *tmp = nullptr;
+
+            if (_cfg->service_account.json.storage_type == StorageType::FLASH)
+            {
+                size_t len = _file.size();
+                char *buf = newS(len + 10);
+                if (_file.available())
+                {
+                    _file.readBytes(buf, len);
+                    _cfg->signer.json->setJsonData(buf);
+                }
+                _file.close();
+                delS(buf);
+            }
+            else if (_cfg->service_account.json.storage_type == StorageType::SD)
+            {
+                size_t len = file.size();
+                char *buf = newS(len + 10);
+                if (file.available())
+                {
+                    file.readBytes(buf, len);
+                    _cfg->signer.json->setJsonData(buf);
+                }
+                file.close();
+                delS(buf);
+            }
+
+            tmp = strP(fb_esp_pgm_str_243);
+            _cfg->signer.json->get(*_cfg->signer.data, (const char *)tmp);
+            delS(tmp);
+            if (_cfg->signer.data->success)
+            {
+                if (strposP(_cfg->signer.data->stringValue.c_str(), fb_esp_pgm_str_244, 0) > -1)
+                {
+                    tmp = strP(fb_esp_pgm_str_245);
+                    _cfg->signer.json->get(*_cfg->signer.data, (const char *)tmp);
+                    delS(tmp);
+                    if (_cfg->signer.data->success)
+                        _cfg->service_account.data.project_id = _cfg->signer.data->stringValue.c_str();
+                    tmp = strP(fb_esp_pgm_str_246);
+                    _cfg->signer.json->get(*_cfg->signer.data, (const char *)tmp);
+                    delS(tmp);
+                    if (_cfg->signer.data->success)
+                        _cfg->service_account.data.private_key_id = _cfg->signer.data->stringValue.c_str();
+                    tmp = strP(fb_esp_pgm_str_247);
+                    _cfg->signer.json->get(*_cfg->signer.data, (const char *)tmp);
+                    delS(tmp);
+                    if (_cfg->signer.data->success)
+                    {
+                        tmp = newS(_cfg->signer.data->stringValue.length());
+                        size_t c = 0;
+                        for (size_t i = 0; i < _cfg->signer.data->stringValue.length(); i++)
+                        {
+                            if (_cfg->signer.data->stringValue[i] == '\\')
+                            {
+                                delay(0);
+                                tmp[c++] = '\n';
+                                i++;
+                            }
+                            else
+                                tmp[c++] = _cfg->signer.data->stringValue[i];
+                        }
+                        _cfg->signer.pk = tmp;
+                        _cfg->signer.data->stringValue.clear();
+                        delS(tmp);
+                    }
+
+                    tmp = strP(fb_esp_pgm_str_248);
+                    _cfg->signer.json->get(*_cfg->signer.data, (const char *)tmp);
+                    delS(tmp);
+                    if (_cfg->signer.data->success)
+                        _cfg->service_account.data.client_email = _cfg->signer.data->stringValue.c_str();
+                    tmp = strP(fb_esp_pgm_str_253);
+                    _cfg->signer.json->get(*_cfg->signer.data, (const char *)tmp);
+                    delS(tmp);
+                    if (_cfg->signer.data->success)
+                        _cfg->service_account.data.client_id = _cfg->signer.data->stringValue.c_str();
+
+                    delete _cfg->signer.json;
+                    delete _cfg->signer.data;
+                    return true;
+                }
+            }
+
+            delete _cfg->signer.json;
+            delete _cfg->signer.data;
+        }
+    }
+
+    return false;
+}
+
+void FirebaseESP8266::setTokenType(fb_esp_auth_token_type type)
+{
+    _cfg->signer.tokens.token_type = type;
+
+    switch (type)
+    {
+
+    case token_type_custom_token:
+    case token_type_oauth2_access_token:
+        break;
+    case token_type_id_token:
+        break;
+
+    case token_type_legacy_token:
+        _cfg->signer.tokens.status = token_status_ready;
+        break;
+
+    default:
+        break;
     }
 }
 
@@ -103,6 +340,1157 @@ void FirebaseESP8266::end(FirebaseData &fbdo)
     endStream(fbdo);
     removeStreamCallback(fbdo);
     fbdo.clear();
+}
+
+bool FirebaseESP8266::handleSignerError(int code)
+{
+    if (code > 0)
+    {
+        if (_cfg->signer.attempts >= MAX_EXCHANGE_TOKEN_ATTEMPTS)
+        {
+            _cfg->signer.attempts = 0;
+            _cfg->signer.step = fb_esp_jwt_generation_step_begin;
+        }
+    }
+
+    switch (code)
+    {
+
+    case 1:
+        setTokenError(FIREBASE_ERROR_HTTPC_ERROR_NOT_CONNECTED);
+        break;
+    case 2:
+        _cfg->signer.wcs->stop();
+        setTokenError(FIREBASE_ERROR_HTTPC_ERROR_CONNECTION_LOST);
+        break;
+    case 3:
+        _cfg->signer.wcs->stop();
+        setTokenError(FIREBASE_ERROR_HTTP_CODE_REQUEST_TIMEOUT);
+        break;
+
+    default:
+        break;
+    }
+
+    std::string().swap(_cfg->signer.tokens.jwt);
+
+    if (_cfg->signer.wcs)
+        delete _cfg->signer.wcs;
+    if (_cfg->signer.json)
+        delete _cfg->signer.json;
+    if (_cfg->signer.data)
+        delete _cfg->signer.data;
+
+    processing = false;
+
+    if (code > 0 && code < 4)
+    {
+        _cfg->signer.tokens.status = token_status_error;
+        _cfg->signer.tokens.error.code = code;
+        return false;
+    }
+    else if (code == 0)
+    {
+        _cfg->signer.tokens.status = token_status_ready;
+        _cfg->signer.attempts = 0;
+        _cfg->signer.step = fb_esp_jwt_generation_step_begin;
+        return true;
+    }
+
+    return false;
+}
+
+bool FirebaseESP8266::getIdToken(bool createUser, const char *email, const char *password)
+{
+
+    _cfg->signer.attempts++;
+    _cfg->signer.signup = false;
+    delay(0);
+
+    if (_auth == nullptr)
+        return false;
+
+    if (_cfg->signer.tokens.status == token_status_on_request || _cfg->signer.tokens.status == token_status_on_refresh || processing)
+        return false;
+
+    _cfg->signer.tokens.status = token_status_on_request;
+    processing = true;
+
+    setTokenError(FIREBASE_ERROR_TOKEN_NOT_REDY);
+
+    _cfg->signer.wcs = new WiFiClientSecure();
+    _cfg->signer.json = new FirebaseJson();
+    _cfg->signer.data = new FirebaseJsonData();
+    _cfg->signer.wcs->setInsecure();
+    _cfg->signer.wcs->setBufferSizes(512, 512);
+
+    std::string host;
+    if (createUser)
+        appendP(host, fb_esp_pgm_str_250);
+    else
+        appendP(host, fb_esp_pgm_str_193);
+    appendP(host, fb_esp_pgm_str_4);
+    appendP(host, fb_esp_pgm_str_120);
+
+    int ret = _cfg->signer.wcs->connect(host.c_str(), 443);
+
+    if (ret == 0)
+        return handleSignerError(1);
+
+    char *tmp = strP(fb_esp_pgm_str_196);
+    if (createUser)
+    {
+        std::string().swap(_cfg->signer.signupError.message);
+        if (strlen(email) > 0 && strlen(password) > 0)
+            _cfg->signer.json->add(tmp, email);
+    }
+    else
+        _cfg->signer.json->add(tmp, _auth->user.email.c_str());
+    delS(tmp);
+    tmp = strP(fb_esp_pgm_str_197);
+    if (createUser)
+    {
+        if (strlen(email) > 0 && strlen(password) > 0)
+            _cfg->signer.json->add(tmp, password);
+    }
+    else
+        _cfg->signer.json->add(tmp, _auth->user.password.c_str());
+    delS(tmp);
+    tmp = strP(fb_esp_pgm_str_198);
+    _cfg->signer.json->add(tmp, true);
+    delS(tmp);
+
+    String s;
+    _cfg->signer.json->toString(s);
+
+    std::string req;
+    appendP(req, fb_esp_pgm_str_24);
+    appendP(req, fb_esp_pgm_str_6);
+
+    if (createUser)
+        appendP(req, fb_esp_pgm_str_259);
+    else
+    {
+        appendP(req, fb_esp_pgm_str_194);
+        appendP(req, fb_esp_pgm_str_195);
+    }
+
+    req += _cfg->api_key;
+    appendP(req, fb_esp_pgm_str_30);
+
+    appendP(req, fb_esp_pgm_str_31);
+    if (createUser)
+        appendP(req, fb_esp_pgm_str_250);
+    else
+        appendP(req, fb_esp_pgm_str_193);
+    appendP(req, fb_esp_pgm_str_4);
+    appendP(req, fb_esp_pgm_str_120);
+    appendP(req, fb_esp_pgm_str_21);
+    appendP(req, fb_esp_pgm_str_32);
+    appendP(req, fb_esp_pgm_str_12);
+    tmp = intStr(s.length());
+    req += tmp;
+    delS(tmp);
+    appendP(req, fb_esp_pgm_str_21);
+    appendP(req, fb_esp_pgm_str_8);
+    appendP(req, fb_esp_pgm_str_129);
+    appendP(req, fb_esp_pgm_str_21);
+    appendP(req, fb_esp_pgm_str_21);
+
+    req += s.c_str();
+    size_t sz = req.length();
+    size_t len = _cfg->signer.wcs->print(req.c_str());
+    std::string().swap(req);
+    if (len != sz)
+        return handleSignerError(2);
+
+    _cfg->signer.json->clear();
+
+    if (handleTokenResponse(_cfg->signer.wcs, _cfg->signer.json))
+    {
+        struct fb_esp_auth_token_error_t error;
+
+        tmp = strP(fb_esp_pgm_str_257);
+        _cfg->signer.json->get(*_cfg->signer.data, tmp);
+        delS(tmp);
+
+        if (_cfg->signer.data->success)
+        {
+            error.code = _cfg->signer.data->intValue;
+            if (!createUser)
+                _cfg->signer.tokens.status = token_status_error;
+
+            tmp = strP(fb_esp_pgm_str_258);
+            _cfg->signer.json->get(*_cfg->signer.data, tmp);
+            delS(tmp);
+            if (_cfg->signer.data->success)
+                error.message = _cfg->signer.data->stringValue.c_str();
+        }
+        if (createUser)
+            _cfg->signer.signupError = error;
+        else
+            _cfg->signer.tokens.error = error;
+
+        if (error.code == 0)
+        {
+            if (createUser)
+            {
+                _cfg->signer.signup = true;
+                _cfg->signer.tokens.token_type = token_type_id_token;
+                _auth->user.email = email;
+                _auth->user.password = password;
+            }
+
+            tmp = strP(fb_esp_pgm_str_200);
+            _cfg->signer.json->get(*_cfg->signer.data, tmp);
+            delS(tmp);
+            if (_cfg->signer.data->success)
+                _cfg->signer.tokens.id_token = _cfg->signer.data->stringValue.c_str();
+            tmp = strP(fb_esp_pgm_str_201);
+            _cfg->signer.json->get(*_cfg->signer.data, tmp);
+            delS(tmp);
+            if (_cfg->signer.data->success)
+                _cfg->signer.tokens.refresh_token = _cfg->signer.data->stringValue.c_str();
+
+            tmp = strP(fb_esp_pgm_str_202);
+            _cfg->signer.json->get(*_cfg->signer.data, tmp);
+            delS(tmp);
+            if (_cfg->signer.data->success)
+                _cfg->signer.tokens.expires = millis() + (1000 * atoi(_cfg->signer.data->stringValue.c_str()));
+
+            tmp = strP(fb_esp_pgm_str_175);
+            _cfg->signer.json->get(*_cfg->signer.data, tmp);
+            delS(tmp);
+            if (_cfg->signer.data->success)
+                _auth->token.uid = _cfg->signer.data->stringValue.c_str();
+
+            _cfg->signer.json->clear();
+            return handleSignerError(0);
+        }
+
+        return handleSignerError(4);
+    }
+
+    return handleSignerError(3);
+}
+
+bool FirebaseESP8266::handleEmailSending(const char *payload, fb_esp_user_email_sending_type type)
+{
+
+    delay(0);
+
+    if (processing)
+        return false;
+
+    processing = true;
+
+    _cfg->signer.wcs = new WiFiClientSecure();
+    _cfg->signer.json = new FirebaseJson();
+    _cfg->signer.data = new FirebaseJsonData();
+    _cfg->signer.wcs->setInsecure();
+    _cfg->signer.wcs->setBufferSizes(512, 512);
+
+    std::string host;
+    appendP(host, fb_esp_pgm_str_193);
+    appendP(host, fb_esp_pgm_str_4);
+    appendP(host, fb_esp_pgm_str_120);
+
+    int ret = _cfg->signer.wcs->connect(host.c_str(), 443);
+
+    if (ret == 0)
+        return handleSignerError(1);
+
+    char *tmp = strP(fb_esp_pgm_str_260);
+    char *tmp2 = nullptr;
+    if (type == fb_esp_user_email_sending_type_verify)
+    {
+        std::string().swap(_cfg->signer.verificationError.message);
+        tmp2 = strP(fb_esp_pgm_str_261);
+        _cfg->signer.json->add(tmp, (const char *)tmp2);
+    }
+    else if (type == fb_esp_user_email_sending_type_reset_psw)
+    {
+        std::string().swap(_cfg->signer.resetPswError.message);
+        tmp2 = strP(fb_esp_pgm_str_263);
+        _cfg->signer.json->add(tmp, (const char *)tmp2);
+    }
+    delS(tmp);
+
+    if (type == fb_esp_user_email_sending_type_verify)
+    {
+        tmp = strP(fb_esp_pgm_str_200);
+        if (strlen(payload) > 0)
+            _cfg->signer.json->add(tmp, payload);
+        else
+            _cfg->signer.json->add(tmp, _cfg->signer.tokens.id_token.c_str());
+        delS(tmp);
+    }
+    else if (type == fb_esp_user_email_sending_type_reset_psw)
+    {
+        tmp = strP(fb_esp_pgm_str_196);
+        _cfg->signer.json->add(tmp, payload);
+        delS(tmp);
+    }
+
+    String s;
+    _cfg->signer.json->toString(s);
+
+    std::string req;
+    appendP(req, fb_esp_pgm_str_24);
+    appendP(req, fb_esp_pgm_str_6);
+
+    appendP(req, fb_esp_pgm_str_194);
+    appendP(req, fb_esp_pgm_str_262);
+
+    req += _cfg->api_key;
+    appendP(req, fb_esp_pgm_str_30);
+
+    appendP(req, fb_esp_pgm_str_31);
+
+    appendP(req, fb_esp_pgm_str_193);
+    appendP(req, fb_esp_pgm_str_4);
+    appendP(req, fb_esp_pgm_str_120);
+    appendP(req, fb_esp_pgm_str_21);
+    appendP(req, fb_esp_pgm_str_32);
+    appendP(req, fb_esp_pgm_str_12);
+    tmp = intStr(s.length());
+    req += tmp;
+    delS(tmp);
+    appendP(req, fb_esp_pgm_str_21);
+    appendP(req, fb_esp_pgm_str_8);
+    appendP(req, fb_esp_pgm_str_129);
+    appendP(req, fb_esp_pgm_str_21);
+    appendP(req, fb_esp_pgm_str_21);
+
+    req += s.c_str();
+
+    size_t sz = req.length();
+    size_t len = _cfg->signer.wcs->print(req.c_str());
+    std::string().swap(req);
+    if (len != sz)
+        return handleSignerError(2);
+
+    _cfg->signer.json->clear();
+
+    if (handleTokenResponse(_cfg->signer.wcs, _cfg->signer.json))
+    {
+
+        struct fb_esp_auth_token_error_t error;
+
+        tmp = strP(fb_esp_pgm_str_257);
+        _cfg->signer.json->get(*_cfg->signer.data, tmp);
+        delS(tmp);
+
+        if (_cfg->signer.data->success)
+        {
+            error.code = _cfg->signer.data->intValue;
+            tmp = strP(fb_esp_pgm_str_258);
+            _cfg->signer.json->get(*_cfg->signer.data, tmp);
+            delS(tmp);
+            if (_cfg->signer.data->success)
+                error.message = _cfg->signer.data->stringValue.c_str();
+        }
+        if (type == fb_esp_user_email_sending_type_verify)
+            _cfg->signer.verificationError = error;
+        else if (type == fb_esp_user_email_sending_type_reset_psw)
+            _cfg->signer.resetPswError = error;
+
+        if (error.code == 0)
+        {
+            _cfg->signer.json->clear();
+            return handleSignerError(0);
+        }
+
+        return handleSignerError(4);
+    }
+
+    return handleSignerError(3);
+}
+
+bool FirebaseESP8266::refreshToken()
+{
+    _cfg->signer.attempts++;
+    delay(0);
+
+    if (_auth == nullptr)
+        return false;
+
+    if (_cfg->signer.tokens.status == token_status_on_request || _cfg->signer.tokens.status == token_status_on_refresh || processing)
+        return false;
+
+    if (_cfg->signer.tokens.legacy_token.length() > 0 || (_cfg->signer.tokens.refresh_token.length() == 0 && _cfg->signer.tokens.id_token.length() == 0 && _cfg->signer.tokens.access_token.length() == 0))
+        return false;
+
+    _cfg->signer.tokens.status = token_status_on_refresh;
+    processing = true;
+
+    _cfg->signer.tokens.id_token.clear();
+    _cfg->signer.tokens.access_token.clear();
+
+    _cfg->signer.wcs = new WiFiClientSecure();
+    _cfg->signer.json = new FirebaseJson();
+    _cfg->signer.data = new FirebaseJsonData();
+    _cfg->signer.wcs->setInsecure();
+    _cfg->signer.wcs->setBufferSizes(512, 512);
+
+    std::string host;
+    appendP(host, fb_esp_pgm_str_203);
+    appendP(host, fb_esp_pgm_str_4);
+    appendP(host, fb_esp_pgm_str_120);
+
+    int ret = _cfg->signer.wcs->connect(host.c_str(), 443);
+    if (ret == 0)
+        return handleSignerError(1);
+
+    char *tmp = strP(fb_esp_pgm_str_205);
+    char *tmp2 = strP(fb_esp_pgm_str_206);
+    _cfg->signer.json->add(tmp, (const char *)tmp2);
+    delS(tmp);
+    delS(tmp2);
+    tmp = strP(fb_esp_pgm_str_207);
+    _cfg->signer.json->add(tmp, _cfg->signer.tokens.refresh_token.c_str());
+    delS(tmp);
+
+    String s;
+    _cfg->signer.json->toString(s);
+
+    std::string req;
+    appendP(req, fb_esp_pgm_str_24);
+    appendP(req, fb_esp_pgm_str_6);
+    appendP(req, fb_esp_pgm_str_204);
+    req += _cfg->api_key;
+    appendP(req, fb_esp_pgm_str_30);
+
+    appendP(req, fb_esp_pgm_str_31);
+    appendP(req, fb_esp_pgm_str_203);
+    appendP(req, fb_esp_pgm_str_4);
+    appendP(req, fb_esp_pgm_str_120);
+    appendP(req, fb_esp_pgm_str_21);
+    appendP(req, fb_esp_pgm_str_32);
+    appendP(req, fb_esp_pgm_str_12);
+    tmp = intStr(s.length());
+    req += tmp;
+    delS(tmp);
+    appendP(req, fb_esp_pgm_str_21);
+    appendP(req, fb_esp_pgm_str_8);
+    appendP(req, fb_esp_pgm_str_129);
+    appendP(req, fb_esp_pgm_str_21);
+    appendP(req, fb_esp_pgm_str_21);
+
+    req += s.c_str();
+    size_t sz = req.length();
+    size_t len = _cfg->signer.wcs->print(req.c_str());
+    std::string().swap(req);
+    if (len != sz)
+        return handleSignerError(2);
+
+    struct fb_esp_auth_token_error_t error;
+
+    if (handleTokenResponse(_cfg->signer.wcs, _cfg->signer.json))
+    {
+        tmp = strP(fb_esp_pgm_str_257);
+        _cfg->signer.json->get(*_cfg->signer.data, tmp);
+        delS(tmp);
+
+        if (_cfg->signer.data->success)
+        {
+            error.code = _cfg->signer.data->intValue;
+            _cfg->signer.tokens.status = token_status_error;
+
+            tmp = strP(fb_esp_pgm_str_258);
+            _cfg->signer.json->get(*_cfg->signer.data, tmp);
+            delS(tmp);
+            if (_cfg->signer.data->success)
+                error.message = _cfg->signer.data->stringValue.c_str();
+        }
+
+        _cfg->signer.tokens.error = error;
+
+        if (error.code == 0)
+        {
+            if (_cfg->signer.tokens.token_type == token_type_id_token || _cfg->signer.tokens.token_type == token_type_custom_token)
+            {
+                tmp = strP(fb_esp_pgm_str_208);
+                _cfg->signer.json->get(*_cfg->signer.data, tmp);
+                delS(tmp);
+                if (_cfg->signer.data->success)
+                    _cfg->signer.tokens.id_token = _cfg->signer.data->stringValue.c_str();
+
+                tmp = strP(fb_esp_pgm_str_209);
+                _cfg->signer.json->get(*_cfg->signer.data, tmp);
+                delS(tmp);
+                if (_cfg->signer.data->success)
+                    _cfg->signer.tokens.refresh_token = _cfg->signer.data->stringValue.c_str();
+
+                tmp = strP(fb_esp_pgm_str_210);
+                _cfg->signer.json->get(*_cfg->signer.data, tmp);
+                delS(tmp);
+                if (_cfg->signer.data->success)
+                    _cfg->signer.tokens.expires = millis() + (1000 * atoi(_cfg->signer.data->stringValue.c_str()));
+
+                tmp = strP(fb_esp_pgm_str_175);
+                _cfg->signer.json->get(*_cfg->signer.data, tmp);
+                delS(tmp);
+                if (_cfg->signer.data->success)
+                    _auth->token.uid = _cfg->signer.data->stringValue.c_str();
+            }
+            return handleSignerError(0);
+        }
+
+        return handleSignerError(4);
+    }
+
+    return handleSignerError(3);
+}
+
+struct token_info_t FirebaseESP8266::authTokenInfo()
+{
+    token_info_t info;
+    info.status = _cfg->signer.tokens.status;
+    info.type = _cfg->signer.tokens.token_type;
+    info.error = _cfg->signer.tokens.error;
+    return info;
+}
+
+bool FirebaseESP8266::requestTokens()
+{
+    _cfg->signer.attempts++;
+    delay(0);
+
+    if (_auth == nullptr)
+        return false;
+
+    if (_cfg->signer.tokens.status == token_status_on_request || _cfg->signer.tokens.status == token_status_on_refresh || time(nullptr) < default_ts || processing)
+        return false;
+
+    _cfg->signer.tokens.status = token_status_on_request;
+    processing = true;
+    setTokenError(FIREBASE_ERROR_TOKEN_NOT_REDY);
+
+    _cfg->signer.wcs = new WiFiClientSecure();
+    _cfg->signer.json = new FirebaseJson();
+    _cfg->signer.data = new FirebaseJsonData();
+    _cfg->signer.wcs->setInsecure();
+    _cfg->signer.wcs->setBufferSizes(512, 512);
+
+    std::string host;
+    appendP(host, fb_esp_pgm_str_193);
+    appendP(host, fb_esp_pgm_str_4);
+    appendP(host, fb_esp_pgm_str_120);
+
+    delay(0);
+    int ret = _cfg->signer.wcs->connect(host.c_str(), 443);
+
+    if (ret == 0)
+        return handleSignerError(1);
+
+    String s;
+    std::string req;
+    appendP(req, fb_esp_pgm_str_24);
+    appendP(req, fb_esp_pgm_str_6);
+
+    if (_cfg->signer.tokens.token_type == token_type_custom_token)
+    {
+        char *tmp = strP(fb_esp_pgm_str_233);
+        _cfg->signer.json->add(tmp, _cfg->signer.tokens.jwt.c_str());
+        delS(tmp);
+        tmp = strP(fb_esp_pgm_str_198);
+        _cfg->signer.json->add(tmp, true);
+        delS(tmp);
+
+        appendP(req, fb_esp_pgm_str_194);
+        appendP(req, fb_esp_pgm_str_232);
+        req += _cfg->api_key;
+        appendP(req, fb_esp_pgm_str_30);
+        appendP(req, fb_esp_pgm_str_31);
+        appendP(req, fb_esp_pgm_str_193);
+    }
+    else if (_cfg->signer.tokens.token_type == token_type_oauth2_access_token)
+    {
+        char *tmp = strP(fb_esp_pgm_str_227);
+        char *tmp2 = strP(fb_esp_pgm_str_228);
+        _cfg->signer.json->add(tmp, (const char *)tmp2);
+        delS(tmp);
+        delS(tmp2);
+        tmp = strP(fb_esp_pgm_str_229);
+        _cfg->signer.json->add(tmp, _cfg->signer.tokens.jwt.c_str());
+        delS(tmp);
+
+        appendP(req, fb_esp_pgm_str_1);
+        appendP(req, fb_esp_pgm_str_233);
+        appendP(req, fb_esp_pgm_str_30);
+        appendP(req, fb_esp_pgm_str_31);
+        appendP(req, fb_esp_pgm_str_251);
+    }
+
+    appendP(req, fb_esp_pgm_str_4);
+    appendP(req, fb_esp_pgm_str_120);
+
+    appendP(req, fb_esp_pgm_str_21);
+    appendP(req, fb_esp_pgm_str_32);
+    appendP(req, fb_esp_pgm_str_12);
+    _cfg->signer.json->toString(s);
+    char *tmp = intStr(s.length());
+    req += tmp;
+    delS(tmp);
+    appendP(req, fb_esp_pgm_str_21);
+    appendP(req, fb_esp_pgm_str_8);
+    appendP(req, fb_esp_pgm_str_129);
+    appendP(req, fb_esp_pgm_str_21);
+    appendP(req, fb_esp_pgm_str_21);
+
+    req += s.c_str();
+    size_t sz = req.length();
+    size_t len = _cfg->signer.wcs->print(req.c_str());
+    std::string().swap(req);
+    if (len != sz)
+        return handleSignerError(2);
+
+    struct fb_esp_auth_token_error_t error;
+
+    if (handleTokenResponse(_cfg->signer.wcs, _cfg->signer.json))
+    {
+        tmp = strP(fb_esp_pgm_str_257);
+        _cfg->signer.json->get(*_cfg->signer.data, tmp);
+        delS(tmp);
+        if (_cfg->signer.data->success)
+        {
+            error.code = _cfg->signer.data->intValue;
+            _cfg->signer.tokens.status = token_status_error;
+
+            tmp = strP(fb_esp_pgm_str_258);
+            _cfg->signer.json->get(*_cfg->signer.data, tmp);
+            delS(tmp);
+            if (_cfg->signer.data->success)
+                error.message = _cfg->signer.data->stringValue.c_str();
+        }
+
+        _cfg->signer.tokens.error = error;
+
+        if (error.code == 0)
+        {
+            if (_cfg->signer.tokens.token_type == token_type_custom_token)
+            {
+                tmp = strP(fb_esp_pgm_str_200);
+                _cfg->signer.json->get(*_cfg->signer.data, tmp);
+                delS(tmp);
+                if (_cfg->signer.data->success)
+                    _cfg->signer.tokens.id_token = _cfg->signer.data->stringValue.c_str();
+
+                tmp = strP(fb_esp_pgm_str_201);
+                _cfg->signer.json->get(*_cfg->signer.data, tmp);
+                delS(tmp);
+                if (_cfg->signer.data->success)
+                    _cfg->signer.tokens.refresh_token = _cfg->signer.data->stringValue.c_str();
+
+                tmp = strP(fb_esp_pgm_str_202);
+                _cfg->signer.json->get(*_cfg->signer.data, tmp);
+                delS(tmp);
+                if (_cfg->signer.data->success)
+                    _cfg->signer.tokens.expires = millis() + (1000 * atoi(_cfg->signer.data->stringValue.c_str()));
+            }
+            else if (_cfg->signer.tokens.token_type == token_type_oauth2_access_token)
+            {
+                tmp = strP(fb_esp_pgm_str_235);
+                _cfg->signer.json->get(*_cfg->signer.data, tmp);
+                delS(tmp);
+                if (_cfg->signer.data->success)
+                    _cfg->signer.tokens.access_token = _cfg->signer.data->stringValue.c_str();
+
+                tmp = strP(fb_esp_pgm_str_236);
+                _cfg->signer.json->get(*_cfg->signer.data, tmp);
+                delS(tmp);
+                if (_cfg->signer.data->success)
+                    _cfg->signer.tokens.auth_type = _cfg->signer.data->stringValue.c_str();
+
+                tmp = strP(fb_esp_pgm_str_210);
+                _cfg->signer.json->get(*_cfg->signer.data, tmp);
+                delS(tmp);
+                if (_cfg->signer.data->success)
+                    _cfg->signer.tokens.expires = millis() + (1000 * atoi(_cfg->signer.data->stringValue.c_str()));
+            }
+            return handleSignerError(0);
+        }
+        return handleSignerError(4);
+    }
+
+    return handleSignerError(3);
+}
+
+size_t FirebaseESP8266::base64EncLen(size_t len)
+{
+    return ((len + 2) / 3 * 4) + 1;
+}
+
+void FirebaseESP8266::encodeBase64Url(char *encoded, unsigned char *string, size_t len)
+{
+    size_t i;
+    char *p = encoded;
+
+    unsigned char *b64enc = new unsigned char[65];
+    strcpy_P((char *)b64enc, (char *)fb_esp_base64_table);
+    b64enc[62] = '-';
+    b64enc[63] = '_';
+
+    for (i = 0; i < len - 2; i += 3)
+    {
+        *p++ = b64enc[(string[i] >> 2) & 0x3F];
+        *p++ = b64enc[((string[i] & 0x3) << 4) | ((int)(string[i + 1] & 0xF0) >> 4)];
+        *p++ = b64enc[((string[i + 1] & 0xF) << 2) | ((int)(string[i + 2] & 0xC0) >> 6)];
+        *p++ = b64enc[string[i + 2] & 0x3F];
+    }
+
+    if (i < len)
+    {
+        *p++ = b64enc[(string[i] >> 2) & 0x3F];
+        if (i == (len - 1))
+        {
+            *p++ = b64enc[((string[i] & 0x3) << 4)];
+        }
+        else
+        {
+            *p++ = b64enc[((string[i] & 0x3) << 4) | ((int)(string[i + 1] & 0xF0) >> 4)];
+            *p++ = b64enc[((string[i + 1] & 0xF) << 2)];
+        }
+    }
+
+    *p++ = '\0';
+
+    delete[] b64enc;
+}
+
+bool FirebaseESP8266::createJWT(int step)
+{
+    setTokenError(FIREBASE_ERROR_TOKEN_NOT_REDY);
+
+    if (time(nullptr) < default_ts)
+    {
+        set_scheduled_callback(std::bind(&FirebaseESP8266::runJWT, this));
+        return false;
+    }
+
+    if (step == fb_esp_jwt_generation_step_encode_header_payload)
+    {
+        _cfg->signer.tokens.status = token_status_on_signing;
+
+        _cfg->signer.json = new FirebaseJson();
+        _cfg->signer.data = new FirebaseJsonData();
+
+        unsigned long now = time(nullptr);
+
+        _cfg->signer.tokens.jwt.clear();
+
+        //header
+        char *tmp = strP(fb_esp_pgm_str_239);
+        char *tmp2 = strP(fb_esp_pgm_str_242);
+        _cfg->signer.json->add(tmp, (const char *)tmp2);
+        delS(tmp);
+        delS(tmp2);
+        tmp2 = strP(fb_esp_pgm_str_234);
+        tmp = strP(fb_esp_pgm_str_240);
+        _cfg->signer.json->add(tmp, (const char *)tmp2);
+        delS(tmp);
+        delS(tmp2);
+
+        _cfg->signer.json->_tostr(_cfg->signer.header);
+        size_t len = base64EncLen(_cfg->signer.header.length());
+        char *buf = newS(len);
+        encodeBase64Url(buf, (unsigned char *)_cfg->signer.header.c_str(), _cfg->signer.header.length());
+        _cfg->signer.encHeader = buf;
+        delS(buf);
+        _cfg->signer.header.clear();
+        _cfg->signer.encHeadPayload = _cfg->signer.encHeader;
+
+        //payload
+        _cfg->signer.json->clear();
+        tmp = strP(fb_esp_pgm_str_212);
+        _cfg->signer.json->add(tmp, _cfg->service_account.data.client_email.c_str());
+        delS(tmp);
+        tmp = strP(fb_esp_pgm_str_213);
+        _cfg->signer.json->add(tmp, _cfg->service_account.data.client_email.c_str());
+        delS(tmp);
+        tmp = strP(fb_esp_pgm_str_214);
+        std::string t;
+        appendP(t, fb_esp_pgm_str_112);
+        if (_cfg->signer.tokens.token_type == token_type_custom_token)
+        {
+            appendP(t, fb_esp_pgm_str_250);
+            appendP(t, fb_esp_pgm_str_4);
+            appendP(t, fb_esp_pgm_str_120);
+            appendP(t, fb_esp_pgm_str_231);
+        }
+        else if (_cfg->signer.tokens.token_type == token_type_oauth2_access_token)
+        {
+            appendP(t, fb_esp_pgm_str_251);
+            appendP(t, fb_esp_pgm_str_4);
+            appendP(t, fb_esp_pgm_str_120);
+            appendP(t, fb_esp_pgm_str_1);
+            appendP(t, fb_esp_pgm_str_233);
+        }
+
+        _cfg->signer.json->add(tmp, t.c_str());
+        delS(tmp);
+
+        tmp = strP(fb_esp_pgm_str_218);
+        _cfg->signer.json->add(tmp, (int)now);
+        delS(tmp);
+
+        tmp = strP(fb_esp_pgm_str_215);
+        _cfg->signer.json->add(tmp, (int)(now + 60 * 60));
+        delS(tmp);
+
+        if (_cfg->signer.tokens.token_type == token_type_oauth2_access_token)
+        {
+            std::string buri;
+            appendP(buri, fb_esp_pgm_str_112);
+            appendP(buri, fb_esp_pgm_str_193);
+            appendP(buri, fb_esp_pgm_str_4);
+            appendP(buri, fb_esp_pgm_str_120);
+            appendP(buri, fb_esp_pgm_str_1);
+            appendP(buri, fb_esp_pgm_str_219);
+            appendP(buri, fb_esp_pgm_str_1);
+
+            std::string s = buri;
+            appendP(s, fb_esp_pgm_str_221);
+            appendP(s, fb_esp_pgm_str_6);
+            s += buri;
+            appendP(s, fb_esp_pgm_str_222);
+            appendP(s, fb_esp_pgm_str_6);
+            s += buri;
+
+            appendP(s, fb_esp_pgm_str_223);
+            appendP(s, fb_esp_pgm_str_6);
+            s += buri;
+            appendP(s, fb_esp_pgm_str_224);
+            appendP(s, fb_esp_pgm_str_6);
+            s += buri;
+            appendP(s, fb_esp_pgm_str_225);
+
+            tmp = strP(fb_esp_pgm_str_220);
+            _cfg->signer.json->add(tmp, s.c_str());
+            delS(tmp);
+        }
+        else if (_cfg->signer.tokens.token_type == token_type_custom_token)
+        {
+            tmp = strP(fb_esp_pgm_str_254);
+            _cfg->signer.json->add(tmp, _auth->token.uid.c_str());
+            delS(tmp);
+
+            std::string s;
+            _auth->token.claims._tostr(s);
+            if (s.length() > 2)
+            {
+                tmp = strP(fb_esp_pgm_str_255);
+                _cfg->signer.json->add(tmp, _auth->token.claims);
+                delS(tmp);
+            }
+        }
+
+        _cfg->signer.json->_tostr(_cfg->signer.payload);
+        len = base64EncLen(_cfg->signer.payload.length());
+        buf = newS(len);
+        encodeBase64Url(buf, (unsigned char *)_cfg->signer.payload.c_str(), _cfg->signer.payload.length());
+        _cfg->signer.encPayload = buf;
+        delS(buf);
+        _cfg->signer.payload.clear();
+
+        appendP(_cfg->signer.encHeadPayload, fb_esp_pgm_str_4);
+        _cfg->signer.encHeadPayload += _cfg->signer.encPayload;
+
+        std::string().swap(_cfg->signer.encHeader);
+        std::string().swap(_cfg->signer.encPayload);
+
+        //create message digest from encoded header and payload
+        br_sha256_context mc;
+        _cfg->signer.hash = newS(_cfg->signer.hashSize);
+        memset(_cfg->signer.hash, 0, _cfg->signer.hashSize);
+        br_sha256_init(&mc);
+        br_sha256_update(&mc, _cfg->signer.encHeadPayload.c_str(), _cfg->signer.encHeadPayload.length());
+        br_sha256_out(&mc, _cfg->signer.hash);
+
+        _cfg->signer.tokens.jwt = _cfg->signer.encHeadPayload;
+        appendP(_cfg->signer.tokens.jwt, fb_esp_pgm_str_4);
+        std::string().swap(_cfg->signer.encHeadPayload);
+
+        delete _cfg->signer.json;
+        delete _cfg->signer.data;
+    }
+    else if (step == fb_esp_jwt_generation_step_sign)
+    {
+        _cfg->signer.tokens.status = token_status_on_signing;
+
+        //RSA private key
+        BearSSL::PrivateKey *pk = nullptr;
+        delay(0);
+        //parse priv key
+        if (_cfg->signer.pk.length() > 0)
+            pk = new BearSSL::PrivateKey((const char *)_cfg->signer.pk.c_str());
+        else if (strlen_P(_cfg->service_account.data.private_key) > 0)
+            pk = new BearSSL::PrivateKey((const char *)_cfg->service_account.data.private_key);
+
+        if (!pk)
+        {
+            setTokenError(FIREBASE_ERROR_TOKEN_PARSE_PK);
+            return false;
+        }
+
+        if (!pk->isRSA())
+        {
+            setTokenError(FIREBASE_ERROR_TOKEN_PARSE_PK);
+            delete pk;
+            return false;
+        }
+
+        const br_rsa_private_key *br_rsa_key = pk->getRSA();
+
+        //generate RSA signature from private key and message digest
+        _cfg->signer.signature = new unsigned char[_cfg->signer.signatureSize];
+
+        delay(0);
+        int ret = br_rsa_i15_pkcs1_sign(BR_HASH_OID_SHA256, (const unsigned char *)_cfg->signer.hash, br_sha256_SIZE, br_rsa_key, _cfg->signer.signature);
+        delay(0);
+        delS(_cfg->signer.hash);
+
+        size_t len = base64EncLen(_cfg->signer.signatureSize);
+        char *buf = newS(len);
+        encodeBase64Url(buf, _cfg->signer.signature, _cfg->signer.signatureSize);
+        _cfg->signer.encSignature = buf;
+        delS(buf);
+        delete[] _cfg->signer.signature;
+        delete pk;
+
+        //get the signed JWT
+        if (ret > 0)
+        {
+            _cfg->signer.tokens.jwt += _cfg->signer.encSignature;
+            std::string().swap(_cfg->signer.pk);
+            std::string().swap(_cfg->signer.encSignature);
+            set_scheduled_callback(std::bind(&FirebaseESP8266::runJWT, this));
+        }
+        else
+        {
+            setTokenError(FIREBASE_ERROR_TOKEN_SIGN);
+        }
+    }
+
+    _cfg->signer.step++;
+    return true;
+}
+
+void FirebaseESP8266::setTokenError(int code)
+{
+    if (code != 0)
+        _cfg->signer.tokens.status = token_status_error;
+    else
+    {
+        _cfg->signer.tokens.error.message.clear();
+        _cfg->signer.tokens.status = token_status_ready;
+    }
+
+    _cfg->signer.tokens.error.code = code;
+
+    if (_cfg->signer.tokens.error.message.length() == 0)
+    {
+        switch (code)
+        {
+
+        case FIREBASE_ERROR_TOKEN_SET_TIME:
+            appendP(_cfg->signer.tokens.error.message, fb_esp_pgm_str_211, true);
+            break;
+        case FIREBASE_ERROR_TOKEN_PARSE_PK:
+            appendP(_cfg->signer.tokens.error.message, fb_esp_pgm_str_179, true);
+            break;
+        case FIREBASE_ERROR_TOKEN_SIGN:
+            appendP(_cfg->signer.tokens.error.message, fb_esp_pgm_str_178, true);
+            break;
+        case FIREBASE_ERROR_TOKEN_EXCHANGE:
+            appendP(_cfg->signer.tokens.error.message, fb_esp_pgm_str_177, true);
+            break;
+        case FIREBASE_ERROR_TOKEN_NOT_REDY:
+            appendP(_cfg->signer.tokens.error.message, fb_esp_pgm_str_252, true);
+            break;
+        case FIREBASE_ERROR_HTTPC_ERROR_NOT_CONNECTED:
+            appendP(_cfg->signer.tokens.error.message, fb_esp_pgm_str_42);
+            break;
+        case FIREBASE_ERROR_HTTPC_ERROR_CONNECTION_LOST:
+            appendP(_cfg->signer.tokens.error.message, fb_esp_pgm_str_43);
+            break;
+        case FIREBASE_ERROR_HTTP_CODE_REQUEST_TIMEOUT:
+            appendP(_cfg->signer.tokens.error.message, fb_esp_pgm_str_58);
+            break;
+
+        default:
+            break;
+        }
+    }
+}
+
+bool FirebaseESP8266::handleTokenResponse(WiFiClientSecure *wcs, FirebaseJson *json)
+{
+    struct server_response_data_t response;
+
+    int chunkIdx = 0;
+    int pChunkIdx = 0;
+    int payloadLen = 3200;
+    int pBufPos = 0;
+    int hBufPos = 0;
+    int chunkBufSize = 0;
+    int hstate = 0;
+    int pstate = 0;
+    int chunkedDataState = 0;
+    int chunkedDataSize = 0;
+    int chunkedDataLen = 0;
+    int defaultChunkSize = 2048;
+    char *header = nullptr;
+    char *payload = nullptr;
+    char *pChunk = nullptr;
+    char *tmp = nullptr;
+    bool isHeader;
+
+    while (wcs->connected() && wcs->available() == 0)
+    {
+        if (WiFi.status() != WL_CONNECTED)
+        {
+            _cfg->signer.wcs->stop();
+            return false;
+        }
+
+        delay(0);
+    }
+    bool complete = false;
+    int readLen = 0;
+    unsigned long datatime = millis();
+    while (!complete)
+    {
+
+        chunkBufSize = wcs->available();
+
+        if (chunkBufSize > 1 || !complete)
+        {
+            while (!complete)
+            {
+                delay(0);
+                if (WiFi.status() != WL_CONNECTED)
+                {
+                    _cfg->signer.wcs->stop();
+                    return false;
+                }
+
+                chunkBufSize = wcs->available();
+
+                if (chunkBufSize > 0)
+                {
+                    chunkBufSize = defaultChunkSize;
+
+                    if (chunkIdx == 0)
+                    {
+                        header = newS(chunkBufSize);
+                        hstate = 1;
+                        int readLen = readLine(wcs, header, chunkBufSize);
+                        int pos = 0;
+
+                        tmp = getHeader(header, fb_esp_pgm_str_5, fb_esp_pgm_str_6, pos, 0);
+                        delay(0);
+                        if (tmp)
+                        {
+                            isHeader = true;
+                            hBufPos = readLen;
+                            response.httpCode = atoi(tmp);
+                            delS(tmp);
+                        }
+                    }
+                    else
+                    {
+                        delay(0);
+                        if (isHeader)
+                        {
+                            tmp = newS(chunkBufSize);
+                            int readLen = readLine(wcs, tmp, chunkBufSize);
+                            bool headerEnded = false;
+
+                            if (readLen == 1)
+                                if (tmp[0] == '\r')
+                                    headerEnded = true;
+
+                            if (readLen == 2)
+                                if (tmp[0] == '\r' && tmp[1] == '\n')
+                                    headerEnded = true;
+
+                            if (headerEnded)
+                            {
+                                isHeader = false;
+                                parseRespHeader(header, response);
+                                if (hstate == 1)
+                                    delS(header);
+                                hstate = 0;
+                            }
+                            else
+                            {
+                                memcpy(header + hBufPos, tmp, readLen);
+                                hBufPos += readLen;
+                            }
+
+                            delS(tmp);
+                        }
+                        else
+                        {
+                            if (!response.noContent)
+                            {
+                                pChunkIdx++;
+
+                                pChunk = newS(chunkBufSize + 1);
+
+                                if (!payload || pstate == 0)
+                                {
+                                    pstate = 1;
+                                    payload = newS(payloadLen + 1);
+                                }
+                                readLen = 0;
+                                if (response.isChunkedEnc)
+                                    readLen = readChunkedData(wcs, pChunk, chunkedDataState, chunkedDataSize, chunkedDataLen, chunkBufSize);
+                                else
+                                    readLen = wcs->readBytes(pChunk, chunkBufSize);
+
+                                if (readLen > 0)
+                                    memcpy(payload + pBufPos, pChunk, readLen);
+
+                                delS(pChunk);
+                                pBufPos += readLen;
+                                if ((response.isChunkedEnc && readLen < 0) || (!response.isChunkedEnc && wcs->available() <= 0))
+                                    complete = true;
+                            }
+                            else
+                            {
+                                while (wcs->available() > 0)
+                                    wcs->read();
+                                if (wcs->available() <= 0)
+                                    break;
+                            }
+                        }
+                    }
+                    chunkIdx++;
+                }
+            }
+
+            if (millis() - datatime > 5000)
+                complete = true;
+        }
+    }
+
+    if (hstate == 1)
+        delS(header);
+
+    if (wcs->connected())
+        wcs->stop();
+
+    if (payload && !response.noContent)
+    {
+        json->setJsonData(payload);
+        delS(payload);
+        return true;
+    }
+
+    return false;
 }
 
 void FirebaseESP8266::reconnectWiFi(bool reconnect)
@@ -138,7 +1526,7 @@ bool FirebaseESP8266::getRules(FirebaseData &fbdo)
 {
     fbdo.queryFilter.clear();
     std::string path;
-    pgm_appendStr(path, fb_esp_pgm_str_103, true);
+    appendP(path, fb_esp_pgm_str_103, true);
     bool ret = handleRequest(fbdo, 0, path, fb_esp_method::m_read_rules, fb_esp_data_type::d_json, "", "", "");
     std::string().swap(path);
     return ret;
@@ -148,25 +1536,25 @@ bool FirebaseESP8266::setRules(FirebaseData &fbdo, const String &rules)
 {
     fbdo.queryFilter.clear();
     std::string path;
-    pgm_appendStr(path, fb_esp_pgm_str_103, true);
+    appendP(path, fb_esp_pgm_str_103, true);
     bool ret = handleRequest(fbdo, 0, path, fb_esp_method::m_set_rules, fb_esp_data_type::d_json, rules.c_str(), "", "");
     std::string().swap(path);
     return ret;
 }
 
-void FirebaseESP8266::getUrlInfo(const std::string url, std::string &host, std::string &uri, std::string &auth)
+void FirebaseESP8266::getUrlInfo(const std::string url, struct fb_esp_url_info_t &info)
 {
     size_t p1;
     size_t p2;
     int scheme = 0;
     char *tmp = nullptr;
     std::string _h;
-    tmp = getPGMString(fb_esp_pgm_str_111);
+    tmp = strP(fb_esp_pgm_str_111);
     p1 = url.find(tmp, 0);
     delS(tmp);
     if (p1 == std::string::npos)
     {
-        tmp = getPGMString(fb_esp_pgm_str_112);
+        tmp = strP(fb_esp_pgm_str_112);
         p1 = url.find(tmp, 0);
         delS(tmp);
         if (p1 != std::string::npos)
@@ -186,68 +1574,58 @@ void FirebaseESP8266::getUrlInfo(const std::string url, std::string &host, std::
         if (url[p1] == 'w' && url[p1 + 1] == 'w' && url[p1 + 2] == 'w' && url[p1 + 3] == '.')
             p1 += 4;
 
-    tmp = getPGMString(fb_esp_pgm_str_1);
+    tmp = strP(fb_esp_pgm_str_1);
     p2 = url.find(tmp, p1 + 1);
     delS(tmp);
     if (p2 == std::string::npos)
     {
-        tmp = getPGMString(fb_esp_pgm_str_173);
+        tmp = strP(fb_esp_pgm_str_173);
         p2 = url.find(tmp, p1 + 1);
         delS(tmp);
         if (p2 == std::string::npos)
-            p2 = url.length();
+        {
+            tmp = strP(fb_esp_pgm_str_174);
+            p2 = url.find(tmp, p1 + 1);
+            delS(tmp);
+            if (p2 == std::string::npos)
+                p2 = url.length();
+        }
     }
 
     _h = url.substr(p1, p2 - p1);
 
-    bool isDomain = false;
-    tmp = getPGMString(fb_esp_pgm_str_174);
-    isDomain |= _h.find(tmp, _h.length() - strlen_P(fb_esp_pgm_str_174)) != std::string::npos;
-    delS(tmp);
-    tmp = getPGMString(fb_esp_pgm_str_175);
-    isDomain |= _h.find(tmp, _h.length() - strlen_P(fb_esp_pgm_str_175)) != std::string::npos;
-    delS(tmp);
-    tmp = getPGMString(fb_esp_pgm_str_176);
-    isDomain |= _h.find(tmp, _h.length() - strlen_P(fb_esp_pgm_str_176)) != std::string::npos;
-    delS(tmp);
-    tmp = getPGMString(fb_esp_pgm_str_177);
-    isDomain |= _h.find(tmp, _h.length() - strlen_P(fb_esp_pgm_str_177)) != std::string::npos;
-    delS(tmp);
-    tmp = getPGMString(fb_esp_pgm_str_178);
-    isDomain |= _h.find(tmp, _h.length() - strlen_P(fb_esp_pgm_str_178)) != std::string::npos;
-    delS(tmp);
-    tmp = getPGMString(fb_esp_pgm_str_179);
-    isDomain |= _h.find(tmp, _h.length() - strlen_P(fb_esp_pgm_str_179)) != std::string::npos;
-    delS(tmp);
-
-    if (_h[0] == '/' || !isDomain)
-        uri = _h;
+    if (_h[0] == '/')
+        info.uri = _h;
     else
-        host = _h;
+        info.host = _h;
 
-    if (p2 != _h.length())
+    if (_cfg->signer.tokens.token_type == token_type_legacy_token || _cfg->signer.tokens.token_type == token_type_id_token)
     {
-        uri = url.substr(p2, url.length() - p2);
-        tmp = getPGMString(fb_esp_pgm_str_170);
-        p1 = _h.find(tmp, url.length());
-        delS(tmp);
-
-        if (p1 == std::string::npos)
+        //get uri
+        if (p2 != _h.length())
         {
-            tmp = getPGMString(fb_esp_pgm_str_171);
+            info.uri = url.substr(p2, url.length() - p2);
+            tmp = strP(fb_esp_pgm_str_170);
             p1 = _h.find(tmp, url.length());
             delS(tmp);
-        }
 
-        if (p1 != std::string::npos)
-        {
-            p1 += 6;
-            tmp = getPGMString(fb_esp_pgm_str_172);
-            p2 = _h.find(tmp, p1);
-            delS(tmp);
-            if (p2 == std::string::npos)
-                p2 = _h.length();
-            auth = _h.substr(p1, p2 - p1);
+            if (p1 == std::string::npos)
+            {
+                tmp = strP(fb_esp_pgm_str_171);
+                p1 = _h.find(tmp, url.length());
+                delS(tmp);
+            }
+
+            if (p1 != std::string::npos)
+            {
+                p1 += 6;
+                tmp = strP(fb_esp_pgm_str_172);
+                p2 = _h.find(tmp, p1);
+                delS(tmp);
+                if (p2 == std::string::npos)
+                    p2 = _h.length();
+                info.auth = _h.substr(p1, p2 - p1);
+            }
         }
     }
 }
@@ -255,6 +1633,9 @@ void FirebaseESP8266::getUrlInfo(const std::string url, std::string &host, std::
 bool FirebaseESP8266::processRequest(FirebaseData &fbdo, fb_esp_method method, fb_esp_data_type dataType, const std::string &path, const char *buff, bool queue, const std::string &priority, const std::string &etag)
 {
     if (!reconnect(fbdo))
+        return false;
+
+    if (!tokenReady(fbdo))
         return false;
 
     bool ret = false;
@@ -289,6 +1670,9 @@ bool FirebaseESP8266::processRequestFile(FirebaseData &fbdo, uint8_t storageType
 {
 
     if (!reconnect(fbdo))
+        return false;
+
+    if (!tokenReady(fbdo))
         return false;
 
     fbdo.queryFilter.clear();
@@ -353,9 +1737,9 @@ void FirebaseESP8266::enableClassicRequest(FirebaseData &fbdo, bool ret)
 
 bool FirebaseESP8266::setPriority(FirebaseData &fbdo, const String &path, float priority)
 {
-    char *num = getFloatString(priority);
+    char *num = floatStr(priority);
     trimDigits(num);
-    char *tmp = getPGMString(fb_esp_pgm_str_156);
+    char *tmp = strP(fb_esp_pgm_str_156);
     bool ret = processRequest(fbdo, fb_esp_method::m_set_priority, fb_esp_data_type::d_float, tmp, num, false, "", "");
     delS(num);
     delS(tmp);
@@ -364,7 +1748,7 @@ bool FirebaseESP8266::setPriority(FirebaseData &fbdo, const String &path, float 
 
 bool FirebaseESP8266::getPriority(FirebaseData &fbdo, const String &path)
 {
-    char *tmp = getPGMString(fb_esp_pgm_str_156);
+    char *tmp = strP(fb_esp_pgm_str_156);
     bool ret = processRequest(fbdo, fb_esp_method::m_get_priority, fb_esp_data_type::d_float, tmp, "", false, "", "");
     delS(tmp);
     return ret;
@@ -543,7 +1927,7 @@ bool FirebaseESP8266::pushInt(FirebaseData &fbdo, const String &path, int intVal
 
 bool FirebaseESP8266::pushInt(FirebaseData &fbdo, const String &path, int intValue, float priority)
 {
-    char *buf = getFloatString(priority);
+    char *buf = floatStr(priority);
     trimDigits(buf);
     bool ret = pushInt(fbdo, path.c_str(), intValue, false, "");
     delS(buf);
@@ -552,7 +1936,7 @@ bool FirebaseESP8266::pushInt(FirebaseData &fbdo, const String &path, int intVal
 
 bool FirebaseESP8266::pushInt(FirebaseData &fbdo, const std::string &path, int intValue, bool queue, const std::string &priority)
 {
-    char *buf = getIntString(intValue);
+    char *buf = intStr(intValue);
     bool ret = processRequest(fbdo, fb_esp_method::m_post, fb_esp_data_type::d_integer, path, buf, queue, priority, "");
     delS(buf);
     return ret;
@@ -565,7 +1949,7 @@ bool FirebaseESP8266::pushFloat(FirebaseData &fbdo, const String &path, float fl
 
 bool FirebaseESP8266::pushFloat(FirebaseData &fbdo, const String &path, float floatValue, float priority)
 {
-    char *buf = getFloatString(priority);
+    char *buf = floatStr(priority);
     trimDigits(buf);
     bool ret = pushFloat(fbdo, path.c_str(), floatValue, false, buf);
     delS(buf);
@@ -574,7 +1958,7 @@ bool FirebaseESP8266::pushFloat(FirebaseData &fbdo, const String &path, float fl
 
 bool FirebaseESP8266::pushFloat(FirebaseData &fbdo, const std::string &path, float floatValue, bool queue, const std::string &priority)
 {
-    char *buf = getFloatString(floatValue);
+    char *buf = floatStr(floatValue);
     trimDigits(buf);
     bool ret = processRequest(fbdo, fb_esp_method::m_post, fb_esp_data_type::d_float, path, buf, queue, priority, "");
     delS(buf);
@@ -588,7 +1972,7 @@ bool FirebaseESP8266::pushDouble(FirebaseData &fbdo, const String &path, double 
 
 bool FirebaseESP8266::pushDouble(FirebaseData &fbdo, const String &path, double doubleValue, float priority)
 {
-    char *buf = getFloatString(priority);
+    char *buf = floatStr(priority);
     trimDigits(buf);
     bool ret = pushDouble(fbdo, path.c_str(), doubleValue, false, buf);
     delS(buf);
@@ -597,7 +1981,7 @@ bool FirebaseESP8266::pushDouble(FirebaseData &fbdo, const String &path, double 
 
 bool FirebaseESP8266::pushDouble(FirebaseData &fbdo, const std::string &path, double doubleValue, bool queue, const std::string &priority)
 {
-    char *buf = getDoubleString(doubleValue);
+    char *buf = doubleStr(doubleValue);
     trimDigits(buf);
     bool ret = processRequest(fbdo, fb_esp_method::m_post, fb_esp_data_type::d_double, path, buf, queue, priority, "");
     delS(buf);
@@ -611,7 +1995,7 @@ bool FirebaseESP8266::pushBool(FirebaseData &fbdo, const String &path, bool bool
 
 bool FirebaseESP8266::pushBool(FirebaseData &fbdo, const String &path, bool boolValue, float priority)
 {
-    char *buf = getFloatString(priority);
+    char *buf = floatStr(priority);
     trimDigits(buf);
     bool ret = pushBool(fbdo, path.c_str(), boolValue, false, buf);
     delS(buf);
@@ -620,7 +2004,7 @@ bool FirebaseESP8266::pushBool(FirebaseData &fbdo, const String &path, bool bool
 
 bool FirebaseESP8266::pushBool(FirebaseData &fbdo, const std::string &path, bool boolValue, bool queue, const std::string &priority)
 {
-    char *tmp = getBoolString(boolValue);
+    char *tmp = boolStr(boolValue);
     bool ret = processRequest(fbdo, fb_esp_method::m_post, fb_esp_data_type::d_boolean, path, tmp, queue, priority, "");
     delS(tmp);
     return ret;
@@ -634,7 +2018,7 @@ bool FirebaseESP8266::pushString(FirebaseData &fbdo, const String &path, const S
 
 bool FirebaseESP8266::pushString(FirebaseData &fbdo, const String &path, const String &stringValue, float priority)
 {
-    char *buf = getFloatString(priority);
+    char *buf = floatStr(priority);
     trimDigits(buf);
     bool ret = processRequest(fbdo, fb_esp_method::m_post, fb_esp_data_type::d_string, path.c_str(), stringValue.c_str(), false, buf, "");
     delS(buf);
@@ -652,7 +2036,7 @@ bool FirebaseESP8266::pushJSON(FirebaseData &fbdo, const String &path, FirebaseJ
 
 bool FirebaseESP8266::pushJSON(FirebaseData &fbdo, const String &path, FirebaseJson &json, float priority)
 {
-    char *buf = getFloatString(priority);
+    char *buf = floatStr(priority);
     trimDigits(buf);
     std::string s;
     json._toStdString(s);
@@ -673,7 +2057,7 @@ bool FirebaseESP8266::pushArray(FirebaseData &fbdo, const String &path, Firebase
 
 bool FirebaseESP8266::pushArray(FirebaseData &fbdo, const String &path, FirebaseJsonArray &arr, float priority)
 {
-    char *buf = getFloatString(priority);
+    char *buf = floatStr(priority);
     trimDigits(buf);
     std::string s;
     arr._toStdString(s);
@@ -690,7 +2074,7 @@ bool FirebaseESP8266::pushBlob(FirebaseData &fbdo, const String &path, uint8_t *
 
 bool FirebaseESP8266::pushBlob(FirebaseData &fbdo, const String &path, uint8_t *blob, size_t size, float priority)
 {
-    char *buf = getFloatString(priority);
+    char *buf = floatStr(priority);
     trimDigits(buf);
     bool ret = pushBlob(fbdo, path.c_str(), blob, size, false, buf);
     delS(buf);
@@ -706,9 +2090,9 @@ bool FirebaseESP8266::pushBlob(FirebaseData &fbdo, const std::string &path, uint
     }
 
     std::string base64Str;
-    pgm_appendStr(base64Str, fb_esp_pgm_str_92, true);
-    base64Str += base64_encode_string((const unsigned char *)blob, size);
-    pgm_appendStr(base64Str, fb_esp_pgm_str_3);
+    appendP(base64Str, fb_esp_pgm_str_92, true);
+    base64Str += encodeBase64Str((const unsigned char *)blob, size);
+    appendP(base64Str, fb_esp_pgm_str_3);
     bool ret = processRequest(fbdo, fb_esp_method::m_post, fb_esp_data_type::d_blob, path, base64Str.c_str(), queue, priority, "");
     std::string().swap(base64Str);
     return ret;
@@ -721,7 +2105,7 @@ bool FirebaseESP8266::pushFile(FirebaseData &fbdo, uint8_t storageType, const St
 
 bool FirebaseESP8266::pushFile(FirebaseData &fbdo, uint8_t storageType, const String &path, const String &fileName, float priority)
 {
-    char *buf = getFloatString(priority);
+    char *buf = floatStr(priority);
     trimDigits(buf);
     bool ret = processRequestFile(fbdo, storageType, fb_esp_method::m_post, path.c_str(), fileName.c_str(), false, buf, "");
     delS(buf);
@@ -730,7 +2114,7 @@ bool FirebaseESP8266::pushFile(FirebaseData &fbdo, uint8_t storageType, const St
 
 bool FirebaseESP8266::pushTimestamp(FirebaseData &fbdo, const String &path)
 {
-    char *tmp = getPGMString(fb_esp_pgm_str_154);
+    char *tmp = strP(fb_esp_pgm_str_154);
     bool ret = processRequest(fbdo, fb_esp_method::m_post, fb_esp_data_type::d_timestamp, path.c_str(), tmp, false, "", "");
     delS(tmp);
     return ret;
@@ -1077,7 +2461,7 @@ bool FirebaseESP8266::setInt(FirebaseData &fbdo, const String &path, int intValu
 
 bool FirebaseESP8266::setInt(FirebaseData &fbdo, const String &path, int intValue, float priority)
 {
-    char *buf = getFloatString(priority);
+    char *buf = floatStr(priority);
     trimDigits(buf);
     bool ret = setInt(fbdo, path.c_str(), intValue, false, buf, "");
     delS(buf);
@@ -1091,7 +2475,7 @@ bool FirebaseESP8266::setInt(FirebaseData &fbdo, const String &path, int intValu
 
 bool FirebaseESP8266::setInt(FirebaseData &fbdo, const String &path, int intValue, float priority, const String &ETag)
 {
-    char *buf = getFloatString(priority);
+    char *buf = floatStr(priority);
     trimDigits(buf);
     bool ret = setInt(fbdo, path.c_str(), intValue, false, buf, ETag.c_str());
     delS(buf);
@@ -1100,7 +2484,7 @@ bool FirebaseESP8266::setInt(FirebaseData &fbdo, const String &path, int intValu
 
 bool FirebaseESP8266::setInt(FirebaseData &fbdo, const std::string &path, int intValue, bool queue, const std::string &priority, const std::string &etag)
 {
-    char *buf = getIntString(intValue);
+    char *buf = intStr(intValue);
     bool ret = processRequest(fbdo, fb_esp_method::m_put, fb_esp_data_type::d_integer, path, buf, queue, priority, etag);
     delS(buf);
     return ret;
@@ -1113,7 +2497,7 @@ bool FirebaseESP8266::setFloat(FirebaseData &fbdo, const String &path, float flo
 
 bool FirebaseESP8266::setFloat(FirebaseData &fbdo, const String &path, float floatValue, float priority)
 {
-    char *buf = getFloatString(priority);
+    char *buf = floatStr(priority);
     trimDigits(buf);
     bool ret = setFloat(fbdo, path.c_str(), floatValue, false, buf, "");
     delS(buf);
@@ -1127,7 +2511,7 @@ bool FirebaseESP8266::setFloat(FirebaseData &fbdo, const String &path, float flo
 
 bool FirebaseESP8266::setFloat(FirebaseData &fbdo, const String &path, float floatValue, float priority, const String &ETag)
 {
-    char *buf = getFloatString(priority);
+    char *buf = floatStr(priority);
     trimDigits(buf);
     bool ret = setFloat(fbdo, path.c_str(), floatValue, false, buf, ETag.c_str());
     delS(buf);
@@ -1136,7 +2520,7 @@ bool FirebaseESP8266::setFloat(FirebaseData &fbdo, const String &path, float flo
 
 bool FirebaseESP8266::setFloat(FirebaseData &fbdo, const std::string &path, float floatValue, bool queue, const std::string &priority, const std::string &etag)
 {
-    char *buf = getFloatString(floatValue);
+    char *buf = floatStr(floatValue);
     trimDigits(buf);
     bool ret = processRequest(fbdo, fb_esp_method::m_put, fb_esp_data_type::d_float, path, buf, queue, priority, etag);
     delS(buf);
@@ -1150,7 +2534,7 @@ bool FirebaseESP8266::setDouble(FirebaseData &fbdo, const String &path, double d
 
 bool FirebaseESP8266::setDouble(FirebaseData &fbdo, const String &path, double doubleValue, float priority)
 {
-    char *buf = getFloatString(priority);
+    char *buf = floatStr(priority);
     trimDigits(buf);
     bool ret = setDouble(fbdo, path.c_str(), doubleValue, false, buf, "");
     delS(buf);
@@ -1164,7 +2548,7 @@ bool FirebaseESP8266::setDouble(FirebaseData &fbdo, const String &path, double d
 
 bool FirebaseESP8266::setDouble(FirebaseData &fbdo, const String &path, double doubleValue, float priority, const String &ETag)
 {
-    char *buf = getFloatString(priority);
+    char *buf = floatStr(priority);
     trimDigits(buf);
     bool ret = setDouble(fbdo, path.c_str(), doubleValue, false, buf, ETag.c_str());
     delS(buf);
@@ -1173,7 +2557,7 @@ bool FirebaseESP8266::setDouble(FirebaseData &fbdo, const String &path, double d
 
 bool FirebaseESP8266::setDouble(FirebaseData &fbdo, const std::string &path, double doubleValue, bool queue, const std::string &priority, const std::string &etag)
 {
-    char *buf = getDoubleString(doubleValue);
+    char *buf = doubleStr(doubleValue);
     trimDigits(buf);
     bool ret = processRequest(fbdo, fb_esp_method::m_put, fb_esp_data_type::d_double, path, buf, false, priority, etag);
     delS(buf);
@@ -1187,7 +2571,7 @@ bool FirebaseESP8266::setBool(FirebaseData &fbdo, const String &path, bool boolV
 
 bool FirebaseESP8266::setBool(FirebaseData &fbdo, const String &path, bool boolValue, float priority)
 {
-    char *buf = getFloatString(priority);
+    char *buf = floatStr(priority);
     trimDigits(buf);
     bool ret = setBool(fbdo, path.c_str(), boolValue, false, buf, "");
     delS(buf);
@@ -1201,7 +2585,7 @@ bool FirebaseESP8266::setBool(FirebaseData &fbdo, const String &path, bool boolV
 
 bool FirebaseESP8266::setBool(FirebaseData &fbdo, const String &path, bool boolValue, float priority, const String &ETag)
 {
-    char *buf = getFloatString(priority);
+    char *buf = floatStr(priority);
     trimDigits(buf);
     bool ret = setBool(fbdo, path.c_str(), boolValue, false, buf, ETag.c_str());
     delS(buf);
@@ -1210,7 +2594,7 @@ bool FirebaseESP8266::setBool(FirebaseData &fbdo, const String &path, bool boolV
 
 bool FirebaseESP8266::setBool(FirebaseData &fbdo, const std::string &path, bool boolValue, bool queue, const std::string &priority, const std::string &etag)
 {
-    char *buf = getBoolString(boolValue);
+    char *buf = boolStr(boolValue);
     bool ret = processRequest(fbdo, fb_esp_method::m_put, fb_esp_data_type::d_boolean, path, buf, false, priority, etag);
     delS(buf);
     return ret;
@@ -1223,7 +2607,7 @@ bool FirebaseESP8266::setString(FirebaseData &fbdo, const String &path, const St
 
 bool FirebaseESP8266::setString(FirebaseData &fbdo, const String &path, const String &stringValue, float priority)
 {
-    char *buf = getFloatString(priority);
+    char *buf = floatStr(priority);
     trimDigits(buf);
     bool ret = processRequest(fbdo, fb_esp_method::m_put, fb_esp_data_type::d_string, path.c_str(), stringValue.c_str(), false, buf, "");
     delS(buf);
@@ -1237,7 +2621,7 @@ bool FirebaseESP8266::setString(FirebaseData &fbdo, const String &path, const St
 
 bool FirebaseESP8266::setString(FirebaseData &fbdo, const String &path, const String &stringValue, float priority, const String &ETag)
 {
-    char *buf = getFloatString(priority);
+    char *buf = floatStr(priority);
     trimDigits(buf);
     bool ret = processRequest(fbdo, fb_esp_method::m_put, fb_esp_data_type::d_string, path.c_str(), stringValue.c_str(), false, buf, ETag.c_str());
     delS(buf);
@@ -1255,7 +2639,7 @@ bool FirebaseESP8266::setJSON(FirebaseData &fbdo, const String &path, FirebaseJs
 
 bool FirebaseESP8266::setJSON(FirebaseData &fbdo, const String &path, FirebaseJson &json, float priority)
 {
-    char *buf = getFloatString(priority);
+    char *buf = floatStr(priority);
     trimDigits(buf);
     std::string s;
     json._toStdString(s);
@@ -1276,7 +2660,7 @@ bool FirebaseESP8266::setJSON(FirebaseData &fbdo, const String &path, FirebaseJs
 
 bool FirebaseESP8266::setJSON(FirebaseData &fbdo, const String &path, FirebaseJson &json, float priority, const String &ETag)
 {
-    char *buf = getFloatString(priority);
+    char *buf = floatStr(priority);
     trimDigits(buf);
     std::string s;
     json._toStdString(s);
@@ -1295,7 +2679,7 @@ bool FirebaseESP8266::setArray(FirebaseData &fbdo, const String &path, FirebaseJ
 
 bool FirebaseESP8266::setArray(FirebaseData &fbdo, const String &path, FirebaseJsonArray &arr, float priority)
 {
-    char *buf = getFloatString(priority);
+    char *buf = floatStr(priority);
     trimDigits(buf);
     String arrStr;
     arr.toString(arrStr);
@@ -1313,7 +2697,7 @@ bool FirebaseESP8266::setArray(FirebaseData &fbdo, const String &path, FirebaseJ
 
 bool FirebaseESP8266::setArray(FirebaseData &fbdo, const String &path, FirebaseJsonArray &arr, float priority, const String &ETag)
 {
-    char *buf = getFloatString(priority);
+    char *buf = floatStr(priority);
     trimDigits(buf);
     String arrStr;
     arr.toString(arrStr);
@@ -1329,7 +2713,7 @@ bool FirebaseESP8266::setBlob(FirebaseData &fbdo, const String &path, uint8_t *b
 
 bool FirebaseESP8266::setBlob(FirebaseData &fbdo, const String &path, uint8_t *blob, size_t size, float priority)
 {
-    char *buf = getFloatString(priority);
+    char *buf = floatStr(priority);
     trimDigits(buf);
     bool ret = setBlob(fbdo, path.c_str(), blob, size, false, buf, "");
     delS(buf);
@@ -1343,7 +2727,7 @@ bool FirebaseESP8266::setBlob(FirebaseData &fbdo, const String &path, uint8_t *b
 
 bool FirebaseESP8266::setBlob(FirebaseData &fbdo, const String &path, uint8_t *blob, size_t size, float priority, const String &ETag)
 {
-    char *buf = getFloatString(priority);
+    char *buf = floatStr(priority);
     trimDigits(buf);
     bool ret = setBlob(fbdo, path.c_str(), blob, size, false, buf, ETag.c_str());
     delS(buf);
@@ -1359,9 +2743,9 @@ bool FirebaseESP8266::setBlob(FirebaseData &fbdo, const std::string &path, uint8
     }
 
     std::string base64Str;
-    pgm_appendStr(base64Str, fb_esp_pgm_str_92, true);
-    base64Str += base64_encode_string((const unsigned char *)blob, size);
-    pgm_appendStr(base64Str, fb_esp_pgm_str_3);
+    appendP(base64Str, fb_esp_pgm_str_92, true);
+    base64Str += encodeBase64Str((const unsigned char *)blob, size);
+    appendP(base64Str, fb_esp_pgm_str_3);
     bool ret = processRequest(fbdo, fb_esp_method::m_put_nocontent, fb_esp_data_type::d_blob, path, base64Str.c_str(), false, priority, etag);
     std::string().swap(base64Str);
     return ret;
@@ -1374,7 +2758,7 @@ bool FirebaseESP8266::setFile(FirebaseData &fbdo, uint8_t storageType, const Str
 
 bool FirebaseESP8266::setFile(FirebaseData &fbdo, uint8_t storageType, const String &path, const String &fileName, float priority)
 {
-    char *buf = getFloatString(priority);
+    char *buf = floatStr(priority);
     trimDigits(buf);
     bool ret = processRequestFile(fbdo, storageType, fb_esp_method::m_put_nocontent, path.c_str(), fileName.c_str(), false, buf, "");
     delS(buf);
@@ -1388,7 +2772,7 @@ bool FirebaseESP8266::setFile(FirebaseData &fbdo, uint8_t storageType, const Str
 
 bool FirebaseESP8266::setFile(FirebaseData &fbdo, uint8_t storageType, const String &path, const String &fileName, float priority, const String &ETag)
 {
-    char *buf = getFloatString(priority);
+    char *buf = floatStr(priority);
     trimDigits(buf);
     bool ret = processRequestFile(fbdo, storageType, fb_esp_method::m_put_nocontent, path.c_str(), fileName.c_str(), false, buf, ETag.c_str());
     delS(buf);
@@ -1397,7 +2781,7 @@ bool FirebaseESP8266::setFile(FirebaseData &fbdo, uint8_t storageType, const Str
 
 bool FirebaseESP8266::setTimestamp(FirebaseData &fbdo, const String &path)
 {
-    char *tmp = getPGMString(fb_esp_pgm_str_154);
+    char *tmp = strP(fb_esp_pgm_str_154);
     bool ret = processRequest(fbdo, fb_esp_method::m_put, fb_esp_data_type::d_timestamp, path.c_str(), tmp, false, "", "");
     delS(tmp);
     return ret;
@@ -1414,7 +2798,7 @@ bool FirebaseESP8266::updateNode(FirebaseData &fbdo, const String path, Firebase
 
 bool FirebaseESP8266::updateNode(FirebaseData &fbdo, const String &path, FirebaseJson &json, float priority)
 {
-    char *buf = getFloatString(priority);
+    char *buf = floatStr(priority);
     trimDigits(buf);
     std::string s;
     json._toStdString(s);
@@ -1435,7 +2819,7 @@ bool FirebaseESP8266::updateNodeSilent(FirebaseData &fbdo, const String &path, F
 
 bool FirebaseESP8266::updateNodeSilent(FirebaseData &fbdo, const String &path, FirebaseJson &json, float priority)
 {
-    char *buf = getFloatString(priority);
+    char *buf = floatStr(priority);
     trimDigits(buf);
     std::string s;
     json._toStdString(s);
@@ -1922,8 +3306,15 @@ bool FirebaseESP8266::beginStream(FirebaseData &fbdo, const String &path)
     fbdo._streamStop = false;
     fbdo._isDataTimeout = false;
 
+    fbdo._streamPath = path.c_str();
+
     if (!handleStreamRequest(fbdo, path.c_str()))
+    {
+        if (!tokenReady(fbdo))
+            return true;
+
         return false;
+    }
 
     clearDataStatus(fbdo);
 
@@ -1942,7 +3333,12 @@ bool FirebaseESP8266::beginMultiPathStream(FirebaseData &fbdo, const String &par
     fbdo._isDataTimeout = false;
 
     if (!handleStreamRequest(fbdo, parentPath.c_str()))
+    {
+        if (!tokenReady(fbdo))
+            return true;
+
         return false;
+    }
 
     clearDataStatus(fbdo);
     return waitResponse(fbdo);
@@ -1974,11 +3370,11 @@ int FirebaseESP8266::sendRequest(FirebaseData &fbdo, const std::string &path, fb
     if (!reconnect(fbdo))
         return FIREBASE_ERROR_HTTPC_ERROR_CONNECTION_LOST;
 
-    if (path.length() == 0 || _host.length() == 0 || _auth.length() == 0)
-    {
-        fbdo._httpCode = FIREBASE_ERROR_HTTP_CODE_BAD_REQUEST;
+    if (!tokenReady(fbdo))
+        return FIREBASE_ERROR_TOKEN_NOT_REDY;
+
+    if (!validRequest(fbdo, path))
         return FIREBASE_ERROR_HTTP_CODE_BAD_REQUEST;
-    }
 
     uint8_t attempts = 0;
     uint8_t maxAttempt = 5;
@@ -2010,7 +3406,7 @@ int FirebaseESP8266::sendRequest(FirebaseData &fbdo, const std::string &path, fb
 
         if (path.length() > 0)
             if (path[0] != '/')
-                pgm_appendStr(fbdo._streamPath, fb_esp_pgm_str_1, true);
+                appendP(fbdo._streamPath, fb_esp_pgm_str_1, true);
 
         fbdo._streamPath += path;
 
@@ -2039,7 +3435,7 @@ int FirebaseESP8266::sendRequest(FirebaseData &fbdo, const std::string &path, fb
             fbdo._path.clear();
             if (path.length() > 0)
                 if (path[0] != '/')
-                    pgm_appendStr(fbdo._path, fb_esp_pgm_str_1, true);
+                    appendP(fbdo._path, fb_esp_pgm_str_1, true);
             fbdo._path += path;
         }
 
@@ -2052,7 +3448,7 @@ int FirebaseESP8266::sendRequest(FirebaseData &fbdo, const std::string &path, fb
         return FIREBASE_ERROR_CANNOT_CONFIG_TIME;
     }
 
-    fbdo.httpClient.begin(_host.c_str(), _port);
+    fbdo.httpClient.begin(_cfg->host.c_str(), FIREBASE_PORT);
 
     //Prepare for string and JSON payloads
     preparePayload(method, dataType, priority, payload, payloadBuf);
@@ -2064,11 +3460,12 @@ int FirebaseESP8266::sendRequest(FirebaseData &fbdo, const std::string &path, fb
         bool sv = false;
         if (dataType == fb_esp_data_type::d_json)
         {
-            tmp = getPGMString(fb_esp_pgm_str_166);
+            tmp = strP(fb_esp_pgm_str_166);
             sv = payloadBuf.find(tmp) != std::string::npos;
             delS(tmp);
         }
-        prepareHeader(fbdo, _host, method, dataType, path, _auth, payloadBuf.length(), header, sv);
+
+        prepareHeader(fbdo, method, dataType, path, payloadBuf.length(), header, sv);
     }
     else
     {
@@ -2078,7 +3475,7 @@ int FirebaseESP8266::sendRequest(FirebaseData &fbdo, const std::string &path, fb
         {
             if (!FLASH_FS.begin())
             {
-                pgm_appendStr(fbdo._file_transfer_error, fb_esp_pgm_str_164, true);
+                appendP(fbdo._file_transfer_error, fb_esp_pgm_str_164, true);
                 return FIREBASE_ERROR_FILE_IO_ERROR;
             }
         }
@@ -2086,7 +3483,7 @@ int FirebaseESP8266::sendRequest(FirebaseData &fbdo, const std::string &path, fb
         {
             if (_sdInUse)
             {
-                pgm_appendStr(fbdo._file_transfer_error, fb_esp_pgm_str_84, true);
+                appendP(fbdo._file_transfer_error, fb_esp_pgm_str_84, true);
                 return FIREBASE_ERROR_FILE_IO_ERROR;
             }
 
@@ -2095,7 +3492,7 @@ int FirebaseESP8266::sendRequest(FirebaseData &fbdo, const std::string &path, fb
 
             if (!_sdOk)
             {
-                pgm_appendStr(fbdo._file_transfer_error, fb_esp_pgm_str_85, true);
+                appendP(fbdo._file_transfer_error, fb_esp_pgm_str_85, true);
                 return FIREBASE_ERROR_FILE_IO_ERROR;
             }
 
@@ -2126,7 +3523,7 @@ int FirebaseESP8266::sendRequest(FirebaseData &fbdo, const std::string &path, fb
                     file = SD.open(fbdo._backupFilename.c_str(), FILE_READ);
                 else
                 {
-                    pgm_appendStr(fbdo._file_transfer_error, fb_esp_pgm_str_83, true);
+                    appendP(fbdo._file_transfer_error, fb_esp_pgm_str_83, true);
                     return FIREBASE_ERROR_FILE_IO_ERROR;
                 }
 
@@ -2150,7 +3547,7 @@ int FirebaseESP8266::sendRequest(FirebaseData &fbdo, const std::string &path, fb
                         _file = FLASH_FS.open(fbdo._fileName.c_str(), "r");
                     else
                     {
-                        pgm_appendStr(fbdo._file_transfer_error, fb_esp_pgm_str_83, true);
+                        appendP(fbdo._file_transfer_error, fb_esp_pgm_str_83, true);
                         return FIREBASE_ERROR_FILE_IO_ERROR;
                     }
                 }
@@ -2160,7 +3557,7 @@ int FirebaseESP8266::sendRequest(FirebaseData &fbdo, const std::string &path, fb
                         file = SD.open(fbdo._fileName.c_str(), FILE_READ);
                     else
                     {
-                        pgm_appendStr(fbdo._file_transfer_error, fb_esp_pgm_str_83, true);
+                        appendP(fbdo._file_transfer_error, fb_esp_pgm_str_83, true);
                         return FIREBASE_ERROR_FILE_IO_ERROR;
                     }
                 }
@@ -2172,7 +3569,7 @@ int FirebaseESP8266::sendRequest(FirebaseData &fbdo, const std::string &path, fb
             }
             else if (method == fb_esp_method::m_get)
             {
-                tmp = getPGMString(fb_esp_pgm_str_1);
+                tmp = strP(fb_esp_pgm_str_1);
                 size_t p1 = fbdo._fileName.find_last_of(tmp);
                 delS(tmp);
                 std::string folder = "/";
@@ -2204,15 +3601,15 @@ int FirebaseESP8266::sendRequest(FirebaseData &fbdo, const std::string &path, fb
         {
             if ((!_file && fbdo._storageType == StorageType::FLASH) || (!file && fbdo._storageType == StorageType::SD))
             {
-                pgm_appendStr(fbdo._file_transfer_error, fb_esp_pgm_str_86, true);
+                appendP(fbdo._file_transfer_error, fb_esp_pgm_str_86, true);
                 return FIREBASE_ERROR_FILE_IO_ERROR;
             }
         }
 
         if (dataType == fb_esp_data_type::d_file)
-            prepareHeader(fbdo, _host, method, dataType, fbdo._path.c_str(), _auth, len, header, false);
+            prepareHeader(fbdo, method, dataType, fbdo._path.c_str(), len, header, false);
         else
-            prepareHeader(fbdo, _host, method, dataType, fbdo._backupNodePath.c_str(), _auth, len, header, false);
+            prepareHeader(fbdo, method, dataType, fbdo._backupNodePath.c_str(), len, header, false);
     }
 
     if (method == fb_esp_method::m_get_nocontent || method == fb_esp_method::m_patch_nocontent || (method == fb_esp_method::m_put_nocontent && dataType == fb_esp_data_type::d_blob))
@@ -2247,11 +3644,11 @@ int FirebaseESP8266::sendRequest(FirebaseData &fbdo, const std::string &path, fb
         if (dataType == fb_esp_data_type::d_file && (method == fb_esp_method::m_put_nocontent || method == fb_esp_method::m_post))
         {
 
-            buf = getPGMString(fb_esp_pgm_str_93);
+            buf = strP(fb_esp_pgm_str_93);
             ret = fbdo.httpClient.send("", buf);
             delS(buf);
             if (ret == 0)
-                send_base64_encoded_stream(fbdo.httpClient.stream(), fbdo._fileName, fbdo._storageType);
+                sendBase64Stream(fbdo.httpClient.stream(), fbdo._fileName, fbdo._storageType);
             else
                 return FIREBASE_ERROR_HTTPC_ERROR_SEND_PAYLOAD_FAILED;
 
@@ -2424,11 +3821,11 @@ bool FirebaseESP8266::handleRequest(FirebaseData &fbdo, uint8_t storageType, con
     if (!reconnect(fbdo))
         return false;
 
-    if (path.length() == 0 || _host.length() == 0 || _auth.length() == 0)
-    {
-        fbdo._httpCode = FIREBASE_ERROR_HTTP_CODE_BAD_REQUEST;
+    if (!tokenReady(fbdo))
         return false;
-    }
+
+    if (!validRequest(fbdo, path))
+        return false;
 
     if ((method == fb_esp_method::m_put || method == fb_esp_method::m_post || method == fb_esp_method::m_patch || method == fb_esp_method::m_patch_nocontent || method == fb_esp_method::m_set_rules) && payload.length() == 0 && dataType != fb_esp_data_type::d_string && dataType != fb_esp_data_type::d_blob && dataType != fb_esp_data_type::d_file)
     {
@@ -2670,8 +4067,15 @@ void FirebaseESP8266::parseRespPayload(const char *buf, struct server_response_d
         tmp = getHeader(buf, fb_esp_pgm_str_102, fb_esp_pgm_str_3, payloadPos, 0);
         if (tmp)
         {
-            response.fbError = tmp;
             delS(tmp);
+            FirebaseJson js;
+            FirebaseJsonData d;
+            js.setJsonData(buf);
+            tmp = strP(fb_esp_pgm_str_176);
+            js.get(d, tmp);
+            delS(tmp);
+            if (d.success)
+                response.fbError = d.stringValue.c_str();
         }
 
         if (stringCompare(buf, payloadOfs, fb_esp_pgm_str_92))
@@ -2719,7 +4123,7 @@ void FirebaseESP8266::parseRespPayload(const char *buf, struct server_response_d
         }
         else
         {
-            tmp = getPGMString(fb_esp_pgm_str_4);
+            tmp = strP(fb_esp_pgm_str_4);
             int p1 = strpos(buf, tmp, payloadOfs);
             delS(tmp);
             setNumDataType(buf, payloadOfs, response, p1 != -1);
@@ -2771,13 +4175,13 @@ void FirebaseESP8266::setNumDataType(const char *buf, int ofs, struct server_res
 char *FirebaseESP8266::getHeader(const char *buf, PGM_P beginH, PGM_P endH, int &beginPos, int endPos)
 {
 
-    char *tmp = getPGMString(beginH);
+    char *tmp = strP(beginH);
     int p1 = strpos(buf, tmp, beginPos);
     int ofs = 0;
     delS(tmp);
     if (p1 != -1)
     {
-        tmp = getPGMString(endH);
+        tmp = strP(endH);
         int p2 = -1;
         if (endPos > 0)
             p2 = endPos;
@@ -2811,7 +4215,7 @@ char *FirebaseESP8266::getHeader(const char *buf, PGM_P beginH, PGM_P endH, int 
 
 bool FirebaseESP8266::stringCompare(const char *buf, int ofs, PGM_P beginH)
 {
-    char *tmp = getPGMString(beginH);
+    char *tmp = strP(beginH);
     char *tmp2 = newS(strlen_P(beginH) + 1);
     memcpy(tmp2, &buf[ofs], strlen_P(beginH));
     tmp2[strlen_P(beginH)] = 0;
@@ -2826,13 +4230,11 @@ int FirebaseESP8266::readLine(WiFiClient *stream, char *buf, int bufLen)
     int res = -1;
     char c = 0;
     int idx = 0;
-    while (stream->available() && idx < bufLen)
+    while (stream->available() && idx <= bufLen)
     {
         res = stream->read();
         if (res > -1)
         {
-            if (idx >= bufLen - 1)
-                return idx;
             c = (char)res;
             strcat_c(buf, c);
             idx++;
@@ -2860,15 +4262,16 @@ int FirebaseESP8266::readChunkedData(WiFiClient *stream, char *out, int &chunkSt
         int readLen = readLine(stream, buf, bufLen);
         if (readLen)
         {
-            tmp = getPGMString(fb_esp_pgm_str_79);
+            tmp = strP(fb_esp_pgm_str_79);
             p1 = strpos(buf, tmp, 0);
             delS(tmp);
             if (p1 == -1)
             {
-                tmp = getPGMString(fb_esp_pgm_str_21);
+                tmp = strP(fb_esp_pgm_str_21);
                 p1 = strpos(buf, tmp, 0);
                 delS(tmp);
             }
+
             if (p1 != -1)
             {
                 tmp = newS(p1 + 1);
@@ -2909,7 +4312,7 @@ int FirebaseESP8266::readChunkedData(WiFiClient *stream, char *out, int &chunkSt
                         memcpy(out, buf, chunkedSize - dataLen);
                     dataLen = chunkedSize;
                     chunkState = 0;
-                    olen = 0;
+                    olen = readLen;
                 }
             }
             else
@@ -3095,6 +4498,16 @@ bool FirebaseESP8266::handleResponse(FirebaseData &fbdo)
                                 delS(header);
                             hstate = 0;
 
+                            //error in request or server
+                            if (response.httpCode >= 400)
+                            {
+                                if (strposP(response.contentType.c_str(), fb_esp_pgm_str_74, 0) < 0)
+                                {
+                                    closeHTTP(fbdo);
+                                    break;
+                                }
+                            }
+
                             if (fbdo._httpCode == FIREBASE_ERROR_HTTP_CODE_TEMPORARY_REDIRECT || fbdo._httpCode == FIREBASE_ERROR_HTTP_CODE_PERMANENT_REDIRECT || fbdo._httpCode == FIREBASE_ERROR_HTTP_CODE_MOVED_PERMANENTLY || fbdo._httpCode == FIREBASE_ERROR_HTTP_CODE_FOUND)
                             {
                                 if (response.location.length() > 0)
@@ -3196,7 +4609,7 @@ bool FirebaseESP8266::handleResponse(FirebaseData &fbdo)
                                     if (fbdo._req_method == fb_esp_method::m_download && response.dataType != fb_esp_data_type::d_json)
                                     {
                                         fbdo._httpCode = FIREBASE_ERROR_EXPECTED_JSON_DATA;
-                                        tmp = getPGMString(fb_esp_pgm_str_185);
+                                        tmp = strP(fb_esp_pgm_str_185);
                                         fbdo._file_transfer_error = tmp;
                                         delS(tmp);
 
@@ -3237,16 +4650,16 @@ bool FirebaseESP8266::handleResponse(FirebaseData &fbdo)
                                                 payload[len - 1] = 0;
 
                                             if (fbdo._storageType == StorageType::FLASH)
-                                                base64_decode_flash(_file, payload + ofs, len);
+                                                decodeBase64Flash(_file, payload + ofs, len);
                                             else if (fbdo._storageType == StorageType::SD)
-                                                base64_decode_file(file, payload + ofs, len);
+                                                decodeBase64Stream(file, payload + ofs, len);
                                         }
                                     }
                                     else
                                     {
                                         if (!_file)
                                         {
-                                            tmp = getPGMString(fb_esp_pgm_str_184);
+                                            tmp = strP(fb_esp_pgm_str_184);
                                             if (FLASH_FS.begin())
                                                 _file = FLASH_FS.open(tmp, "w");
                                             delS(tmp);
@@ -3261,9 +4674,9 @@ bool FirebaseESP8266::handleResponse(FirebaseData &fbdo)
                                                 payload[len - 1] = 0;
 
                                             if (fbdo._storageType == StorageType::FLASH)
-                                                base64_decode_flash(_file, payload + ofs, len);
+                                                decodeBase64Flash(_file, payload + ofs, len);
                                             else if (fbdo._storageType == StorageType::SD)
-                                                base64_decode_file(file, payload + ofs, len);
+                                                decodeBase64Stream(file, payload + ofs, len);
                                         }
                                     }
 
@@ -3328,7 +4741,7 @@ bool FirebaseESP8266::handleResponse(FirebaseData &fbdo)
                     std::vector<uint8_t>().swap(fbdo._blob);
                     fbdo._data.clear();
                     fbdo._data2.clear();
-                    base64_decode_string((const char *)payload + response.payloadOfs, fbdo._blob);
+                    decodeBase64Str((const char *)payload + response.payloadOfs, fbdo._blob);
                 }
 
                 if (fbdo.resp_dataType == fb_esp_data_type::d_file || file || _file)
@@ -3459,7 +4872,7 @@ bool FirebaseESP8266::handleResponse(FirebaseData &fbdo)
             else
                 fbdo._pathNotExist = false;
 
-            if (fbdo.resp_dataType != fb_esp_data_type::d_null && fbdo._req_dataType != fb_esp_data_type::d_timestamp && !response.noContent && fbdo._req_method != fb_esp_method::m_post && fbdo._req_method != fb_esp_method::m_get_shallow)
+            if (fbdo.resp_dataType != fb_esp_data_type::d_null && fbdo._req_dataType != fb_esp_data_type::d_timestamp && !response.noContent && fbdo._req_method != fb_esp_method::m_post && fbdo._req_method != fb_esp_method::m_get_shallow && response.httpCode < 400)
             {
 
                 bool _reqType = fbdo._req_dataType == fb_esp_data_type::d_integer || fbdo._req_dataType == fb_esp_data_type::d_float || fbdo._req_dataType == fb_esp_data_type::d_double;
@@ -3509,9 +4922,9 @@ bool FirebaseESP8266::handleResponse(FirebaseData &fbdo)
             }
             else
             {
-                std::string host, uri, auth;
-                getUrlInfo(fbdo._redirectURL, host, uri, auth);
-                if (sendRequest(fbdo, uri, fbdo._req_method, fbdo._req_dataType, "", fbdo._priority) == 0)
+                struct fb_esp_url_info_t uinfo;
+                getUrlInfo(fbdo._redirectURL, uinfo);
+                if (sendRequest(fbdo, uinfo.uri, fbdo._req_method, fbdo._req_dataType, "", fbdo._priority) == 0)
                     return waitResponse(fbdo);
             }
         }
@@ -3548,7 +4961,6 @@ bool FirebaseESP8266::handleResponse(FirebaseData &fbdo)
 
 void FirebaseESP8266::handlePayload(FirebaseData &fbdo, struct server_response_data_t &response, char *payload)
 {
-
     String rawArr;
     String rawJson;
 
@@ -3622,28 +5034,55 @@ void FirebaseESP8266::closeFileHandle(FirebaseData &fbdo)
     }
 }
 
+bool FirebaseESP8266::validRequest(FirebaseData &fbdo, const std::string &path)
+{
+    if (path.length() == 0 || _cfg->host.length() == 0 || (_cfg->signer.tokens.legacy_token.length() == 0 && _cfg->signer.tokens.id_token.length() == 0 && _cfg->signer.tokens.access_token.length() == 0))
+    {
+        fbdo._httpCode = FIREBASE_ERROR_HTTP_CODE_BAD_REQUEST;
+        return false;
+    }
+    return true;
+}
+
+bool FirebaseESP8266::tokenReady(FirebaseData &fbdo)
+{
+    if (!_auth || !_cfg)
+    {
+        fbdo._httpCode = FIREBASE_ERROR_UNINITIALIZED;
+        return false;
+    }
+    checkToken(fbdo);
+    if (_cfg->signer.tokens.status != token_status_ready)
+    {
+        fbdo._httpCode = FIREBASE_ERROR_TOKEN_NOT_REDY;
+        closeHTTP(fbdo);
+        return false;
+    }
+    return true;
+};
+
 bool FirebaseESP8266::handleStreamRequest(FirebaseData &fbdo, const std::string &path)
 {
 
     if (fbdo._pause)
         return true;
 
-    if (path.length() == 0 || _host.length() == 0 || _auth.length() == 0)
-    {
-        fbdo._httpCode = FIREBASE_ERROR_HTTP_CODE_BAD_REQUEST;
-        return false;
-    }
-
     if (!reconnect(fbdo))
+        return false;
+
+    if (!tokenReady(fbdo))
+        return false;
+
+    if (!validRequest(fbdo, path))
         return false;
 
     bool ret = false;
 
     if (fbdo._redirectURL.length() > 0)
     {
-        std::string host, uri, auth;
-        getUrlInfo(fbdo._redirectURL, host, uri, auth);
-        ret = sendRequest(fbdo, uri, fb_esp_method::m_stream, fb_esp_data_type::d_string, "", "") == 0;
+        struct fb_esp_url_info_t uinfo;
+        getUrlInfo(fbdo._redirectURL, uinfo);
+        ret = sendRequest(fbdo, uinfo.uri, fb_esp_method::m_stream, fb_esp_data_type::d_string, "", "") == 0;
     }
     else
         ret = sendRequest(fbdo, path, fb_esp_method::m_stream, fb_esp_data_type::d_string, "", "") == 0;
@@ -3665,6 +5104,9 @@ bool FirebaseESP8266::handleStreamRead(FirebaseData &fbdo)
         fbdo._isDataTimeout = true;
         return true;
     }
+
+    if (!tokenReady(fbdo))
+        return false;
 
     bool ret = false;
     bool reconnectStream = false;
@@ -3701,12 +5143,15 @@ bool FirebaseESP8266::handleStreamRead(FirebaseData &fbdo)
     {
         closeHTTP(fbdo);
 
+        if (!tokenReady(fbdo))
+            return false;
+
         std::string path = fbdo._streamPath;
         if (fbdo._redirectURL.length() > 0)
         {
-            std::string host, uri, auth;
-            getUrlInfo(fbdo._redirectURL, host, uri, auth);
-            path = uri;
+            struct fb_esp_url_info_t uinfo;
+            getUrlInfo(fbdo._redirectURL, uinfo);
+            path = uinfo.uri;
         }
 
         //mode changed, non-stream -> stream, reset the data timeout state to allow data available to be notified.
@@ -3744,6 +5189,12 @@ void FirebaseESP8266::closeHTTP(FirebaseData &fbdo)
                 fbdo.httpClient.stream()->stop();
         }
         _lastReconnectMillis = millis();
+    }
+    if (fbdo._isStream)
+    {
+        fbdo._streamTimeoutMillis = millis();
+        fbdo._dataMillis = millis();
+        fbdo._isDataTimeout = false;
     }
     fbdo._httpConnected = false;
 }
@@ -3999,44 +5450,44 @@ void FirebaseESP8266::preparePayload(fb_esp_method method, fb_esp_data_type data
                 {
                     buf.clear();
                     buf = payload;
-                    tmp = getPGMString(fb_esp_pgm_str_127);
+                    tmp = strP(fb_esp_pgm_str_127);
                     size_t x = buf.find_last_of(tmp);
                     delS(tmp);
                     if (x != std::string::npos && x != 0)
                         for (size_t i = 0; i < buf.length() - x; i++)
                             buf.pop_back();
 
-                    pgm_appendStr(buf, fb_esp_pgm_str_157);
+                    appendP(buf, fb_esp_pgm_str_157);
                     buf += priority;
-                    pgm_appendStr(buf, fb_esp_pgm_str_127);
+                    appendP(buf, fb_esp_pgm_str_127);
                 }
             }
             else
             {
-                pgm_appendStr(buf, fb_esp_pgm_str_161, true);
+                appendP(buf, fb_esp_pgm_str_161, true);
                 if (dataType == fb_esp_data_type::d_string)
-                    pgm_appendStr(buf, fb_esp_pgm_str_3);
+                    appendP(buf, fb_esp_pgm_str_3);
                 buf += payload;
                 if (dataType == fb_esp_data_type::d_string)
-                    pgm_appendStr(buf, fb_esp_pgm_str_3);
-                pgm_appendStr(buf, fb_esp_pgm_str_157);
+                    appendP(buf, fb_esp_pgm_str_3);
+                appendP(buf, fb_esp_pgm_str_157);
                 buf += priority;
-                pgm_appendStr(buf, fb_esp_pgm_str_127);
+                appendP(buf, fb_esp_pgm_str_127);
             }
         }
         else
         {
             buf.clear();
             if (dataType == fb_esp_data_type::d_string)
-                pgm_appendStr(buf, fb_esp_pgm_str_3);
+                appendP(buf, fb_esp_pgm_str_3);
             buf += payload;
             if (dataType == fb_esp_data_type::d_string)
-                pgm_appendStr(buf, fb_esp_pgm_str_3);
+                appendP(buf, fb_esp_pgm_str_3);
         }
     }
 }
 
-void FirebaseESP8266::prepareHeader(FirebaseData &fbdo, const std::string &host, fb_esp_method method, fb_esp_data_type dataType, const std::string &path, const std::string &auth, int payloadLength, std::string &header, bool sv)
+void FirebaseESP8266::prepareHeader(FirebaseData &fbdo, fb_esp_method method, fb_esp_data_type dataType, const std::string &path, int payloadLength, std::string &header, bool sv)
 {
     fb_esp_method http_method = fb_esp_method::m_put;
     char *tmp = nullptr;
@@ -4046,7 +5497,7 @@ void FirebaseESP8266::prepareHeader(FirebaseData &fbdo, const std::string &host,
     header.clear();
     if (method == fb_esp_method::m_stream)
     {
-        pgm_appendStr(header, fb_esp_pgm_str_22, true);
+        appendP(header, fb_esp_pgm_str_22, true);
     }
     else
     {
@@ -4054,133 +5505,140 @@ void FirebaseESP8266::prepareHeader(FirebaseData &fbdo, const std::string &host,
         {
             http_method = fb_esp_method::m_put;
             if (fbdo._classicRequest)
-                pgm_appendStr(header, fb_esp_pgm_str_24, true);
+                appendP(header, fb_esp_pgm_str_24, true);
             else
-                pgm_appendStr(header, fb_esp_pgm_str_23, true);
+                appendP(header, fb_esp_pgm_str_23, true);
         }
         else if (method == fb_esp_method::m_post)
         {
             http_method = fb_esp_method::m_post;
-            pgm_appendStr(header, fb_esp_pgm_str_24, true);
+            appendP(header, fb_esp_pgm_str_24, true);
         }
         else if (method == fb_esp_method::m_get || method == fb_esp_method::m_get_nocontent || method == fb_esp_method::m_get_shallow || method == fb_esp_method::m_get_priority || method == fb_esp_method::m_download || method == fb_esp_method::m_read_rules)
         {
             http_method = fb_esp_method::m_get;
-            pgm_appendStr(header, fb_esp_pgm_str_25, true);
+            appendP(header, fb_esp_pgm_str_25, true);
         }
         else if (method == fb_esp_method::m_patch || method == fb_esp_method::m_patch_nocontent || method == fb_esp_method::m_restore)
         {
             http_method = fb_esp_method::m_patch;
-            pgm_appendStr(header, fb_esp_pgm_str_26, true);
+            appendP(header, fb_esp_pgm_str_26, true);
         }
         else if (method == fb_esp_method::m_delete)
         {
             http_method = fb_esp_method::m_delete;
             if (fbdo._classicRequest)
-                pgm_appendStr(header, fb_esp_pgm_str_24, true);
+                appendP(header, fb_esp_pgm_str_24, true);
             else
-                pgm_appendStr(header, fb_esp_pgm_str_27, true);
+                appendP(header, fb_esp_pgm_str_27, true);
         }
 
-        pgm_appendStr(header, fb_esp_pgm_str_6);
+        appendP(header, fb_esp_pgm_str_6);
     }
 
     if (path.length() > 0)
         if (path[0] != '/')
-            pgm_appendStr(header, fb_esp_pgm_str_1);
+            appendP(header, fb_esp_pgm_str_1);
 
     header += path;
 
     if (method == fb_esp_method::m_patch || method == fb_esp_method::m_patch_nocontent)
-        pgm_appendStr(header, fb_esp_pgm_str_1);
+        appendP(header, fb_esp_pgm_str_1);
+
+    bool appendAuth = false;
 
     if (fbdo._redirectURL.length() > 0)
     {
-
-        std::string h, u, a;
-        getUrlInfo(fbdo._redirectURL, h, u, a);
-        if (a.length() == 0)
-        {
-            pgm_appendStr(header, fb_esp_pgm_str_2);
-            header += auth;
-        }
-        std::string().swap(h);
-        std::string().swap(u);
-        std::string().swap(a);
+        struct fb_esp_url_info_t uinfo;
+        getUrlInfo(fbdo._redirectURL, uinfo);
+        if (uinfo.auth.length() == 0)
+            appendAuth = true;
     }
     else
+        appendAuth = true;
+
+    if (appendAuth)
     {
-        pgm_appendStr(header, fb_esp_pgm_str_2);
-        header += auth;
+
+        if (_cfg->signer.tokens.token_type == token_type_oauth2_access_token)
+            appendP(header, fb_esp_pgm_str_238);
+        else
+            appendP(header, fb_esp_pgm_str_2);
+
+        if (_cfg->signer.tokens.token_type == token_type_legacy_token)
+            header += _cfg->signer.tokens.legacy_token;
+
+        if (_cfg->signer.tokens.token_type == token_type_id_token || _cfg->signer.tokens.token_type == token_type_custom_token)
+            header += _cfg->signer.tokens.id_token;
     }
 
     if (fbdo._readTimeout > 0)
     {
-        pgm_appendStr(header, fb_esp_pgm_str_158);
-        tmp = getIntString(fbdo._readTimeout);
+        appendP(header, fb_esp_pgm_str_158);
+        tmp = intStr(fbdo._readTimeout);
         header += tmp;
         delS(tmp);
-        pgm_appendStr(header, fb_esp_pgm_str_159);
+        appendP(header, fb_esp_pgm_str_159);
     }
 
     if (fbdo._writeLimit.length() > 0)
     {
-        pgm_appendStr(header, fb_esp_pgm_str_160);
+        appendP(header, fb_esp_pgm_str_160);
         header += fbdo._writeLimit;
     }
 
     if (method == fb_esp_method::m_get_shallow)
     {
-        pgm_appendStr(header, fb_esp_pgm_str_155);
+        appendP(header, fb_esp_pgm_str_155);
         fbdo._shallow_flag = true;
     }
 
     if (method == fb_esp_method::m_get && fbdo.queryFilter._orderBy.length() > 0)
     {
-        pgm_appendStr(header, fb_esp_pgm_str_96);
+        appendP(header, fb_esp_pgm_str_96);
         header += fbdo.queryFilter._orderBy;
 
         if (method == fb_esp_method::m_get && fbdo.queryFilter._limitToFirst.length() > 0)
         {
-            pgm_appendStr(header, fb_esp_pgm_str_97);
+            appendP(header, fb_esp_pgm_str_97);
             header += fbdo.queryFilter._limitToFirst;
         }
 
         if (method == fb_esp_method::m_get && fbdo.queryFilter._limitToLast.length() > 0)
         {
-            pgm_appendStr(header, fb_esp_pgm_str_98);
+            appendP(header, fb_esp_pgm_str_98);
             header += fbdo.queryFilter._limitToLast;
         }
 
         if (method == fb_esp_method::m_get && fbdo.queryFilter._startAt.length() > 0)
         {
-            pgm_appendStr(header, fb_esp_pgm_str_99);
+            appendP(header, fb_esp_pgm_str_99);
             header += fbdo.queryFilter._startAt;
         }
 
         if (method == fb_esp_method::m_get && fbdo.queryFilter._endAt.length() > 0)
         {
-            pgm_appendStr(header, fb_esp_pgm_str_100);
+            appendP(header, fb_esp_pgm_str_100);
             header += fbdo.queryFilter._endAt;
         }
 
         if (method == fb_esp_method::m_get && fbdo.queryFilter._equalTo.length() > 0)
         {
-            pgm_appendStr(header, fb_esp_pgm_str_101);
+            appendP(header, fb_esp_pgm_str_101);
             header += fbdo.queryFilter._equalTo;
         }
     }
 
     if (method == fb_esp_method::m_download)
     {
-        pgm_appendStr(header, fb_esp_pgm_str_162);
-        pgm_appendStr(header, fb_esp_pgm_str_28);
+        appendP(header, fb_esp_pgm_str_162);
+        appendP(header, fb_esp_pgm_str_28);
         std::string filename = "";
 
         for (size_t i = 0; i < fbdo._backupNodePath.length(); i++)
         {
             if (fbdo._backupNodePath.c_str()[i] == '/')
-                pgm_appendStr(filename, fb_esp_pgm_str_4);
+                appendP(filename, fb_esp_pgm_str_4);
             else
                 filename += fbdo._backupNodePath.c_str()[i];
         }
@@ -4191,72 +5649,81 @@ void FirebaseESP8266::prepareHeader(FirebaseData &fbdo, const std::string &host,
 
     if (method == fb_esp_method::m_get && fbdo._fileName.length() > 0)
     {
-        pgm_appendStr(header, fb_esp_pgm_str_28);
+        appendP(header, fb_esp_pgm_str_28);
         header += fbdo._fileName;
     }
 
     if (method == fb_esp_method::m_get_nocontent || method == fb_esp_method::m_restore || method == fb_esp_method::m_put_nocontent || method == fb_esp_method::m_patch_nocontent)
-        pgm_appendStr(header, fb_esp_pgm_str_29);
+        appendP(header, fb_esp_pgm_str_29);
 
-    pgm_appendStr(header, fb_esp_pgm_str_30);
-    pgm_appendStr(header, fb_esp_pgm_str_31);
-    header += host;
-    pgm_appendStr(header, fb_esp_pgm_str_21);
-    pgm_appendStr(header, fb_esp_pgm_str_32);
+    appendP(header, fb_esp_pgm_str_30);
+    appendP(header, fb_esp_pgm_str_31);
+    header += _cfg->host;
+    appendP(header, fb_esp_pgm_str_21);
+    appendP(header, fb_esp_pgm_str_32);
+
+    if (_cfg->signer.tokens.token_type == token_type_oauth2_access_token)
+    {
+        appendP(header, fb_esp_pgm_str_237);
+        header += _cfg->signer.tokens.auth_type;
+        appendP(header, fb_esp_pgm_str_6);
+        header += _cfg->signer.tokens.access_token;
+        appendP(header, fb_esp_pgm_str_21);
+    }
 
     //Timestamp cannot use with ETag header, otherwise cases internal server error
     if (!sv && fbdo.queryFilter._orderBy.length() == 0 && dataType != fb_esp_data_type::d_timestamp && (method == fb_esp_method::m_delete || method == fb_esp_method::m_get || method == fb_esp_method::m_get_nocontent || method == fb_esp_method::m_put || method == fb_esp_method::m_put_nocontent || method == fb_esp_method::m_post))
-        pgm_appendStr(header, fb_esp_pgm_str_148);
+        appendP(header, fb_esp_pgm_str_148);
 
     if (fbdo._req_etag.length() > 0 && (method == fb_esp_method::m_put || method == fb_esp_method::m_put_nocontent || method == fb_esp_method::m_delete))
     {
-        pgm_appendStr(header, fb_esp_pgm_str_149);
+        appendP(header, fb_esp_pgm_str_149);
         header += fbdo._req_etag;
-        pgm_appendStr(header, fb_esp_pgm_str_21);
+        appendP(header, fb_esp_pgm_str_21);
     }
 
     if (fbdo._classicRequest && http_method != fb_esp_method::m_get && http_method != fb_esp_method::m_post && http_method != fb_esp_method::m_patch)
     {
-        pgm_appendStr(header, fb_esp_pgm_str_153);
+        appendP(header, fb_esp_pgm_str_153);
 
         if (http_method == fb_esp_method::m_put)
-            pgm_appendStr(header, fb_esp_pgm_str_23);
+            appendP(header, fb_esp_pgm_str_23);
         else if (http_method == fb_esp_method::m_delete)
-            pgm_appendStr(header, fb_esp_pgm_str_27);
+            appendP(header, fb_esp_pgm_str_27);
 
-        pgm_appendStr(header, fb_esp_pgm_str_21);
+        appendP(header, fb_esp_pgm_str_21);
     }
 
     if (method == fb_esp_method::m_stream)
     {
-        pgm_appendStr(header, fb_esp_pgm_str_34);
-        pgm_appendStr(header, fb_esp_pgm_str_35);
+        appendP(header, fb_esp_pgm_str_34);
+        appendP(header, fb_esp_pgm_str_35);
     }
     else if (method == fb_esp_method::m_download || method == fb_esp_method::m_restore)
     {
-        pgm_appendStr(header, fb_esp_pgm_str_34);
+        appendP(header, fb_esp_pgm_str_34);
     }
     else
     {
-        pgm_appendStr(header, fb_esp_pgm_str_36);
-        pgm_appendStr(header, fb_esp_pgm_str_37);
+        appendP(header, fb_esp_pgm_str_36);
+        appendP(header, fb_esp_pgm_str_37);
     }
 
     if (method != fb_esp_method::m_download && method != fb_esp_method::m_restore)
-        pgm_appendStr(header, fb_esp_pgm_str_38);
+        appendP(header, fb_esp_pgm_str_38);
 
     if (method == fb_esp_method::m_get_priority || method == fb_esp_method::m_set_priority)
         fbdo._priority_val_flag = true;
 
     if (method == fb_esp_method::m_put || method == fb_esp_method::m_put_nocontent || method == fb_esp_method::m_post || method == fb_esp_method::m_patch || method == fb_esp_method::m_patch_nocontent || method == fb_esp_method::m_restore || method == fb_esp_method::m_set_rules || method == fb_esp_method::m_set_priority)
     {
-        pgm_appendStr(header, fb_esp_pgm_str_12);
-        tmp = getIntString(payloadLength);
+        appendP(header, fb_esp_pgm_str_12);
+        tmp = intStr(payloadLength);
         header += tmp;
         delS(tmp);
     }
-    pgm_appendStr(header, fb_esp_pgm_str_21);
-    pgm_appendStr(header, fb_esp_pgm_str_21);
+    appendP(header, fb_esp_pgm_str_21);
+    appendP(header, fb_esp_pgm_str_21);
 }
 
 void FirebaseESP8266::setSecure(FirebaseData &fbdo)
@@ -4267,13 +5734,13 @@ void FirebaseESP8266::setSecure(FirebaseData &fbdo)
     {
 
 #ifndef USING_AXTLS
-        if (!_clockReady && (_caCertFile.length() > 0 || _caCert))
+        if (!_clockReady && (_cfg->cert.file.length() > 0 || _caCert))
         {
             setClock(_gmtOffset);
             fbdo.httpClient._clockReady = _clockReady;
         }
 #endif
-        if (_caCertFile.length() == 0)
+        if (_cfg->cert.file.length() == 0)
         {
             if (_caCert)
                 fbdo.httpClient.setCACert(_caCert.get());
@@ -4282,7 +5749,7 @@ void FirebaseESP8266::setSecure(FirebaseData &fbdo)
         }
         else
         {
-            fbdo.httpClient.setCACertFile(_caCertFile, _caCertFileStoreageType, _sdPin);
+            fbdo.httpClient.setCACertFile(_cfg->cert.file, _cfg->cert.file_storage, _sdPin);
         }
     }
 }
@@ -4323,7 +5790,7 @@ bool FirebaseESP8266::reconnect(FirebaseData &fbdo, unsigned long dataTime)
         if (millis() - dataTime > fbdo.httpClient.timeout)
         {
             fbdo._httpCode = FIREBASE_ERROR_HTTPC_ERROR_READ_TIMEOUT;
-            char *tmp = getPGMString(fb_esp_pgm_str_69);
+            char *tmp = strP(fb_esp_pgm_str_69);
             if (fbdo._req_method == fb_esp_method::m_download || fbdo._req_method == fb_esp_method::m_restore)
                 fbdo._file_transfer_error = tmp;
             else
@@ -4356,146 +5823,250 @@ bool FirebaseESP8266::reconnect(FirebaseData &fbdo, unsigned long dataTime)
     return status;
 }
 
+void FirebaseESP8266::checkToken(FirebaseData &fbdo)
+{
+    if (!_auth || !_cfg)
+        return;
+
+    if ((_cfg->signer.tokens.token_type == token_type_id_token || _cfg->signer.tokens.token_type == token_type_custom_token || _cfg->signer.tokens.token_type == token_type_oauth2_access_token) && (millis() > _cfg->signer.tokens.expires - preRefreshMillis || _cfg->signer.tokens.expires == 0))
+    {
+        closeHTTP(fbdo);
+        hanldeToken();
+    }
+}
+
+bool FirebaseESP8266::hanldeToken()
+{
+    if (!_auth || !_cfg)
+        return false;
+
+    if ((_cfg->signer.tokens.token_type == token_type_id_token || _cfg->signer.tokens.token_type == token_type_custom_token || _cfg->signer.tokens.token_type == token_type_oauth2_access_token) && (millis() > _cfg->signer.tokens.expires - preRefreshMillis || _cfg->signer.tokens.expires == 0))
+    {
+        if (_cfg->signer.tokens.expires > 0 && (_cfg->signer.tokens.token_type == token_type_id_token || _cfg->signer.tokens.token_type == token_type_custom_token))
+        {
+            if (millis() - _cfg->signer.lastReqMillis > _cfg->signer.reqTO || _cfg->signer.lastReqMillis == 0)
+            {
+                _cfg->signer.lastReqMillis = millis();
+                if (processing)
+                    return false;
+                return refreshToken();
+            }
+            return false;
+        }
+        else
+        {
+            if (_cfg->signer.tokens.token_type == token_type_id_token)
+            {
+                if (millis() - _cfg->signer.lastReqMillis > _cfg->signer.reqTO || _cfg->signer.lastReqMillis == 0)
+                {
+                    _cfg->signer.lastReqMillis = millis();
+                    return getIdToken(false, "", "");
+                }
+                return false;
+            }
+            else
+            {
+                if (_cfg->signer.step == fb_esp_jwt_generation_step_begin)
+                {
+                    if (_cfg->service_account.json.path.length() > 0 && _cfg->signer.pk.length() == 0)
+                    {
+                        if (!parseSAFile())
+                            _cfg->signer.tokens.status = token_status_uninitialized;
+                    }
+                    _cfg->signer.step++;
+                    set_scheduled_callback(std::bind(&FirebaseESP8266::runJWT, this));
+                }
+
+                if (setClock(_cfg->time_zone))
+                {
+                    setTokenError(FIREBASE_ERROR_TOKEN_NOT_REDY);
+                    if (_cfg->signer.step == fb_esp_jwt_generation_step_sign)
+                        set_scheduled_callback(std::bind(&FirebaseESP8266::runJWT, this));
+                }
+                else
+                {
+                    setTokenError(FIREBASE_ERROR_TOKEN_SET_TIME);
+                }
+            }
+        }
+    }
+
+    if (_cfg->signer.tokens.token_type == token_type_legacy_token)
+    {
+        setTokenError(0);
+        return true;
+    }
+    else
+        return _cfg->signer.tokens.status == token_status_ready;
+}
+
+void FirebaseESP8266::runJWT()
+{
+    if (_cfg->signer.step > fb_esp_jwt_generation_step_begin && _cfg->signer.step < fb_esp_jwt_generation_step_exchange)
+        createJWT(_cfg->signer.step);
+    else if (_cfg->signer.step == fb_esp_jwt_generation_step_exchange)
+    {
+        while (_cfg->signer.step == fb_esp_jwt_generation_step_exchange && _cfg->signer.attempts < MAX_EXCHANGE_TOKEN_ATTEMPTS)
+            requestTokens();
+        _cfg->signer.attempts = 0;
+    }
+}
+
 void FirebaseESP8266::errorToString(int httpCode, std::string &buff)
 {
-
     buff.clear();
+
+    if (_cfg)
+    {
+        if (_cfg->signer.tokens.status == token_status_error || _cfg->signer.tokens.error.code != 0)
+        {
+            buff = _cfg->signer.tokens.error.message;
+            return;
+        }
+    }
+
     switch (httpCode)
     {
     case FIREBASE_ERROR_HTTPC_ERROR_CONNECTION_REFUSED:
-        pgm_appendStr(buff, fb_esp_pgm_str_39);
+        appendP(buff, fb_esp_pgm_str_39);
         return;
     case FIREBASE_ERROR_HTTPC_ERROR_SEND_HEADER_FAILED:
-        pgm_appendStr(buff, fb_esp_pgm_str_40);
+        appendP(buff, fb_esp_pgm_str_40);
         return;
     case FIREBASE_ERROR_HTTPC_ERROR_SEND_PAYLOAD_FAILED:
-        pgm_appendStr(buff, fb_esp_pgm_str_41);
+        appendP(buff, fb_esp_pgm_str_41);
         return;
     case FIREBASE_ERROR_HTTPC_ERROR_NOT_CONNECTED:
-        pgm_appendStr(buff, fb_esp_pgm_str_42);
+        appendP(buff, fb_esp_pgm_str_42);
         return;
     case FIREBASE_ERROR_HTTPC_ERROR_CONNECTION_LOST:
-        pgm_appendStr(buff, fb_esp_pgm_str_43);
+        appendP(buff, fb_esp_pgm_str_43);
         return;
     case FIREBASE_ERROR_HTTPC_ERROR_NO_HTTP_SERVER:
-        pgm_appendStr(buff, fb_esp_pgm_str_44);
+        appendP(buff, fb_esp_pgm_str_44);
         return;
     case FIREBASE_ERROR_HTTP_CODE_BAD_REQUEST:
-        pgm_appendStr(buff, fb_esp_pgm_str_45);
+        appendP(buff, fb_esp_pgm_str_45);
         return;
     case FIREBASE_ERROR_HTTP_CODE_NON_AUTHORITATIVE_INFORMATION:
-        pgm_appendStr(buff, fb_esp_pgm_str_46);
+        appendP(buff, fb_esp_pgm_str_46);
         return;
     case FIREBASE_ERROR_HTTP_CODE_NO_CONTENT:
-        pgm_appendStr(buff, fb_esp_pgm_str_47);
+        appendP(buff, fb_esp_pgm_str_47);
         return;
     case FIREBASE_ERROR_HTTP_CODE_MOVED_PERMANENTLY:
-        pgm_appendStr(buff, fb_esp_pgm_str_48);
+        appendP(buff, fb_esp_pgm_str_48);
         return;
     case FIREBASE_ERROR_HTTP_CODE_USE_PROXY:
-        pgm_appendStr(buff, fb_esp_pgm_str_49);
+        appendP(buff, fb_esp_pgm_str_49);
         return;
     case FIREBASE_ERROR_HTTP_CODE_TEMPORARY_REDIRECT:
-        pgm_appendStr(buff, fb_esp_pgm_str_50);
+        appendP(buff, fb_esp_pgm_str_50);
         return;
     case FIREBASE_ERROR_HTTP_CODE_PERMANENT_REDIRECT:
-        pgm_appendStr(buff, fb_esp_pgm_str_51);
+        appendP(buff, fb_esp_pgm_str_51);
         return;
     case FIREBASE_ERROR_HTTP_CODE_UNAUTHORIZED:
-        pgm_appendStr(buff, fb_esp_pgm_str_52);
+        appendP(buff, fb_esp_pgm_str_52);
         return;
     case FIREBASE_ERROR_HTTP_CODE_FORBIDDEN:
-        pgm_appendStr(buff, fb_esp_pgm_str_53);
+        appendP(buff, fb_esp_pgm_str_53);
         return;
     case FIREBASE_ERROR_HTTP_CODE_NOT_FOUND:
-        pgm_appendStr(buff, fb_esp_pgm_str_54);
+        appendP(buff, fb_esp_pgm_str_54);
         return;
     case FIREBASE_ERROR_HTTP_CODE_METHOD_NOT_ALLOWED:
-        pgm_appendStr(buff, fb_esp_pgm_str_55);
+        appendP(buff, fb_esp_pgm_str_55);
         return;
     case FIREBASE_ERROR_HTTP_CODE_NOT_ACCEPTABLE:
-        pgm_appendStr(buff, fb_esp_pgm_str_56);
+        appendP(buff, fb_esp_pgm_str_56);
         return;
     case FIREBASE_ERROR_HTTP_CODE_PROXY_AUTHENTICATION_REQUIRED:
-        pgm_appendStr(buff, fb_esp_pgm_str_57);
+        appendP(buff, fb_esp_pgm_str_57);
         return;
     case FIREBASE_ERROR_HTTP_CODE_REQUEST_TIMEOUT:
-        pgm_appendStr(buff, fb_esp_pgm_str_58);
+        appendP(buff, fb_esp_pgm_str_58);
         return;
     case FIREBASE_ERROR_HTTP_CODE_LENGTH_REQUIRED:
-        pgm_appendStr(buff, fb_esp_pgm_str_59);
+        appendP(buff, fb_esp_pgm_str_59);
         return;
     case FIREBASE_ERROR_HTTP_CODE_TOO_MANY_REQUESTS:
-        pgm_appendStr(buff, fb_esp_pgm_str_60);
+        appendP(buff, fb_esp_pgm_str_60);
         return;
     case FIREBASE_ERROR_HTTP_CODE_REQUEST_HEADER_FIELDS_TOO_LARGE:
-        pgm_appendStr(buff, fb_esp_pgm_str_61);
+        appendP(buff, fb_esp_pgm_str_61);
         return;
     case FIREBASE_ERROR_HTTP_CODE_INTERNAL_SERVER_ERROR:
-        pgm_appendStr(buff, fb_esp_pgm_str_62);
+        appendP(buff, fb_esp_pgm_str_62);
         return;
     case FIREBASE_ERROR_HTTP_CODE_BAD_GATEWAY:
-        pgm_appendStr(buff, fb_esp_pgm_str_63);
+        appendP(buff, fb_esp_pgm_str_63);
         return;
     case FIREBASE_ERROR_HTTP_CODE_SERVICE_UNAVAILABLE:
-        pgm_appendStr(buff, fb_esp_pgm_str_64);
+        appendP(buff, fb_esp_pgm_str_64);
         return;
     case FIREBASE_ERROR_HTTP_CODE_GATEWAY_TIMEOUT:
-        pgm_appendStr(buff, fb_esp_pgm_str_65);
+        appendP(buff, fb_esp_pgm_str_65);
         return;
     case FIREBASE_ERROR_HTTP_CODE_HTTP_VERSION_NOT_SUPPORTED:
-        pgm_appendStr(buff, fb_esp_pgm_str_66);
+        appendP(buff, fb_esp_pgm_str_66);
         return;
     case FIREBASE_ERROR_HTTP_CODE_NETWORK_AUTHENTICATION_REQUIRED:
-        pgm_appendStr(buff, fb_esp_pgm_str_67);
+        appendP(buff, fb_esp_pgm_str_67);
         return;
     case FIREBASE_ERROR_HTTP_CODE_PRECONDITION_FAILED:
-        pgm_appendStr(buff, fb_esp_pgm_str_152);
+        appendP(buff, fb_esp_pgm_str_152);
         return;
     case FIREBASE_ERROR_HTTPC_ERROR_READ_TIMEOUT:
-        pgm_appendStr(buff, fb_esp_pgm_str_69);
+        appendP(buff, fb_esp_pgm_str_69);
         return;
     case FIREBASE_ERROR_DATA_TYPE_MISMATCH:
-        pgm_appendStr(buff, fb_esp_pgm_str_70);
+        appendP(buff, fb_esp_pgm_str_70);
         return;
     case FIREBASE_ERROR_PATH_NOT_EXIST:
-        pgm_appendStr(buff, fb_esp_pgm_str_71);
+        appendP(buff, fb_esp_pgm_str_71);
         return;
     case FIREBASE_ERROR_HTTPC_ERROR_CONNECTION_INUSED:
-        pgm_appendStr(buff, fb_esp_pgm_str_94);
+        appendP(buff, fb_esp_pgm_str_94);
         return;
     case FIREBASE_ERROR_HTTPC_MAX_REDIRECT_REACHED:
-        pgm_appendStr(buff, fb_esp_pgm_str_169);
+        appendP(buff, fb_esp_pgm_str_169);
         return;
     case FIREBASE_ERROR_BUFFER_OVERFLOW:
-        pgm_appendStr(buff, fb_esp_pgm_str_68);
+        appendP(buff, fb_esp_pgm_str_68);
         return;
     case FIREBASE_ERROR_HTTPC_NO_FCM_TOPIC_PROVIDED:
-        pgm_appendStr(buff, fb_esp_pgm_str_144);
+        appendP(buff, fb_esp_pgm_str_144);
         return;
     case FIREBASE_ERROR_HTTPC_NO_FCM_DEVICE_TOKEN_PROVIDED:
-        pgm_appendStr(buff, fb_esp_pgm_str_145);
+        appendP(buff, fb_esp_pgm_str_145);
         return;
     case FIREBASE_ERROR_HTTPC_NO_FCM_SERVER_KEY_PROVIDED:
-        pgm_appendStr(buff, fb_esp_pgm_str_146);
+        appendP(buff, fb_esp_pgm_str_146);
         return;
     case FIREBASE_ERROR_HTTPC_NO_FCM_INDEX_NOT_FOUND_IN_DEVICE_TOKEN_PROVIDED:
-        pgm_appendStr(buff, fb_esp_pgm_str_147);
+        appendP(buff, fb_esp_pgm_str_147);
         return;
     case FIREBASE_ERROR_EXPECTED_JSON_DATA:
-        pgm_appendStr(buff, fb_esp_pgm_str_185);
+        appendP(buff, fb_esp_pgm_str_185);
         return;
     case FIREBASE_ERROR_HTTP_CODE_PAYLOAD_TOO_LARGE:
-        pgm_appendStr(buff, fb_esp_pgm_str_189);
+        appendP(buff, fb_esp_pgm_str_189);
         return;
     case FIREBASE_ERROR_CANNOT_CONFIG_TIME:
-        pgm_appendStr(buff, fb_esp_pgm_str_190);
+        appendP(buff, fb_esp_pgm_str_190);
         return;
     case FIREBASE_ERROR_SSL_RX_BUFFER_SIZE_TOO_SMALL:
-        pgm_appendStr(buff, fb_esp_pgm_str_191);
+        appendP(buff, fb_esp_pgm_str_191);
         return;
     case FIREBASE_ERROR_FILE_IO_ERROR:
-        pgm_appendStr(buff, fb_esp_pgm_str_192);
+        appendP(buff, fb_esp_pgm_str_192);
+        return;
+    case FIREBASE_ERROR_TOKEN_NOT_REDY:
+        appendP(buff, fb_esp_pgm_str_252);
+        return;
+    case FIREBASE_ERROR_UNINITIALIZED:
+        appendP(buff, fb_esp_pgm_str_256);
         return;
 
     default:
@@ -4720,7 +6291,7 @@ bool FirebaseESP8266::restore(FirebaseData &fbdo, uint8_t storageType, const Str
     return ret;
 }
 
-char *FirebaseESP8266::getPGMString(PGM_P pgm)
+char *FirebaseESP8266::strP(PGM_P pgm)
 {
     size_t len = strlen_P(pgm) + 1;
     char *buf = newS(len);
@@ -4729,7 +6300,15 @@ char *FirebaseESP8266::getPGMString(PGM_P pgm)
     return buf;
 }
 
-char *FirebaseESP8266::getFloatString(float value)
+int FirebaseESP8266::strposP(const char *buf, PGM_P beginH, int ofs)
+{
+    char *tmp = strP(beginH);
+    int p = strpos(buf, tmp, ofs);
+    delS(tmp);
+    return p;
+}
+
+char *FirebaseESP8266::floatStr(float value)
 {
     char *buf = newS(36);
     memset(buf, 0, 36);
@@ -4737,7 +6316,7 @@ char *FirebaseESP8266::getFloatString(float value)
     return buf;
 }
 
-char *FirebaseESP8266::getIntString(int value)
+char *FirebaseESP8266::intStr(int value)
 {
     char *buf = newS(36);
     memset(buf, 0, 36);
@@ -4745,17 +6324,17 @@ char *FirebaseESP8266::getIntString(int value)
     return buf;
 }
 
-char *FirebaseESP8266::getBoolString(bool value)
+char *FirebaseESP8266::boolStr(bool value)
 {
     char *buf = nullptr;
     if (value)
-        buf = getPGMString(fb_esp_pgm_str_107);
+        buf = strP(fb_esp_pgm_str_107);
     else
-        buf = getPGMString(fb_esp_pgm_str_106);
+        buf = strP(fb_esp_pgm_str_106);
     return buf;
 }
 
-char *FirebaseESP8266::getDoubleString(double value)
+char *FirebaseESP8266::doubleStr(double value)
 {
     char *buf = newS(36);
     memset(buf, 0, 36);
@@ -4763,11 +6342,11 @@ char *FirebaseESP8266::getDoubleString(double value)
     return buf;
 }
 
-void FirebaseESP8266::pgm_appendStr(std::string &buf, PGM_P p, bool empty)
+void FirebaseESP8266::appendP(std::string &buf, PGM_P p, bool empty)
 {
     if (empty)
         buf.clear();
-    char *b = getPGMString(p);
+    char *b = strP(p);
     buf += b;
     delS(b);
 }
@@ -4855,7 +6434,7 @@ bool FirebaseESP8266::sdTest()
 {
     File file;
     std::string filepath = "";
-    pgm_appendStr(filepath, fb_esp_pgm_str_73, true);
+    appendP(filepath, fb_esp_pgm_str_73, true);
 
     SD.begin(SD_CS_PIN);
     _sdPin = SD_CS_PIN;
@@ -4893,38 +6472,43 @@ bool FirebaseESP8266::sdTest()
     return true;
 }
 
-void FirebaseESP8266::setClock(float offset)
+bool FirebaseESP8266::setClock(float gmtOffset)
 {
+    if (time(nullptr) > default_ts && gmtOffset == _gmtOffset)
+        return true;
+
     if (WiFi.status() != WL_CONNECTED)
         WiFi.reconnect();
 
     time_t now = time(nullptr);
 
-    _clockReady = now > 1577836800;
+    _clockReady = now > default_ts;
 
-    if (!_clockReady)
+    if (!_clockReady || gmtOffset != _gmtOffset)
     {
-        char *server1 = getPGMString(fb_esp_pgm_str_187);
-        char *server2 = getPGMString(fb_esp_pgm_str_188);
+        char *server1 = strP(fb_esp_pgm_str_187);
+        char *server2 = strP(fb_esp_pgm_str_188);
 
-        configTime(offset * 3600, 0, server1, server2);
+        configTime(gmtOffset * 3600, 0, server1, server2);
 
         now = time(nullptr);
-        uint8_t attempts = 0;
-        while (now < 1577836800)
+        unsigned long timeout = millis();
+        while (now < default_ts)
         {
             now = time(nullptr);
-            attempts++;
-            if (attempts > 200 || now > 1577836800)
+            if (now > default_ts || millis() - timeout > ntpTimeout)
                 break;
-            delay(100);
+            delay(200);
         }
 
         delS(server1);
         delS(server2);
     }
 
-    _clockReady = now > 1577836800;
+    _clockReady = now > default_ts;
+    if (_clockReady)
+        _gmtOffset = gmtOffset;
+    return _clockReady;
 }
 
 void FirebaseESP8266::setMaxRetry(FirebaseData &fbdo, uint8_t num)
@@ -4977,12 +6561,12 @@ bool FirebaseESP8266::saveErrorQueue(FirebaseData &fbdo, const String &filename,
             if (idx > 0)
                 buff.append("\r");
 
-            nbuf = Firebase.getIntString(item.dataType);
+            nbuf = Firebase.intStr(item.dataType);
             buff.append(nbuf);
             delS(nbuf);
             buff.append("~");
 
-            nbuf = Firebase.getIntString(item.method);
+            nbuf = Firebase.intStr(item.method);
             buff.append(nbuf);
             delS(nbuf);
             buff.append("~");
@@ -4995,14 +6579,14 @@ bool FirebaseESP8266::saveErrorQueue(FirebaseData &fbdo, const String &filename,
 
             for (size_t j = 0; j < item.blob.size(); j++)
             {
-                nbuf = Firebase.getIntString(item.blob[j]);
+                nbuf = Firebase.intStr(item.blob[j]);
                 delS(nbuf);
             }
             buff.append("~");
 
             buff += item.filename.c_str();
 
-            nbuf = Firebase.getIntString(item.storageType);
+            nbuf = Firebase.intStr(item.storageType);
             buff.append(nbuf);
             delS(nbuf);
             buff.append("~");
@@ -5211,16 +6795,28 @@ bool FirebaseESP8266::replace(std::string &str, const std::string &from, const s
     return true;
 }
 
-std::string FirebaseESP8266::base64_encode_string(const unsigned char *src, size_t len)
+std::string FirebaseESP8266::encodeBase64Str(const unsigned char *src, size_t len)
+{
+    return encodeBase64Str((uint8_t *)src, len);
+}
+
+std::string FirebaseESP8266::encodeBase64Str(uint8_t *src, size_t len)
 {
     unsigned char *out, *pos;
     const unsigned char *end, *in;
 
+    unsigned char *b64enc = new unsigned char[65];
+    strcpy_P((char *)b64enc, (char *)fb_esp_base64_table);
+
     size_t olen;
+
     olen = 4 * ((len + 2) / 3); /* 3-byte blocks to 4-byte */
 
     if (olen < len)
+    {
+        delete[] b64enc;
         return std::string();
+    }
 
     std::string outStr;
     outStr.resize(olen);
@@ -5232,34 +6828,38 @@ std::string FirebaseESP8266::base64_encode_string(const unsigned char *src, size
 
     while (end - in >= 3)
     {
-        *pos++ = ESP8266_FIREBASE_base64_table[in[0] >> 2];
-        *pos++ = ESP8266_FIREBASE_base64_table[((in[0] & 0x03) << 4) | (in[1] >> 4)];
-        *pos++ = ESP8266_FIREBASE_base64_table[((in[1] & 0x0f) << 2) | (in[2] >> 6)];
-        *pos++ = ESP8266_FIREBASE_base64_table[in[2] & 0x3f];
+        *pos++ = b64enc[in[0] >> 2];
+        *pos++ = b64enc[((in[0] & 0x03) << 4) | (in[1] >> 4)];
+        *pos++ = b64enc[((in[1] & 0x0f) << 2) | (in[2] >> 6)];
+        *pos++ = b64enc[in[2] & 0x3f];
         in += 3;
-        yield();
+        delay(0);
     }
 
     if (end - in)
     {
-        *pos++ = ESP8266_FIREBASE_base64_table[in[0] >> 2];
+
+        *pos++ = b64enc[in[0] >> 2];
+
         if (end - in == 1)
         {
-            *pos++ = ESP8266_FIREBASE_base64_table[(in[0] & 0x03) << 4];
+            *pos++ = b64enc[(in[0] & 0x03) << 4];
             *pos++ = '=';
         }
         else
         {
-            *pos++ = ESP8266_FIREBASE_base64_table[((in[0] & 0x03) << 4) | (in[1] >> 4)];
-            *pos++ = ESP8266_FIREBASE_base64_table[(in[1] & 0x0f) << 2];
+            *pos++ = b64enc[((in[0] & 0x03) << 4) | (in[1] >> 4)];
+            *pos++ = b64enc[(in[1] & 0x0f) << 2];
         }
+
         *pos++ = '=';
     }
 
+    delete[] b64enc;
     return outStr;
 }
 
-void FirebaseESP8266::send_base64_encoded_stream(WiFiClient *client, const std::string &filePath, uint8_t storageType)
+void FirebaseESP8266::sendBase64Stream(WiFiClient *client, const std::string &filePath, uint8_t storageType)
 {
 
     if (storageType == StorageType::FLASH)
@@ -5289,10 +6889,10 @@ void FirebaseESP8266::send_base64_encoded_stream(WiFiClient *client, const std::
         {
             file.read(fbuff, 3);
 
-            buff[byteAdd++] = ESP8266_FIREBASE_base64_table[fbuff[0] >> 2];
-            buff[byteAdd++] = ESP8266_FIREBASE_base64_table[((fbuff[0] & 0x03) << 4) | (fbuff[1] >> 4)];
-            buff[byteAdd++] = ESP8266_FIREBASE_base64_table[((fbuff[1] & 0x0f) << 2) | (fbuff[2] >> 6)];
-            buff[byteAdd++] = ESP8266_FIREBASE_base64_table[fbuff[2] & 0x3f];
+            buff[byteAdd++] = fb_esp_base64_table[fbuff[0] >> 2];
+            buff[byteAdd++] = fb_esp_base64_table[((fbuff[0] & 0x03) << 4) | (fbuff[1] >> 4)];
+            buff[byteAdd++] = fb_esp_base64_table[((fbuff[1] & 0x0f) << 2) | (fbuff[2] >> 6)];
+            buff[byteAdd++] = fb_esp_base64_table[fbuff[2] & 0x3f];
 
             if (byteAdd >= chunkSize - 4)
             {
@@ -5332,16 +6932,16 @@ void FirebaseESP8266::send_base64_encoded_stream(WiFiClient *client, const std::
         memset(buff, 0, chunkSize);
         byteAdd = 0;
 
-        buff[byteAdd++] = ESP8266_FIREBASE_base64_table[fbuff[0] >> 2];
+        buff[byteAdd++] = fb_esp_base64_table[fbuff[0] >> 2];
         if (len - fbuffIndex == 1)
         {
-            buff[byteAdd++] = ESP8266_FIREBASE_base64_table[(fbuff[0] & 0x03) << 4];
+            buff[byteAdd++] = fb_esp_base64_table[(fbuff[0] & 0x03) << 4];
             buff[byteAdd++] = '=';
         }
         else
         {
-            buff[byteAdd++] = ESP8266_FIREBASE_base64_table[((fbuff[0] & 0x03) << 4) | (fbuff[1] >> 4)];
-            buff[byteAdd++] = ESP8266_FIREBASE_base64_table[(fbuff[1] & 0x0f) << 2];
+            buff[byteAdd++] = fb_esp_base64_table[((fbuff[0] & 0x03) << 4) | (fbuff[1] >> 4)];
+            buff[byteAdd++] = fb_esp_base64_table[(fbuff[1] & 0x0f) << 2];
         }
         buff[byteAdd++] = '=';
 
@@ -5352,12 +6952,12 @@ void FirebaseESP8266::send_base64_encoded_stream(WiFiClient *client, const std::
     delete[] fbuff;
 }
 
-bool FirebaseESP8266::base64_decode_string(const std::string src, std::vector<uint8_t> &out)
+bool FirebaseESP8266::decodeBase64Str(const std::string src, std::vector<uint8_t> &out)
 {
     unsigned char *dtable = new unsigned char[256];
     memset(dtable, 0x80, 256);
-    for (size_t i = 0; i < sizeof(ESP8266_FIREBASE_base64_table) - 1; i++)
-        dtable[ESP8266_FIREBASE_base64_table[i]] = (unsigned char)i;
+    for (size_t i = 0; i < sizeof(fb_esp_base64_table) - 1; i++)
+        dtable[fb_esp_base64_table[i]] = (unsigned char)i;
     dtable['='] = 0;
 
     unsigned char *block = new unsigned char[4];
@@ -5432,12 +7032,12 @@ exit:
     return false;
 }
 
-bool FirebaseESP8266::base64_decode_file(File &file, const char *src, size_t len)
+bool FirebaseESP8266::decodeBase64Stream(File &file, const char *src, size_t len)
 {
     unsigned char *dtable = new unsigned char[256];
     memset(dtable, 0x80, 256);
-    for (size_t i = 0; i < sizeof(ESP8266_FIREBASE_base64_table) - 1; i++)
-        dtable[ESP8266_FIREBASE_base64_table[i]] = (unsigned char)i;
+    for (size_t i = 0; i < sizeof(fb_esp_base64_table) - 1; i++)
+        dtable[fb_esp_base64_table[i]] = (unsigned char)i;
     dtable['='] = 0;
 
     unsigned char *block = new unsigned char[4];
@@ -5511,12 +7111,12 @@ exit:
     return false;
 }
 
-bool FirebaseESP8266::base64_decode_flash(fs::File &file, const char *src, size_t len)
+bool FirebaseESP8266::decodeBase64Flash(fs::File &file, const char *src, size_t len)
 {
     unsigned char *dtable = new unsigned char[256];
     memset(dtable, 0x80, 256);
-    for (size_t i = 0; i < sizeof(ESP8266_FIREBASE_base64_table) - 1; i++)
-        dtable[ESP8266_FIREBASE_base64_table[i]] = (unsigned char)i;
+    for (size_t i = 0; i < sizeof(fb_esp_base64_table) - 1; i++)
+        dtable[fb_esp_base64_table[i]] = (unsigned char)i;
     dtable['='] = 0;
 
     unsigned char *block = new unsigned char[4];
@@ -5817,34 +7417,34 @@ std::string FirebaseData::getDataType(uint8_t type)
     switch (type)
     {
     case fb_esp_data_type::d_json:
-        Firebase.pgm_appendStr(res, fb_esp_pgm_str_74);
+        Firebase.appendP(res, fb_esp_pgm_str_74);
         break;
     case fb_esp_data_type::d_array:
-        Firebase.pgm_appendStr(res, fb_esp_pgm_str_165);
+        Firebase.appendP(res, fb_esp_pgm_str_165);
         break;
     case fb_esp_data_type::d_string:
-        Firebase.pgm_appendStr(res, fb_esp_pgm_str_75);
+        Firebase.appendP(res, fb_esp_pgm_str_75);
         break;
     case fb_esp_data_type::d_float:
-        Firebase.pgm_appendStr(res, fb_esp_pgm_str_76);
+        Firebase.appendP(res, fb_esp_pgm_str_76);
         break;
     case fb_esp_data_type::d_double:
-        Firebase.pgm_appendStr(res, fb_esp_pgm_str_108);
+        Firebase.appendP(res, fb_esp_pgm_str_108);
         break;
     case fb_esp_data_type::d_boolean:
-        Firebase.pgm_appendStr(res, fb_esp_pgm_str_105);
+        Firebase.appendP(res, fb_esp_pgm_str_105);
         break;
     case fb_esp_data_type::d_integer:
-        Firebase.pgm_appendStr(res, fb_esp_pgm_str_77);
+        Firebase.appendP(res, fb_esp_pgm_str_77);
         break;
     case fb_esp_data_type::d_blob:
-        Firebase.pgm_appendStr(res, fb_esp_pgm_str_91);
+        Firebase.appendP(res, fb_esp_pgm_str_91);
         break;
     case fb_esp_data_type::d_file:
-        Firebase.pgm_appendStr(res, fb_esp_pgm_str_183);
+        Firebase.appendP(res, fb_esp_pgm_str_183);
         break;
     case fb_esp_data_type::d_null:
-        Firebase.pgm_appendStr(res, fb_esp_pgm_str_78);
+        Firebase.appendP(res, fb_esp_pgm_str_78);
         break;
     default:
         break;
@@ -5858,21 +7458,21 @@ std::string FirebaseData::getMethod(uint8_t method)
     switch (method)
     {
     case fb_esp_method::m_get:
-        Firebase.pgm_appendStr(res, fb_esp_pgm_str_115);
+        Firebase.appendP(res, fb_esp_pgm_str_115);
         break;
     case fb_esp_method::m_put:
     case fb_esp_method::m_put_nocontent:
-        Firebase.pgm_appendStr(res, fb_esp_pgm_str_116);
+        Firebase.appendP(res, fb_esp_pgm_str_116);
         break;
     case fb_esp_method::m_post:
-        Firebase.pgm_appendStr(res, fb_esp_pgm_str_117);
+        Firebase.appendP(res, fb_esp_pgm_str_117);
         break;
     case fb_esp_method::m_patch:
     case fb_esp_method::m_patch_nocontent:
-        Firebase.pgm_appendStr(res, fb_esp_pgm_str_118);
+        Firebase.appendP(res, fb_esp_pgm_str_118);
         break;
     case fb_esp_method::m_delete:
-        Firebase.pgm_appendStr(res, fb_esp_pgm_str_119);
+        Firebase.appendP(res, fb_esp_pgm_str_119);
         break;
     default:
         break;
@@ -5926,7 +7526,7 @@ double FirebaseData::doubleData()
 bool FirebaseData::boolData()
 {
     bool res = false;
-    char *str = Firebase.getBoolString(true);
+    char *str = Firebase.boolStr(true);
     if (_data.length() > 0 && resp_dataType == fb_esp_data_type::d_boolean)
         res = strcmp(_data.c_str(), str) == 0;
     Firebase.delS(str);
@@ -6024,7 +7624,7 @@ fs::File FirebaseData::fileStream()
 {
     if (resp_dataType == fb_esp_data_type::d_file)
     {
-        char *tmp = Firebase.getPGMString(fb_esp_pgm_str_184);
+        char *tmp = Firebase.strP(fb_esp_pgm_str_184);
 
         if (FLASH_FS.begin())
             Firebase._file = FLASH_FS.open(tmp, "r");
@@ -6110,15 +7710,10 @@ String FirebaseData::payload()
 String FirebaseData::errorReason()
 {
     std::string buf = "";
-
-    Firebase.errorToString(_httpCode, buf);
-
-    if (_fbError.length() > 0 && strcmp(_fbError.c_str(), buf.c_str()) != 0)
-    {
-        Firebase.pgm_appendStr(buf, fb_esp_pgm_str_132);
-        Firebase.pgm_appendStr(buf, fb_esp_pgm_str_6);
-        buf += _fbError;
-    }
+    if (_fbError.length() > 0)
+        return _fbError.c_str();
+    else
+        Firebase.errorToString(_httpCode, buf);
     return buf.c_str();
 }
 
@@ -6172,7 +7767,7 @@ double StreamData::doubleData()
 bool StreamData::boolData()
 {
     bool res = false;
-    char *str = Firebase.getBoolString(true);
+    char *str = Firebase.boolStr(true);
     if (_data.length() > 0 && _dataType == fb_esp_data_type::d_boolean)
         res = strcmp(_data.c_str(), str) == 0;
     Firebase.delS(str);
@@ -6271,7 +7866,7 @@ File StreamData::fileStream()
 {
     if (_dataType == fb_esp_data_type::d_file)
     {
-        char *tmp = Firebase.getPGMString(fb_esp_pgm_str_184);
+        char *tmp = Firebase.strP(fb_esp_pgm_str_184);
         if (FLASH_FS.begin())
             Firebase._file = FLASH_FS.open(tmp, "r");
         Firebase.delS(tmp);
@@ -6328,15 +7923,15 @@ QueryFilter &QueryFilter::clear()
 
 QueryFilter &QueryFilter::orderBy(const String &val)
 {
-    Firebase.pgm_appendStr(_orderBy, fb_esp_pgm_str_3, true);
+    Firebase.appendP(_orderBy, fb_esp_pgm_str_3, true);
     _orderBy += val.c_str();
-    Firebase.pgm_appendStr(_orderBy, fb_esp_pgm_str_3);
+    Firebase.appendP(_orderBy, fb_esp_pgm_str_3);
     return *this;
 }
 QueryFilter &QueryFilter::limitToFirst(int val)
 {
 
-    char *num = Firebase.getIntString(val);
+    char *num = Firebase.intStr(val);
     _limitToFirst = num;
     Firebase.delS(num);
     return *this;
@@ -6344,7 +7939,7 @@ QueryFilter &QueryFilter::limitToFirst(int val)
 
 QueryFilter &QueryFilter::limitToLast(int val)
 {
-    char *num = Firebase.getIntString(val);
+    char *num = Firebase.intStr(val);
     _limitToLast = num;
     Firebase.delS(num);
     return *this;
@@ -6352,7 +7947,7 @@ QueryFilter &QueryFilter::limitToLast(int val)
 
 QueryFilter &QueryFilter::startAt(float val)
 {
-    char *num = Firebase.getFloatString(val);
+    char *num = Firebase.floatStr(val);
     _startAt = num;
     Firebase.delS(num);
     return *this;
@@ -6360,7 +7955,7 @@ QueryFilter &QueryFilter::startAt(float val)
 
 QueryFilter &QueryFilter::endAt(float val)
 {
-    char *num = Firebase.getFloatString(val);
+    char *num = Firebase.floatStr(val);
     _endAt = num;
     Firebase.delS(num);
     return *this;
@@ -6368,23 +7963,23 @@ QueryFilter &QueryFilter::endAt(float val)
 
 QueryFilter &QueryFilter::startAt(const String &val)
 {
-    Firebase.pgm_appendStr(_startAt, fb_esp_pgm_str_3, true);
+    Firebase.appendP(_startAt, fb_esp_pgm_str_3, true);
     _startAt += val.c_str();
-    Firebase.pgm_appendStr(_startAt, fb_esp_pgm_str_3);
+    Firebase.appendP(_startAt, fb_esp_pgm_str_3);
     return *this;
 }
 
 QueryFilter &QueryFilter::endAt(const String &val)
 {
-    Firebase.pgm_appendStr(_endAt, fb_esp_pgm_str_3, true);
+    Firebase.appendP(_endAt, fb_esp_pgm_str_3, true);
     _startAt += val.c_str();
-    Firebase.pgm_appendStr(_endAt, fb_esp_pgm_str_3);
+    Firebase.appendP(_endAt, fb_esp_pgm_str_3);
     return *this;
 }
 
 QueryFilter &QueryFilter::equalTo(int val)
 {
-    char *num = Firebase.getIntString(val);
+    char *num = Firebase.intStr(val);
     _equalTo = num;
     Firebase.delS(num);
     return *this;
@@ -6392,9 +7987,9 @@ QueryFilter &QueryFilter::equalTo(int val)
 
 QueryFilter &QueryFilter::equalTo(const String &val)
 {
-    Firebase.pgm_appendStr(_equalTo, fb_esp_pgm_str_3, true);
+    Firebase.appendP(_equalTo, fb_esp_pgm_str_3, true);
     _equalTo += val.c_str();
-    Firebase.pgm_appendStr(_equalTo, fb_esp_pgm_str_3);
+    Firebase.appendP(_equalTo, fb_esp_pgm_str_3);
     return *this;
 }
 
@@ -6523,10 +8118,10 @@ void FCMObject::clearDeviceToken()
 
 void FCMObject::setNotifyMessage(const String &title, const String &body)
 {
-    char *key = Firebase.getPGMString(fb_esp_pgm_str_123);
+    char *key = Firebase.strP(fb_esp_pgm_str_123);
     _fcmPayload.set(key, title);
     Firebase.delS(key);
-    key = Firebase.getPGMString(fb_esp_pgm_str_124);
+    key = Firebase.strP(fb_esp_pgm_str_124);
     _fcmPayload.set(key, body);
     Firebase.delS(key);
 }
@@ -6534,7 +8129,7 @@ void FCMObject::setNotifyMessage(const String &title, const String &body)
 void FCMObject::setNotifyMessage(const String &title, const String &body, const String &icon)
 {
     setNotifyMessage(title, body);
-    char *key = Firebase.getPGMString(fb_esp_pgm_str_125);
+    char *key = Firebase.strP(fb_esp_pgm_str_125);
     _fcmPayload.set(key, icon);
     Firebase.delS(key);
 }
@@ -6542,7 +8137,7 @@ void FCMObject::setNotifyMessage(const String &title, const String &body, const 
 void FCMObject::setNotifyMessage(const String &title, const String &body, const String &icon, const String &click_action)
 {
     setNotifyMessage(title, body, icon);
-    char *key = Firebase.getPGMString(fb_esp_pgm_str_126);
+    char *key = Firebase.strP(fb_esp_pgm_str_126);
     _fcmPayload.set(key, click_action);
     Firebase.delS(key);
 }
@@ -6550,8 +8145,8 @@ void FCMObject::setNotifyMessage(const String &title, const String &body, const 
 void FCMObject::addCustomNotifyMessage(const String &key, const String &value)
 {
     std::string s;
-    Firebase.pgm_appendStr(s, fb_esp_pgm_str_122, true);
-    Firebase.pgm_appendStr(s, fb_esp_pgm_str_1, false);
+    Firebase.appendP(s, fb_esp_pgm_str_122, true);
+    Firebase.appendP(s, fb_esp_pgm_str_1, false);
     s += key.c_str();
     _fcmPayload.set(s.c_str(), value);
     std::string().swap(s);
@@ -6559,14 +8154,14 @@ void FCMObject::addCustomNotifyMessage(const String &key, const String &value)
 
 void FCMObject::clearNotifyMessage()
 {
-    char *key = Firebase.getPGMString(fb_esp_pgm_str_122);
+    char *key = Firebase.strP(fb_esp_pgm_str_122);
     _fcmPayload.remove(key);
     Firebase.delS(key);
 }
 
 void FCMObject::setDataMessage(const String &jsonString)
 {
-    char *key = Firebase.getPGMString(fb_esp_pgm_str_135);
+    char *key = Firebase.strP(fb_esp_pgm_str_135);
     FirebaseJson js;
     js.setJsonData(jsonString);
     _fcmPayload.set(key, js);
@@ -6576,28 +8171,28 @@ void FCMObject::setDataMessage(const String &jsonString)
 
 void FCMObject::setDataMessage(FirebaseJson &json)
 {
-    char *key = Firebase.getPGMString(fb_esp_pgm_str_135);
+    char *key = Firebase.strP(fb_esp_pgm_str_135);
     _fcmPayload.set(key, json);
     Firebase.delS(key);
 }
 
 void FCMObject::clearDataMessage()
 {
-    char *key = Firebase.getPGMString(fb_esp_pgm_str_135);
+    char *key = Firebase.strP(fb_esp_pgm_str_135);
     _fcmPayload.remove(key);
     Firebase.delS(key);
 }
 
 void FCMObject::setPriority(const String &priority)
 {
-    char *key = Firebase.getPGMString(fb_esp_pgm_str_136);
+    char *key = Firebase.strP(fb_esp_pgm_str_136);
     _fcmPayload.set(key, priority);
     Firebase.delS(key);
 }
 
 void FCMObject::setCollapseKey(const String &key)
 {
-    char *_key = Firebase.getPGMString(fb_esp_pgm_str_138);
+    char *_key = Firebase.strP(fb_esp_pgm_str_138);
     _fcmPayload.set(_key, key);
     Firebase.delS(_key);
 }
@@ -6608,14 +8203,14 @@ void FCMObject::setTimeToLive(uint32_t seconds)
         _ttl = seconds;
     else
         _ttl = -1;
-    char *key = Firebase.getPGMString(fb_esp_pgm_str_137);
+    char *key = Firebase.strP(fb_esp_pgm_str_137);
     _fcmPayload.set(key, _ttl);
     Firebase.delS(key);
 }
 
 void FCMObject::setTopic(const String &topic)
 {
-    Firebase.pgm_appendStr(_topic, fb_esp_pgm_str_134, true);
+    Firebase.appendP(_topic, fb_esp_pgm_str_134, true);
     _topic += topic.c_str();
 }
 
@@ -6626,41 +8221,45 @@ String FCMObject::getSendResult()
 
 void FCMObject::fcm_begin(FirebaseData &fbdo)
 {
-    char *host = Firebase.getPGMString(fb_esp_pgm_str_120);
-    fbdo.httpClient.begin(host, _port);
-    Firebase.delS(host);
+    std::string host;
+    Firebase.appendP(host, fb_esp_pgm_str_249);
+    Firebase.appendP(host, fb_esp_pgm_str_4);
+    Firebase.appendP(host, fb_esp_pgm_str_120);
+    fbdo.httpClient.begin(host.c_str(), _port);
 }
 void FCMObject::fcm_prepareHeader(std::string &header, size_t payloadSize)
 {
 
     char *len = nullptr;
 
-    Firebase.pgm_appendStr(header, fb_esp_pgm_str_24, true);
-    Firebase.pgm_appendStr(header, fb_esp_pgm_str_6);
-    Firebase.pgm_appendStr(header, fb_esp_pgm_str_121);
-    Firebase.pgm_appendStr(header, fb_esp_pgm_str_30);
+    Firebase.appendP(header, fb_esp_pgm_str_24, true);
+    Firebase.appendP(header, fb_esp_pgm_str_6);
+    Firebase.appendP(header, fb_esp_pgm_str_121);
+    Firebase.appendP(header, fb_esp_pgm_str_30);
 
-    Firebase.pgm_appendStr(header, fb_esp_pgm_str_31);
-    Firebase.pgm_appendStr(header, fb_esp_pgm_str_120);
-    Firebase.pgm_appendStr(header, fb_esp_pgm_str_21);
+    Firebase.appendP(header, fb_esp_pgm_str_31);
+    Firebase.appendP(header, fb_esp_pgm_str_249);
+    Firebase.appendP(header, fb_esp_pgm_str_4);
+    Firebase.appendP(header, fb_esp_pgm_str_120);
+    Firebase.appendP(header, fb_esp_pgm_str_21);
 
-    Firebase.pgm_appendStr(header, fb_esp_pgm_str_131);
+    Firebase.appendP(header, fb_esp_pgm_str_131);
     header += _server_key;
-    Firebase.pgm_appendStr(header, fb_esp_pgm_str_21);
+    Firebase.appendP(header, fb_esp_pgm_str_21);
 
-    Firebase.pgm_appendStr(header, fb_esp_pgm_str_32);
+    Firebase.appendP(header, fb_esp_pgm_str_32);
 
-    Firebase.pgm_appendStr(header, fb_esp_pgm_str_8);
-    Firebase.pgm_appendStr(header, fb_esp_pgm_str_129);
-    Firebase.pgm_appendStr(header, fb_esp_pgm_str_21);
+    Firebase.appendP(header, fb_esp_pgm_str_8);
+    Firebase.appendP(header, fb_esp_pgm_str_129);
+    Firebase.appendP(header, fb_esp_pgm_str_21);
 
-    Firebase.pgm_appendStr(header, fb_esp_pgm_str_12);
-    len = Firebase.getIntString(payloadSize);
+    Firebase.appendP(header, fb_esp_pgm_str_12);
+    len = Firebase.intStr(payloadSize);
     header += len;
     Firebase.delS(len);
-    Firebase.pgm_appendStr(header, fb_esp_pgm_str_21);
-    Firebase.pgm_appendStr(header, fb_esp_pgm_str_36);
-    Firebase.pgm_appendStr(header, fb_esp_pgm_str_21);
+    Firebase.appendP(header, fb_esp_pgm_str_21);
+    Firebase.appendP(header, fb_esp_pgm_str_36);
+    Firebase.appendP(header, fb_esp_pgm_str_21);
 }
 
 void FCMObject::fcm_preparePayload(std::string &msg, fb_esp_fcm_msg_type messageType)
@@ -6668,7 +8267,7 @@ void FCMObject::fcm_preparePayload(std::string &msg, fb_esp_fcm_msg_type message
     char *tmp = nullptr;
     if (messageType == fb_esp_fcm_msg_type::msg_single)
     {
-        tmp = Firebase.getPGMString(fb_esp_pgm_str_128);
+        tmp = Firebase.strP(fb_esp_pgm_str_128);
         _fcmPayload.add(tmp, _deviceToken[_index].c_str());
         Firebase.delS(tmp);
     }
@@ -6677,14 +8276,14 @@ void FCMObject::fcm_preparePayload(std::string &msg, fb_esp_fcm_msg_type message
         FirebaseJsonArray arr;
         for (uint16_t i = 0; i < _deviceToken.size(); i++)
             arr.add(_deviceToken[i].c_str());
-        tmp = Firebase.getPGMString(fb_esp_pgm_str_130);
+        tmp = Firebase.strP(fb_esp_pgm_str_130);
         _fcmPayload.add(tmp, arr);
         Firebase.delS(tmp);
         arr.clear();
     }
     else if (messageType == fb_esp_fcm_msg_type::msg_topic)
     {
-        tmp = Firebase.getPGMString(fb_esp_pgm_str_128);
+        tmp = Firebase.strP(fb_esp_pgm_str_128);
         _fcmPayload.add(tmp, _topic.c_str());
         Firebase.delS(tmp);
     }
@@ -6756,7 +8355,7 @@ bool MultiPathStreamData::get(const String &path)
     bool res = false;
     if (_type == fb_esp_data_type::d_json)
     {
-        char *tmp = Firebase.getPGMString(fb_esp_pgm_str_1);
+        char *tmp = Firebase.strP(fb_esp_pgm_str_1);
         if (strcmp(_path.c_str(), tmp) == 0)
         {
             FirebaseJsonData data;
@@ -6764,7 +8363,7 @@ bool MultiPathStreamData::get(const String &path)
             if (data.success)
             {
                 type = data.type.c_str();
-                char *buf = Firebase.getPGMString(fb_esp_pgm_str_186);
+                char *buf = Firebase.strP(fb_esp_pgm_str_186);
                 if (strcmp(type.c_str(), buf) == 0)
                     type = _typeStr.c_str();
                 value = data.stringValue;

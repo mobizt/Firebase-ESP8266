@@ -1,4 +1,4 @@
-/*
+/**
  * Created by K. Suwatchai (Mobizt)
  * 
  * Email: k_suwatchai@hotmail.com
@@ -6,8 +6,6 @@
  * Github: https://github.com/mobizt
  * 
  * Copyright (c) 2020 mobizt
- * 
- * This example is for FirebaseESP8266 Arduino library v 2.8.9 or later
  *
 */
 
@@ -16,17 +14,21 @@
 
 //Since data ordering is not supported in Firebase's REST APIs, then the query result will not sorted.
 
-//FirebaseESP8266.h must be included before ESP8266WiFi.h
-#include "FirebaseESP8266.h"
 #include <ESP8266WiFi.h>
+#include <FirebaseESP8266.h>
 
-#define FIREBASE_HOST "YOUR_FIREBASE_PROJECT.firebaseio.com" //Without http:// or https:// schemes
-#define FIREBASE_AUTH "YOUR_FIREBASE_DATABASE_SECRET"
-#define WIFI_SSID "YOUR_WIFI_AP"
-#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
+#define WIFI_SSID "WIFI_AP"
+#define WIFI_PASSWORD "WIFI_PASSWORD"
+
+#define FIREBASE_HOST "PROJECT_ID.firebaseio.com"
+
+/** The database secret is obsoleted, please use other authentication methods, 
+ * see examples in the Authentications folder. 
+*/
+#define FIREBASE_AUTH "DATABASE_SECRET"
 
 //Define Firebase Data object
-FirebaseData firebaseData;
+FirebaseData fbdo;
 
 FirebaseJson json;
 
@@ -55,10 +57,10 @@ void setup()
     Firebase.reconnectWiFi(true);
 
     //Set the size of WiFi rx/tx buffers in the case where we want to work with large data.
-    firebaseData.setBSSLBufferSize(1024, 1024);
+    fbdo.setBSSLBufferSize(1024, 1024);
 
     //Set the size of HTTP response buffers in the case where we want to work with large data.
-    firebaseData.setResponseSize(1024);
+    fbdo.setResponseSize(1024);
 
     String path = "/Test";
 
@@ -75,21 +77,21 @@ void setup()
         json.set(key, val);
         String Path = path + "/Items/priority_" + String(15 - i);
 
-        if (Firebase.setJSON(firebaseData, Path, json, priority))
+        if (Firebase.setJSON(fbdo, Path, json, priority))
         {
             Serial.println("PASSED");
-            Serial.println("PATH: " + firebaseData.dataPath());
-            Serial.println("TYPE: " + firebaseData.dataType());
-            Serial.println("CURRENT ETag: " + firebaseData.ETag());
+            Serial.println("PATH: " + fbdo.dataPath());
+            Serial.println("TYPE: " + fbdo.dataType());
+            Serial.println("CURRENT ETag: " + fbdo.ETag());
             Serial.print("VALUE: ");
-            printResult(firebaseData);
+            printResult(fbdo);
             Serial.println("------------------------------------");
             Serial.println();
         }
         else
         {
             Serial.println("FAILED");
-            Serial.println("REASON: " + firebaseData.errorReason());
+            Serial.println("REASON: " + fbdo.errorReason());
             Serial.println("------------------------------------");
             Serial.println();
         }
@@ -103,19 +105,19 @@ void setup()
     Serial.println("------------------------------------");
     Serial.println("Filtering based on priority test...");
 
-    if (Firebase.getJSON(firebaseData, path + "/Items", query))
+    if (Firebase.getJSON(fbdo, path + "/Items", query))
     {
 
         Serial.println("PASSED");
         Serial.println("JSON DATA: ");
-        printResult(firebaseData);
+        printResult(fbdo);
         Serial.println("------------------------------------");
         Serial.println();
     }
     else
     {
         Serial.println("FAILED");
-        Serial.println("REASON: " + firebaseData.errorReason());
+        Serial.println("REASON: " + fbdo.errorReason());
         Serial.println("------------------------------------");
         Serial.println();
     }

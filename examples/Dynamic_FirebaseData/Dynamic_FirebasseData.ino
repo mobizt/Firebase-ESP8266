@@ -1,5 +1,5 @@
 
-/*
+/**
  * Created by K. Suwatchai (Mobizt)
  * 
  * Email: k_suwatchai@hotmail.com
@@ -7,7 +7,6 @@
  * Github: https://github.com/mobizt
  * 
  * Copyright (c) 2020 mobizt
- * 
  *
 */
 
@@ -16,14 +15,19 @@
 #include <ESP8266WiFi.h>
 #include <FirebaseESP8266.h>
 
-#define FIREBASE_HOST "YOUR_FIREBASE_PROJECT.firebaseio.com" //Without http:// or https:// schemes
-#define FIREBASE_AUTH "YOUR_FIREBASE_DATABASE_SECRET"
-#define WIFI_SSID "YOUR_WIFI_AP"
-#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
+#define WIFI_SSID "WIFI_AP"
+#define WIFI_PASSWORD "WIFI_PASSWORD"
+
+#define FIREBASE_HOST "PROJECT_ID.firebaseio.com"
+
+/** The database secret is obsoleted, please use other authentication methods, 
+ * see examples in the Authentications folder. 
+*/
+#define FIREBASE_AUTH "DATABASE_SECRET"
 
 //Define FirebaseESP8266 data object
-FirebaseData *firebaseData1 = new FirebaseData();
-FirebaseData *firebaseData2 = new FirebaseData();
+FirebaseData *fbdo1 = new FirebaseData();
+FirebaseData *fbdo2 = new FirebaseData();
 
 unsigned long sendDataPrevMillis = 0;
 
@@ -80,27 +84,27 @@ void setup()
     Firebase.reconnectWiFi(true);
 
     //Set the size of WiFi rx/tx buffers in the case where we want to work with large data.
-    firebaseData1->setBSSLBufferSize(1024, 1024);
+    fbdo1->setBSSLBufferSize(1024, 1024);
 
     //Set the size of HTTP response buffers in the case where we want to work with large data.
-    firebaseData1->setResponseSize(1024);
+    fbdo1->setResponseSize(1024);
 
     //Set the size of WiFi rx/tx buffers in the case where we want to work with large data.
-    firebaseData2->setBSSLBufferSize(1024, 1024);
+    fbdo2->setBSSLBufferSize(1024, 1024);
 
     //Set the size of HTTP response buffers in the case where we want to work with large data.
-    firebaseData2->setResponseSize(1024);
+    fbdo2->setResponseSize(1024);
 
-    if (!Firebase.beginStream(*firebaseData1, path))
+    if (!Firebase.beginStream(*fbdo1, path))
     {
         Serial.println("------------------------------------");
         Serial.println("Can't begin stream connection...");
-        Serial.println("REASON: " + firebaseData1->errorReason());
+        Serial.println("REASON: " + fbdo1->errorReason());
         Serial.println("------------------------------------");
         Serial.println();
     }
 
-    Firebase.setStreamCallback(*firebaseData1, streamCallback, streamTimeoutCallback);
+    Firebase.setStreamCallback(*fbdo1, streamCallback, streamTimeoutCallback);
 }
 
 void loop()
@@ -117,31 +121,31 @@ void loop()
 
             Serial.println("Reallocate the Firebase Data objects again after 10 times Firebasse call");
 
-            firebaseData1 = new FirebaseData();
-            firebaseData2 = new FirebaseData();
+            fbdo1 = new FirebaseData();
+            fbdo2 = new FirebaseData();
 
             //Set the size of WiFi rx/tx buffers in the case where we want to work with large data.
-            firebaseData1->setBSSLBufferSize(1024, 1024);
+            fbdo1->setBSSLBufferSize(1024, 1024);
 
             //Set the size of HTTP response buffers in the case where we want to work with large data.
-            firebaseData1->setResponseSize(1024);
+            fbdo1->setResponseSize(1024);
 
             //Set the size of WiFi rx/tx buffers in the case where we want to work with large data.
-            firebaseData2->setBSSLBufferSize(1024, 1024);
+            fbdo2->setBSSLBufferSize(1024, 1024);
 
             //Set the size of HTTP response buffers in the case where we want to work with large data.
-            firebaseData2->setResponseSize(1024);
+            fbdo2->setResponseSize(1024);
 
-            if (!Firebase.beginStream(*firebaseData1, path))
+            if (!Firebase.beginStream(*fbdo1, path))
             {
                 Serial.println("------------------------------------");
                 Serial.println("Can't begin stream connection...");
-                Serial.println("REASON: " + firebaseData1->errorReason());
+                Serial.println("REASON: " + fbdo1->errorReason());
                 Serial.println("------------------------------------");
                 Serial.println();
             }
 
-            Firebase.setStreamCallback(*firebaseData1, streamCallback, streamTimeoutCallback);
+            Firebase.setStreamCallback(*fbdo1, streamCallback, streamTimeoutCallback);
 
             count = 0;
         }
@@ -161,20 +165,20 @@ void loop()
         Serial.println("------------------------------------");
         Serial.println("Set Int...");
 
-        if (Firebase.set(*firebaseData2, path + "/Int", count))
+        if (Firebase.set(*fbdo2, path + "/Int", count))
         {
             Serial.println("PASSED");
-            Serial.println("PATH: " + firebaseData2->dataPath());
-            Serial.println("TYPE: " + firebaseData2->dataType());
+            Serial.println("PATH: " + fbdo2->dataPath());
+            Serial.println("TYPE: " + fbdo2->dataType());
             Serial.print("VALUE: ");
-            printResult(*firebaseData2);
+            printResult(*fbdo2);
             Serial.println("------------------------------------");
             Serial.println();
         }
         else
         {
             Serial.println("FAILED");
-            Serial.println("REASON: " + firebaseData2->errorReason());
+            Serial.println("REASON: " + fbdo2->errorReason());
             Serial.println("------------------------------------");
             Serial.println();
         }
@@ -186,15 +190,15 @@ void loop()
             deallocated = true;
 
             //Need to stop the stream to prevent the readStream and callback to be called after objects deallocation
-            Firebase.endStream(*firebaseData1);
-            Firebase.removeStreamCallback(*firebaseData1);
+            Firebase.endStream(*fbdo1);
+            Firebase.removeStreamCallback(*fbdo1);
 
             //Deallocate
-            delete firebaseData1;
-            delete firebaseData2;
+            delete fbdo1;
+            delete fbdo2;
 
-            firebaseData1 = nullptr;
-            firebaseData2 = nullptr;
+            fbdo1 = nullptr;
+            fbdo2 = nullptr;
         }
     }
 }

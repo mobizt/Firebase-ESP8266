@@ -1,25 +1,84 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 3.0.3
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 3.0.4
 
 
 ## Global functions
 
 
-#### Store Firebase's authentication credentials.
 
-param **`host`** - Your Firebase database project host e.g. Your_ProjectID.firebaseio.com.
+#### Initialize Firebase with the config and Firebase's authentication credentials.
 
-param **`auth`** - Your database secret.
+param **`config`** The pointer to FirebaseConfig data.
 
-param **`rootCA`** - Root CA certificate base64 string (PEM file).
+param **`auth`** The pointer to FirebaseAuth data.
 
-param **`rootCAFile`** - Root CA certificate DER file (binary).
+ note: For FirebaseConfig and FirebaseAuth data usage, see the examples.
 
-param **`storageType`** - Type of storage, StorageType::SD and StorageType::FLASH.
+```C++
+void begin(FirebaseConfig *config, FirebaseAuth *auth);
+```
 
-param **`GMTOffset`** - GMT time offset in hour is required to set time in order to make BearSSL 
+
+
+
+
+
+#### Store Firebase's authentication credentials using the authentication data provider.
+
+param **`host`** Your Firebase database project host e.g. Your_ProjectID.firebaseio.com.
+
+param **`auth`** The Auth_Provider data.
+
+param **`rootCA`** Root CA certificate base64 string (PEM file).
+
+param **`rootCAFile`** Root CA certificate DER file (binary).
+
+param **`storageType`** Type of storage, StorageType::SD and StorageType::FLASH.
+
+param **`GMTOffset`** GMT time offset in hour is required to set time in order to make BearSSL 
+                        data decryption/encryption to work.
+
+                        This parameter is only required for ESP8266 Core SDK v2.5.x or later.
+
+Root CA certificate DER file is only supported in Core SDK v2.5.x
+
+To use LittleFS file system for flash memory instead of SPIFFS, add the following macro in **FirebaseFS.h**
+
+For Auth_Provider data usage, see the examples.
+
+```C++
+#define USE_LITTLEFS
+```
+
+
+```C++
+void begin(const String &host, Auth_Provider &auth);
+
+void begin(const String &host, Auth_Provider &auth, const char *rootCA, float GMTOffset = 0.0);
+  
+void begin(const String &host, Auth_Provider &auth, const String &rootCAFile, uint8_t storageType, float GMTOffset = 0.0);
+```
+
+
+
+
+
+
+#### Store Firebase's authentication credentials using database secret (obsoleted).
+
+param **`host`** Your Firebase database project host e.g. Your_ProjectID.firebaseio.com.
+
+param **`auth`** Your database secret.
+
+param **`rootCA`** Root CA certificate base64 string (PEM file).
+
+param **`rootCAFile`** Root CA certificate DER file (binary).
+
+param **`storageType`** Type of storage, StorageType::SD and StorageType::FLASH.
+
+param **`GMTOffset`** GMT time offset in hour is required to set time in order to make BearSSL 
                         data decryption/encryption to work.
 
                         This parameter is only required for ESP8266 Core SDK v2.5.x or later.
@@ -45,9 +104,79 @@ void begin(const String &host, const String &auth, const String &rootCAFile, uin
 
 
 
+#### Sign up for a new user.
+
+param **`config`** The pointer to FirebaseConfig data.
+
+param **`auth`** The pointer to FirebaseAuth data.
+
+param **`email`** The user Email.
+
+param **`password`** The user password.
+
+return **`Boolean`** type status indicates the success of the operation. 
+
+note: By calling Firebase.begin with config and auth after sign up will be signed in.
+
+This required Email/Password provider to be enabled,
+
+From Firebase console, select Authentication, select Sign-in method tab, under 
+the Sign-in providers list, enable Email/Password provider.
+
+If the assigned email and passowrd are empty, the anonymous user will be created if Anonymous provider is enabled.
+
+To enable Anonymous provider, from Firebase console, select Authentication, 
+select Sign-in method tab, under the Sign-in providers list, enable Anonymous provider.
+
+```C++
+bool signUp(FirebaseConfig *config, FirebaseAuth *auth, const char *email, const char *password);
+```
+
+
+
+
+
+#### Send a user a verification Email.
+   * 
+param **`config`** The pointer to FirebaseConfig data.
+
+param **`idToken`** The id token of user that was already signed in with Email and password (optional).
+
+return **`Boolean`** type status indicates the success of the operation. 
+
+note: The id token can be obtained from config.signer.tokens.id_token after begin with config and auth data
+
+If the idToken is not assigned, the internal config.signer.tokens.id_token will be used. 
+
+See the Templates of Email address verification in the Firebase console, Authentication.
+
+```C++
+bool sendEmailVerification(FirebaseConfig *config, const char *idToken = "");
+```
+
+
+
+
+
+#### Send a user a password reset link to Email.
+
+param **`config`** The pointer to FirebaseConfig data.
+
+param **`email`** The user Email to send the password resset link.
+
+return **`Boolean`** type status indicates the success of the operation. 
+
+```C++
+bool sendResetPassword(FirebaseConfig *config, const char *email);
+```
+
+
+
+
+
 #### Reconnect WiFi if lost connection.
 
-param **`reconnect`** - The boolean to set/unset WiFi AP reconnection.
+param **`reconnect`** The boolean to set/unset WiFi AP reconnection.
 
 ```C++
 void reconnectWiFi(bool reconnect);
@@ -58,7 +187,7 @@ void reconnectWiFi(bool reconnect);
 
 #### Set the decimal places for float value to be stored in database.
 
-param **`digits`** - The decimal places. 
+param **`digits`** The decimal places. 
 
 ```C++
 void setFloatDigits(uint8_t digits);
@@ -70,7 +199,7 @@ void setFloatDigits(uint8_t digits);
 
 #### Set the decimal places for double value to be stored in database.
 
-param **`digits`** - The decimal places. 
+param **`digits`** The decimal places. 
 
 ```C++
 void setDoubleDigits(uint8_t digits);
@@ -83,9 +212,9 @@ void setDoubleDigits(uint8_t digits);
 
 #### Set the timeouts of get function.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`millisec`** - The milliseconds to limit the request (0 - 900,000 ms or 15 min).
+param **`millisec`** The milliseconds to limit the request (0 - 900,000 ms or 15 min).
 
 ```C++
 void setReadTimeout(FirebaseData &dataObj, int millisec);
@@ -98,9 +227,9 @@ void setReadTimeout(FirebaseData &dataObj, int millisec);
 
 #### Set the size limit of payload data that will write to the database for each request.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`size`** - The size identified string e.g. tiny, small, medium, large and unlimited.
+param **`size`** The size identified string e.g. tiny, small, medium, large and unlimited.
 
 Size string and its write timeout in seconds e.g. tiny (1s), small (10s), medium (30s) and large (60s).
 
@@ -114,7 +243,7 @@ void setwriteSizeLimit(FirebaseData &dataObj, const String &size);
 
 #### Read the database rules.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
 return - **`Boolean`** type status indicates the success of the operation.
 
@@ -128,9 +257,9 @@ bool getRules(FirebaseData &dataObj);
 
 #### Write the database rules.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`rules`** - Database rules in jSON String format.
+param **`rules`** Database rules in jSON String format.
 
 return - **`Boolean`** type status indicates the success of the operation.
 
@@ -145,9 +274,9 @@ bool setRules(FirebaseData &dataObj, const String &rules);
 
 #### Determine whether the defined database path has existed or not.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Database path to be checked.
+param **`path`** Database path to be checked.
 
 return - **`Boolean`** type result indicates whether the defined database
 path was existed or not.
@@ -174,9 +303,9 @@ String getETag(FirebaseData &dataObj, const String &path);
 
 #### Get the shallowed data at defined node path.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Database path being read the data.
+param **`path`** Database path being read the data.
 
 return - **`Boolean`** type status indicates the success of the operation.
 
@@ -213,9 +342,9 @@ bool getShallowData(FirebaseData &dataObj, const String &path);
 
 #### Enable the library to use only classic HTTP GET and POST methods.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`flag`** - Boolean value to enable.
+param **`flag`** Boolean value to enable.
 
 This option used to escape the Firewall restriction (if the device is connected through Firewall) that allows only HTTP GET and POST
     
@@ -232,11 +361,11 @@ void enableClassicRequest(FirebaseData &dataObj, bool flag);
 
 #### Set the virtual child node ".priority" to the defined database path. 
     
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Target database path which to set the priority value.
+param **`path`** Target database path which to set the priority value.
 
-param **`priority`** - The priority value.
+param **`priority`** The priority value.
     
 return - **`Boolean`** type status indicates the success of the operation.
 
@@ -258,9 +387,9 @@ bool setPriority(FirebaseData &dataObj, const String &path, float priority);
 
 #### Read the virtual child node ".priority" value at the defined database path. 
     
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Target database path which to set the priority value.
+param **`path`** Target database path which to set the priority value.
     
 return - **`Boolean`** type status indicates the success of the operation.
 
@@ -279,11 +408,11 @@ bool getPriority(FirebaseData &dataObj, const String &path);
 
 #### Append new integer value to the defined database path.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Target database path in which integer value will be appended.
+param **`path`** Target database path in which integer value will be appended.
 
-param **`intValue`** - The appended value.
+param **`intValue`** The appended value.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -313,11 +442,11 @@ bool push(FirebaseData &dataObj, const String &path, int intValue, float priorit
 
 #### Append new float value to the defined database path.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Target database path in which the float type value will be appended.
+param **`path`** Target database path in which the float type value will be appended.
 
-param **`floatValue`** - The appended value.
+param **`floatValue`** The appended value.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -348,11 +477,11 @@ bool push(FirebaseData &dataObj, const String &path, float floatValue, float pri
 
 #### Append new double value (8 bytes) to the defined database path.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Target database path in which the float value will be appended.
+param **`path`** Target database path in which the float value will be appended.
 
-param **`doubleValue`** - The appended value.
+param **`doubleValue`** The appended value.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -384,11 +513,11 @@ bool push(FirebaseData &dataObj, const String &path, double doubleValue, float p
 
 #### Append new Boolean value to the defined database path.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Target database path which Boolean value will be appended.
+param **`path`** Target database path which Boolean value will be appended.
 
-param **`boolValue`** - The appended value.
+param **`boolValue`** The appended value.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -418,11 +547,11 @@ bool push(FirebaseData &dataObj, const String &path, bool boolValue, float prior
 
 #### Append new string (text) to the defined database path.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Target database path which string will be appended.
+param **`path`** Target database path which string will be appended.
 
-param **`stringValue`** - The appended value.
+param **`stringValue`** The appended value.
 
 return **`Boolean`** type status indicates the success of operation.
 
@@ -459,11 +588,11 @@ bool push(FirebaseData &dataObj, const String &path, const String &stringValue, 
 
 #### Append new child node' key and value (using FirebaseJson object) to the defined database path.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Target database path which key and value in FirebaseJson object will be appended.
+param **`path`** Target database path which key and value in FirebaseJson object will be appended.
 
-param **`json`** - The appended FirebaseJson object.
+param **`json`** The appended FirebaseJson object.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -503,11 +632,11 @@ bool push(FirebaseData &dataObj, const String &path, FirebaseJson &json, float p
 
 This will replace any child nodes inside the defined path with array defined in FirebaseJsonArray object.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Target database path which key and value in FirebaseJsonArray object will be appended.
+param **`path`** Target database path which key and value in FirebaseJsonArray object will be appended.
 
-param **`arr`** - The appended FirebaseJsonArray object.
+param **`arr`** The appended FirebaseJsonArray object.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -543,13 +672,13 @@ bool push(FirebaseData &dataObj, const String &path, FirebaseJsonArray &arr, flo
 
 #### Append new blob (binary data) to the defined database path.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Target database path in which binary data will be appended.
+param **`path`** Target database path in which binary data will be appended.
 
-param **`blob`** - Byte array of data.
+param **`blob`** Byte array of data.
 
-param **`size`** - Size of the byte array.
+param **`size`** Size of the byte array.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -582,13 +711,13 @@ bool push(FirebaseData &dataObj, const String &path, uint8_t *blob, size_t size,
 
 #### Append new binary data from file stored on SD card/flash memory to the defined database path.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`storageType`** - Type of storage to read file data, StorageType::SPIFS or StorageType::SD.
+param **`storageType`** Type of storage to read file data, StorageType::SPIFS or StorageType::SD.
 
-param **`path`** - Target database path in which binary data from the file will be appended.
+param **`path`** Target database path in which binary data from the file will be appended.
 
-param **`fileName`** - File name included its path in SD card/Flash memory.
+param **`fileName`** File name included its path in SD card/Flash memory.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -633,9 +762,9 @@ To use LittleFS file system for flash memory instead of SPIFFS, add the followin
 
 #### Append new Firebase server's timestamp to the defined database path.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Target database path which timestamp will be appended.
+param **`path`** Target database path which timestamp will be appended.
 
 return - **`Boolean`** type status indicates the success of the operation.
     
@@ -653,11 +782,11 @@ bool pushTimestamp(FirebaseData &dataObj, const String &path);
 
 #### Set integer data at the defined database path.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Target database path in which integer data will be set.
+param **`path`** Target database path in which integer data will be set.
 
-param **`intValue`** - Integer value to set.
+param **`intValue`** Integer value to set.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -687,13 +816,13 @@ bool set(FirebaseData &dataObj, const String &path, int intValue, float priority
 
 #### Set integer data at the defined database path if defined database path's ETag matched the ETag value.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Target database path in which integer data will be set.
+param **`path`** Target database path in which integer data will be set.
 
-param **`intValue`** - Integer value to set.
+param **`intValue`** Integer value to set.
 
-param **`ETag`** - Known unique identifier string (ETag) of defined database path.
+param **`ETag`** Known unique identifier string (ETag) of defined database path.
 
 return - **`Boolean`** type status indicates the success of the operation.
 
@@ -731,11 +860,11 @@ bool set(FirebaseData &dataObj, const String &path, int intValue, float priority
 
 #### Set float data at the defined database path.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Target database path in which float data will be set.
+param **`path`** Target database path in which float data will be set.
 
-param **`floatValue`** - Float value to set.
+param **`floatValue`** Float value to set.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -767,11 +896,11 @@ bool set(FirebaseData &dataObj, const String &path, float floatValue, float prio
 
 #### Set float data at the defined database path if defined database path's ETag matched the ETag value.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Target database path in which float data will be set.
+param **`path`** Target database path in which float data will be set.
 
-param **`floatValue`** - Float value to set.
+param **`floatValue`** Float value to set.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -808,11 +937,11 @@ bool set(FirebaseData &dataObj, const String &path, float floatValue, float prio
 
 #### Set double data at the defined database path.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Target database path in which float data will be set.
+param **`path`** Target database path in which float data will be set.
 
-param **`doubleValue`** - Double value to set.
+param **`doubleValue`** Double value to set.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -849,13 +978,13 @@ bool set(FirebaseData &dataObj, const String &path, double doubleValue, float pr
 
 #### Set double data at the defined database path if defined database path's ETag matched the ETag value.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Target database path in which float data will be set.
+param **`path`** Target database path in which float data will be set.
 
-param **`doubleValue`** - Double value to set.
+param **`doubleValue`** Double value to set.
 
-param **`ETag`** - Known unique identifier string (ETag) of defined database path.
+param **`ETag`** Known unique identifier string (ETag) of defined database path.
 
 return - **`Boolean`** type status indicates the success of the operation.
 
@@ -893,11 +1022,11 @@ bool set(FirebaseData &dataObj, const String &path, double doubleValue, float pr
 
 #### Set Boolean data at the defined database path.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Target database path in which float data will be set.
+param **`path`** Target database path in which float data will be set.
 
-param **`boolValue`** - Boolean value to set.
+param **`boolValue`** Boolean value to set.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -930,13 +1059,13 @@ bool set(FirebaseData &dataObj, const String &path, bool boolValue, float priori
 
 #### Set Boolean data at the defined database path if defined database path's ETag matched the ETag value
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Target database path in which float data will be set.
+param **`path`** Target database path in which float data will be set.
 
-param **`boolValue`** - Boolean value to set.
+param **`boolValue`** Boolean value to set.
 
-param **`ETag`** - Known unique identifier string (ETag) of defined database path.
+param **`ETag`** Known unique identifier string (ETag) of defined database path.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -977,11 +1106,11 @@ bool set(FirebaseData &dataObj, const String &path, bool boolValue, float priori
 
 #### Set string (text) at the defined database path
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Target database path in which string data will be set.
+param **`path`** Target database path in which string data will be set.
 
-param **`stringValue`** - String or text to set.
+param **`stringValue`** String or text to set.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -1020,13 +1149,13 @@ bool set(FirebaseData &dataObj, const String &path, const String &stringValue, f
 
 #### Set string (text) at the defined database path if defined database path's ETag matched the ETag value
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Target database path in which string data will be set.
+param **`path`** Target database path in which string data will be set.
 
-param **`stringValue`** - String or text to set.
+param **`stringValue`** String or text to set.
 
-param **`ETag`** - Known unique identifier string (ETag) of defined database path.
+param **`ETag`** Known unique identifier string (ETag) of defined database path.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -1074,11 +1203,11 @@ bool set(FirebaseData &dataObj, const String &path, const String &stringValue, f
 This will replace any child nodes inside the defined path with node' s key
 and value defined in FirebaseJson object.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Target database path which key and value in FirebaseJson object will be replaced or set.
+param **`path`** Target database path which key and value in FirebaseJson object will be replaced or set.
 
-param **`json`** - The FirebaseJson object.
+param **`json`** The FirebaseJson object.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -1121,15 +1250,15 @@ bool set(FirebaseData &dataObj, const String &path, FirebaseJson &json, float pr
 This will replace any child nodes inside the defined path with node' s key
 and value defined in JSON data or FirebaseJson object.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Target database path which key and value in JSON data or FirebaseJson object will be replaced or set.
+param **`path`** Target database path which key and value in JSON data or FirebaseJson object will be replaced or set.
 
-param **`jsonString`** - The JSON string to set (should be valid JSON data).
+param **`jsonString`** The JSON string to set (should be valid JSON data).
 
-param **`json`** - The FirebaseJson object.
+param **`json`** The FirebaseJson object.
 
-param **`ETag`** - Known unique identifier string (ETag) of defined database path.
+param **`ETag`** Known unique identifier string (ETag) of defined database path.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -1178,11 +1307,11 @@ bool set(FirebaseData &dataObj, const String &path, FirebaseJson &json, float pr
 
 This will replace any child nodes inside the defined path with array defined in FirebaseJsonArray object.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Target database path which key and value in FirebaseJsonArray object will be replaced or set.
+param **`path`** Target database path which key and value in FirebaseJsonArray object will be replaced or set.
 
-param **`arr`** - The FirebaseJsonArray object.
+param **`arr`** The FirebaseJsonArray object.
 
 return - **`Boolean`** type status indicates the success of the operation.
 
@@ -1220,13 +1349,13 @@ bool set(FirebaseData &dataObj, const String &path, FirebaseJsonArray &arr, floa
 
 This will replace any child nodes inside the defined path with array defined in FirebaseJsonArray object.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Target database path which key and value in JSON data will be replaced or set.
+param **`path`** Target database path which key and value in JSON data will be replaced or set.
 
-param **`arr`** - The FirebaseJsonArray object.
+param **`arr`** The FirebaseJsonArray object.
 
-param **`ETag`** - Known unique identifier string (ETag) of defined database path.
+param **`ETag`** Known unique identifier string (ETag) of defined database path.
 
 return - **`Boolean`** type status indicates the success of the operation.
     
@@ -1264,13 +1393,13 @@ bool set(FirebaseData &dataObj, const String &path, FirebaseJsonArray &arr, floa
 
 This will replace any child nodes inside the defined path with a blob or binary data.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Target database path in which binary data will be set.
+param **`path`** Target database path in which binary data will be set.
 
-param **`blob`** - Byte array of data.
+param **`blob`** Byte array of data.
 
-param **`size`** - Size of the byte array.
+param **`size`** Size of the byte array.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -1303,15 +1432,15 @@ bool set(FirebaseData &dataObj, const String &path, uint8_t *blob, size_t size, 
 
 This will replace any child nodes inside the defined path with a blob or binary data.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Target database path in which binary data will be set.
+param **`path`** Target database path in which binary data will be set.
 
-param **`blob`** - Byte array of data.
+param **`blob`** Byte array of data.
 
-param **`size`** - Size of the byte array.
+param **`size`** Size of the byte array.
 
-param **`ETag`** - Known unique identifier string (ETag) of defined database path.
+param **`ETag`** Known unique identifier string (ETag) of defined database path.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -1344,13 +1473,13 @@ bool set(FirebaseData &dataObj, const String &path, uint8_t *blob, size_t size, 
 
 #### Set binary data from a file stored on SD card/flash memory to the defined database path.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`storageType`** - Type of storage to read file data, StorageType::SPIFS or StorageType::SD.
+param **`storageType`** Type of storage to read file data, StorageType::SPIFS or StorageType::SD.
 
-param **`path`** - Target database path in which binary data from the file will be set.
+param **`path`** Target database path in which binary data from the file will be set.
 
-param **`fileName`** - File name included its path in SD card/Flash memory.
+param **`fileName`** File name included its path in SD card/Flash memory.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -1386,15 +1515,15 @@ bool set(FirebaseData &dataObj, uint8_t storageType, const String &path, const S
 
 #### Set binary data from a file stored on SD card/flash memory to the defined database path if defined database path's ETag matched the ETag value
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`storageType`** - Type of storage to read file data, StorageType::SPIFS or StorageType::SD.
+param **`storageType`** Type of storage to read file data, StorageType::SPIFS or StorageType::SD.
 
-param **`path`** - Target database path in which binary data from the file will be set.
+param **`path`** Target database path in which binary data from the file will be set.
 
-param **`fileName`** - File name included its path in SD card/Flash memory.
+param **`fileName`** File name included its path in SD card/Flash memory.
 
-param **`ETag`** - Known unique identifier string (ETag) of defined database path.
+param **`ETag`** Known unique identifier string (ETag) of defined database path.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -1435,9 +1564,9 @@ bool set(FirebaseData &dataObj, uint8_t storageType, const String &path, const S
 
  #### Set Firebase server's timestamp to the defined database path
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Target database path which timestamp will be set.
+param **`path`** Target database path which timestamp will be set.
 
 return - **`Boolean`** type status indicates the success of the operation.
     
@@ -1459,11 +1588,11 @@ bool setTimestamp(FirebaseData &dataObj, const String &path);
 
 #### Update child node's key or existing key's value (using FirebaseJson object) under the defined database path
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Target database path which key and value in FirebaseJson object will be updated.
+param **`path`** Target database path which key and value in FirebaseJson object will be updated.
 
-param **`json`** - The FirebaseJson object used for update.
+param **`json`** The FirebaseJson object used for update.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -1502,11 +1631,11 @@ bool updateNode(FirebaseData &dataObj, const String &path, FirebaseJson &json, f
 
 #### Update child node's key or existing key's value (using FirebaseJson object) under the defined database path
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Target database path which key and value in FirebaseJson object will be updated.
+param **`path`** Target database path which key and value in FirebaseJson object will be updated.
 
-param **`json`** - The FirebaseJson object used for update.
+param **`json`** The FirebaseJson object used for update.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -1537,9 +1666,9 @@ bool updateNodeSilent(FirebaseData &dataObj, const String &path, FirebaseJson &j
 
 #### Read any type of value at the defined database path.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Database path in which the float value is being read.
+param **`path`** Database path in which the float value is being read.
 
 return - **`Boolean`** type status indicates the success of the operation.
 
@@ -1559,9 +1688,9 @@ bool get(FirebaseData &dataObj, const String &path);
 
 #### Read the integer value at the defined database path
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Database path in which the integer value is being read.
+param **`path`** Database path in which the integer value is being read.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -1586,11 +1715,11 @@ bool getInt(FirebaseData &dataObj, const String &path);
 
 #### Read the integer value at the defined database path
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Database path in which the integer value is being read.
+param **`path`** Database path in which the integer value is being read.
 
-param **`target`** - The integer type variable to store value.
+param **`target`** The integer type variable to store value.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -1607,9 +1736,9 @@ bool getInt(FirebaseData &dataObj, const String &path, int &target);
 
 #### Read the float value at the defined database path
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Database path in which the float value is being read.
+param **`path`** Database path in which the float value is being read.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -1632,11 +1761,11 @@ bool getFloat(FirebaseData &dataObj, const String &path);
 
 #### Read the float value at the defined database path
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Database path in which the float value is being read.
+param **`path`** Database path in which the float value is being read.
 
-param **`target`** - The float type variable to store value.
+param **`target`** The float type variable to store value.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -1655,9 +1784,9 @@ bool getFloat(FirebaseData &dataObj, const String &path, float &target);
 
 #### Read the double value at the defined database path
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Database path in which the float value is being rea.
+param **`path`** Database path in which the float value is being rea.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -1684,11 +1813,11 @@ bool getDouble(FirebaseData &dataObj, const String &path);
 
 #### Read the float value at the defined database path
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Database path in which the float value is being read.
+param **`path`** Database path in which the float value is being read.
 
-param **`target`** - The double type variable to store value.
+param **`target`** The double type variable to store value.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -1706,9 +1835,9 @@ bool getDouble(FirebaseData &dataObj, const String &path, double &target);
 
 #### Read the Boolean value at the defined database path
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Database path in which the Boolean value is being read.
+param **`path`** Database path in which the Boolean value is being read.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -1732,11 +1861,11 @@ bool getBool(FirebaseData &dataObj, const String &path);
 
 #### Read the Boolean value at the defined database path
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Database path in which the Boolean value is being read.
+param **`path`** Database path in which the Boolean value is being read.
 
-param **`target`** - The boolean type variable to store value.
+param **`target`** The boolean type variable to store value.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -1754,9 +1883,9 @@ bool getBool(FirebaseData &dataObj, const String &path, bool &target);
 
 #### Read the string or text at the defined database path
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Database path in which the string value is being read.
+param **`path`** Database path in which the string value is being read.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -1779,11 +1908,11 @@ bool getString(FirebaseData &dataObj, const String &path);
 
 #### Read the string or text at the defined database path
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Database path in which the string value is being read.
+param **`path`** Database path in which the string value is being read.
 
-param **`target`** - The String object to store value.
+param **`target`** The String object to store value.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -1802,9 +1931,9 @@ bool getString(FirebaseData &dataObj, const String &path, String &target);
 
 The returned payload JSON string represents the child nodes and their value.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Database path in which the JSON string value is being read.
+param **`path`** Database path in which the JSON string value is being read.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -1832,11 +1961,11 @@ bool getJSON(FirebaseData &dataObj, const String &path);
 
 The returned payload JSON string represents the child nodes and their value.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Database path in which the JSON string value is being read.
+param **`path`** Database path in which the JSON string value is being read.
 
-param **`target`** - The FirebaseJson object pointer to get json data
+param **`target`** The FirebaseJson object pointer to get json data
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -1857,17 +1986,17 @@ bool getJSON(FirebaseData &dataObj, const String &path, FirebaseJson *target);
 
 The returned payload JSON string represents the child nodes and their value.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Database path in which the JSON string value is being read.
+param **`path`** Database path in which the JSON string value is being read.
 
-param **`query`** - QueryFilter class to set query parameters to filter data.
+param **`query`** QueryFilter class to set query parameters to filter data.
 
 return **`Boolean`** type status indicates the success of the operation.
 
 Available query parameters for filtering the data are the following.
 
-**`QueryFilter.orderBy`** - Required parameter to specify which data used for data filtering included child key, key, and value.
+**`QueryFilter.orderBy`** Required parameter to specify which data used for data filtering included child key, key, and value.
 
 Use "$key" for filtering data by keys of all nodes at the defined database path.
 
@@ -1878,15 +2007,15 @@ Use "$priority" for filtering data by "virtual child" named .priority of all nod
 Use any child key to filter by that key.
 
 
-**`QueryFilter.limitToFirst`** -  The total children (number) to filter from the first child.
+**`QueryFilter.limitToFirst`**  The total children (number) to filter from the first child.
 
-**`QueryFilter.limitToLast`** -   The total last children (number) to filter. 
+**`QueryFilter.limitToLast`**   The total last children (number) to filter. 
 
-**`QueryFilter.startAt`** -       Starting value of range (number or string) of query upon orderBy param.
+**`QueryFilter.startAt`**       Starting value of range (number or string) of query upon orderBy param.
 
-**`QueryFilter.endAt`** -         Ending value of range (number or string) of query upon orderBy param.
+**`QueryFilter.endAt`**         Ending value of range (number or string) of query upon orderBy param.
 
-**`QueryFilter.equalTo`** -       Value (number or string) matches the orderBy param
+**`QueryFilter.equalTo`**       Value (number or string) matches the orderBy param
 
 
 Call [FirebaseData object].dataType to determine what type of data successfully stores in the database. 
@@ -1914,11 +2043,11 @@ bool getJSON(FirebaseData &dataObj, const String &path, QueryFilter &quer);
 
 The returned payload JSON string represents the child nodes and their value.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Database path in which the JSON string value is being read.
+param **`path`** Database path in which the JSON string value is being read.
 
-param **`target`** - The FirebaseJson object pointer to get json data.
+param **`target`** The FirebaseJson object pointer to get json data.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -1939,9 +2068,9 @@ bool getJSON(FirebaseData &dataObj, const String &path, QueryFilter &query, Fire
 
 #### Read the array data at the defined database path.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Database path in which the array is being read.
+param **`path`** Database path in which the array is being read.
 
 return - **`Boolean`** type status indicates the success of the operation.
 
@@ -1963,9 +2092,9 @@ bool getArray(FirebaseData &dataObj, const String &path);
 
 #### Read the array data at the defined database path and assign data to the target.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Database path in which the array is being read.
+param **`path`** Database path in which the array is being read.
 
 param **`target - The FirebaseJsonArray object pointer to get array value.
 
@@ -1984,11 +2113,11 @@ bool getArray(FirebaseData &dataObj, const String &path, FirebaseJsonArray *targ
 
 #### Read the array data at the defined database path.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Database path in which the array is being read.
+param **`path`** Database path in which the array is being read.
 
-param **`query`** - QueryFilter class to set query parameters to filter data.
+param **`query`** QueryFilter class to set query parameters to filter data.
 
 return - **`Boolean`** type status indicates the success of the operation.
 
@@ -2032,11 +2161,11 @@ bool getArray(FirebaseData &dataObj, const String &path, QueryFilter &query);
 
 #### Read the array data at the defined database path as above
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Database path in which the array is being read.
+param **`path`** Database path in which the array is being read.
 
-param **`target`** - The FirebaseJsonArray object to get array value.
+param **`target`** The FirebaseJsonArray object to get array value.
 
 return - **`Boolean`** type status indicates the success of the operation.
 
@@ -2052,9 +2181,9 @@ bool getArray(FirebaseData &dataObj, const String &path, QueryFilter &query, Fir
 
 #### Read the blob (binary data) at the defined database path
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Database path in which the binary data is being read.
+param **`path`** Database path in which the binary data is being read.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -2077,11 +2206,11 @@ bool getBlob(FirebaseData &dataObj, const String &path);
 
 #### Read the blob (binary data) at the defined database path
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Database path in which the binary data is being read.
+param **`path`** Database path in which the binary data is being read.
 
-param **`target`** - Dynamic array of unsigned 8-bit data (i.e. std::vector<uint8_t>) to store value.
+param **`target`** Dynamic array of unsigned 8-bit data (i.e. std::vector<uint8_t>) to store value.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -2104,13 +2233,13 @@ The downloaded data will be decoded to binary and save to SD card/Flash memory, 
 
 please make sure that data at the defined database path is the file type.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`storageType`** - Type of storage to write file data, StorageType::SPIFS or StorageType::SD.
+param **`storageType`** Type of storage to write file data, StorageType::SPIFS or StorageType::SD.
 
-param **`nodePath`** - Database path that file data will be downloaded.
+param **`nodePath`** Database path that file data will be downloaded.
 
-param **`fileName`** - File name included its path in SD card/Flash memory.
+param **`fileName`** File name included its path in SD card/Flash memory.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -2129,9 +2258,9 @@ To use LittleFS file system for flash memory instead of SPIFFS, add the followin
 
 #### Delete all child nodes at the defined database path
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Database path to be deleted.
+param **`path`** Database path to be deleted.
 
 return **`Boolean`** type status indicates the success of the operation.*
 
@@ -2145,11 +2274,11 @@ bool deleteNode(FirebaseData &dataObj, const String &path);
 
 #### Delete all child nodes at the defined database path if defined database path's ETag matched the ETag value
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Database path to be deleted.
+param **`path`** Database path to be deleted.
 
-param **`ETag`** - Known unique identifier string (ETag) of defined database path.
+param **`ETag`** Known unique identifier string (ETag) of defined database path.
 
 return **`Boolean`** type status indicates the success of the operation.*
 
@@ -2168,9 +2297,9 @@ bool deleteNode(FirebaseData &dataObj, const String &path, const String &ETag);
 
 #### Start monitoring the value changes at the defined path and its children
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`path`** - Database path to subscribe.
+param **`path`** Database path to subscribe.
 
 return **`Boolean`** type status indicates the success of the operation.*
 
@@ -2185,13 +2314,13 @@ bool beginStream(FirebaseData &dataObj, const String &path);
 
 #### Start subscribe to the value changes at the defined parent node path with multiple nodes paths parsing.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`parentPath`** - Database parent node path to subscribe.
+param **`parentPath`** Database parent node path to subscribe.
 
-param **`childPath`** - The string array of child nodes paths for parsing.
+param **`childPath`** The string array of child nodes paths for parsing.
 
-param **`size`** - The size of string array of child nodes paths for parsing.
+param **`size`** The size of string array of child nodes paths for parsing.
 
 return **`Boolean`** type status indicates the success of the operation.*
 
@@ -2210,7 +2339,7 @@ bool beginMultiPathStream(FirebaseData &dataObj, const String &parentPath, const
 Once beginStream was called e.g. in setup(), the readStream function
 should call inside the loop function.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -2230,7 +2359,7 @@ bool readStream(FirebaseData &dataObj);
 
 It can be restart again by calling beginStream.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
 return **`Boolean`** type status indicates the success of the operation.
  
@@ -2245,13 +2374,13 @@ bool endStream(FirebaseData &dataObj);
 
 #### Backup (download) database at defined database path to SD card/flash memory
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`storageType`** - Type of storage to save file, StorageType::SPIFS or StorageType::SD.
+param **`storageType`** Type of storage to save file, StorageType::SPIFS or StorageType::SD.
 
-param **`nodePath`** - Database path to be backup.
+param **`nodePath`** Database path to be backup.
 
-param **`fileName`** - File name to save.
+param **`fileName`** File name to save.
 
 Only 8.3 DOS format (max. 8 bytes file name and 3 bytes file extension) can be saved to the SD card.
 
@@ -2273,13 +2402,13 @@ To use LittleFS file system for flash memory instead of SPIFFS, add the followin
 
 #### Restore database at a defined path using backup file saved on SD card/flash memory
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`storageType`** - Type of storage to read file, StorageType::SPIFS or StorageType::SD.
+param **`storageType`** Type of storage to read file, StorageType::SPIFS or StorageType::SD.
 
-param **`nodePath`** - Database path to be restored.
+param **`nodePath`** Database path to be restored.
 
-param **`fileName`** - File name to read.
+param **`fileName`** File name to read.
 
 return **`Boolean`** type status indicates the success of the operation.
 
@@ -2301,11 +2430,11 @@ To use LittleFS file system for flash memory instead of SPIFFS, add the followin
 
 setStreamCallback should be called before Firebase.beginStream.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`dataAvailablecallback`** - Callback function that accepts streamData parameter.
+param **`dataAvailablecallback`** Callback function that accepts streamData parameter.
 
-param **`timeoutCallback`** - Callback function will be called when stream connection was timeout (optional).
+param **`timeoutCallback`** Callback function will be called when stream connection was timeout (optional).
 
 dataAvailablecallback will be called When data in the defined path changed or the stream path changed or stream connection
 was resumed from reading, store, update and delete the node.
@@ -2331,11 +2460,11 @@ void setStreamCallback(FirebaseData &dataObj, StreamEventCallback dataAvailablec
 
 setMultiPathStreamCallback should be called before Firebase.beginMultiPathStream.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`multiPathDataCallback`** - a Callback function that accepts MultiPathStreamData parameter.
+param **`multiPathDataCallback`** a Callback function that accepts MultiPathStreamData parameter.
 
-param **`timeoutCallback`** - a Callback function will be called when stream connection was timeout (optional).
+param **`timeoutCallback`** a Callback function will be called when stream connection was timeout (optional).
 
 multiPathDataCallback will be called When data in the defined path changed or the stream path changed or stream connection
 was resumed from getXXX, setXXX, pushXXX, updateNode, deleteNode.
@@ -2362,7 +2491,7 @@ void setMultiPathStreamCallback(FirebaseData &dataObj, MultiPathStreamEventCallb
 
 #### Remove stream callback functions
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
 ```C++
 void removeStreamCallback(FirebaseData &dataObj);
@@ -2377,7 +2506,7 @@ void removeStreamCallback(FirebaseData &dataObj);
 
 #### Remove multiple paths stream callback functions.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
 ```C++
 void removeMultiPathStreamCallback(FirebaseData &dataObj);
@@ -2392,9 +2521,9 @@ void removeMultiPathStreamCallback(FirebaseData &dataObj);
 
 #### Set maximum Firebase read/store retry operation (0 - 255) in case of network problems and buffer overflow
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`num`** - The maximum retry.
+param **`num`** The maximum retry.
 
 ```C++
 void setMaxRetry(FirebaseData &dataObj, uint8_t num);
@@ -2407,9 +2536,9 @@ void setMaxRetry(FirebaseData &dataObj, uint8_t num);
 
 #### Start the Firbase Error Queues Auto Run Process
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`callback`** - Callback function that accepts QueueInfo Object as parameter, optional.
+param **`callback`** Callback function that accepts QueueInfo Object as parameter, optional.
 
 The following functions are available from QueueInfo Object accepted by callback.
 
@@ -2436,7 +2565,7 @@ void beginAutoRunErrorQueue(FirebaseData &dataObj, QueueInfoCallback callback = 
 
 #### Stop the Firebase Error Queues Auto Run Process
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
 
 ```C++
@@ -2453,9 +2582,9 @@ void endAutoRunErrorQueue(FirebaseData &dataObj);
 
 Firebase read/store operation causes by network problems and buffer overflow will be added to Firebase Error Queues collection.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`num`** - The maximum Firebase Error Queues.
+param **`num`** The maximum Firebase Error Queues.
 
 ```C++
 void setMaxErrorQueue(FirebaseData &dataObj, uint8_t num);
@@ -2469,11 +2598,11 @@ void setMaxErrorQueue(FirebaseData &dataObj, uint8_t num);
 
 Firebase read (get) operation will not be saved.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`filename`** - File name to be saved.
+param **`filename`** File name to be saved.
 
-param **`storageType`** - Type of storage to save file, StorageType::SPIFS or StorageType::SD.
+param **`storageType`** Type of storage to save file, StorageType::SPIFS or StorageType::SD.
     
 ```C++
 bool saveErrorQueue(FirebaseData &dataObj, const String &filename, uint8_t storageType);
@@ -2486,9 +2615,9 @@ bool saveErrorQueue(FirebaseData &dataObj, const String &filename, uint8_t stora
 
 #### Delete file in flash memory (SPIFFS and LittleFS file systems) or SD card
 
-param **`filename`** - File name to delete.
+param **`filename`** File name to delete.
 
-param **`storageType`** - Type of storage to save file, StorageType::SPIFS or StorageType::SD.
+param **`storageType`** Type of storage to save file, StorageType::SPIFS or StorageType::SD.
     
 ```C++
 bool deleteStorageFile(const String &filename, uint8_t storageType);
@@ -2504,11 +2633,11 @@ To use LittleFS file system for flash memory instead of SPIFFS, add the followin
    
 #### Restore Firebase Error Queues from SPIFFS file
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`filename`** - Filename to be read and restore queues.
+param **`filename`** Filename to be read and restore queues.
 
-param **`storageType`** - Type of storage to read file, StorageType::SPIFS or StorageType::SD.
+param **`storageType`** Type of storage to read file, StorageType::SPIFS or StorageType::SD.
     
 ```C++
 bool restoreErrorQueue(FirebaseData &dataObj, const String &filename, uint8_t storageType);
@@ -2520,11 +2649,11 @@ bool restoreErrorQueue(FirebaseData &dataObj, const String &filename, uint8_t st
 
 #### Determine the number of Firebase Error Queues stored in defined SPIFFS file
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`filename`** - Filename to be read and count for queues.
+param **`filename`** Filename to be read and count for queues.
 
-param **`storageType`** - Type of storage to read file, StorageType::SPIFS or StorageType::SD.
+param **`storageType`** Type of storage to read file, StorageType::SPIFS or StorageType::SD.
 
 
 return **`Number`** (0-255) of queues store in defined SPIFFS file.
@@ -2540,7 +2669,7 @@ uint8_t errorQueueCount(FirebaseData &dataObj, const String &filename, uint8_t s
 
 #### Determine number of queues in Firebase Data object Firebase Error Queues collection
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
 return **`Number`** (0-255) of queues in Firebase Data object queue collection.
 
@@ -2555,7 +2684,7 @@ uint8_t errorQueueCount(FirebaseData &dataObj);
 
 #### Determine whether the Firebase Error Queues collection was full or not
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
 return **`Boolean`** type status indicates whether the  Firebase Error Queues collection was full or not.
 
@@ -2570,9 +2699,9 @@ bool isErrorQueueFull(FirebaseData &dataObj);
 
 #### Process all failed Firebase operation queue items when network is available
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`callback`** - Callback function that accepts QueueInfo parameter.
+param **`callback`** Callback function that accepts QueueInfo parameter.
   
 ```C++
 void processErrorQueue(FirebaseData &dataObj, QueueInfoCallback callback = NULL);
@@ -2587,7 +2716,7 @@ void processErrorQueue(FirebaseData &dataObj, QueueInfoCallback callback = NULL)
 
 Return 0 if there is no Firebase Error from last operation.
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
     
 return **`Number`** of Queue ID.
 
@@ -2600,9 +2729,9 @@ uint32_t getErrorQueueID(FirebaseData &dataObj);
 
 #### Determine whether Firebase Error Queue has currently existed in Error Queue collection or not
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`errorQueueID`** - The Firebase Error Queue ID get from getErrorQueueID.
+param **`errorQueueID`** The Firebase Error Queue ID get from getErrorQueueID.
     
 return - **`Boolean type`** status indicates the queue existence.
 
@@ -2617,7 +2746,7 @@ bool isErrorQueueExisted(FirebaseData &dataObj, uint32_t errorQueueID);
 
 #### Clear all Firbase Error Queues in Error Queue collection
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
 
 ```C++
@@ -2632,9 +2761,9 @@ void clearErrorQueue(FirebaseData &dataObj);
 
 #### Send Firebase Cloud Messaging to device with first registeration token which added by firebaseData.fcm.addDeviceToken
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
 
-param **`index`** - The index (starts from 0) of recipient device token which added by firebaseData.fcm.addDeviceToken
+param **`index`** The index (starts from 0) of recipient device token which added by firebaseData.fcm.addDeviceToken
     
 return - **`Boolean type`** status indicates the success of the operation.
 
@@ -2648,7 +2777,7 @@ bool sendMessage(FirebaseData &dataObj, uint16_t index);
 
 #### Send Firebase Cloud Messaging to all devices (multicast) which added by firebaseData.fcm.addDeviceToken
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
     
 return - **`Boolean type`** status indicates the success of the operation.
 
@@ -2661,7 +2790,7 @@ bool broadcastMessage(FirebaseData &dataObj);
 
 #### Send Firebase Cloud Messaging to devices that subscribed to the topic
 
-param **`dataObj`** - Firebase Data Object to hold data and instances.
+param **`dataObj`** Firebase Data Object to hold data and instances.
     
 return - **`Boolean type`** status indicates the success of the operation.
 
@@ -2677,9 +2806,9 @@ bool sendTopic(FirebaseData &dataObj);
 
 #### Set the receive and transmit buffer memory size for secured mode BearSSL WiFi client.
 
-param **`rx`** - The number of bytes for receive buffer memory for secured mode BearSSL (512 is minimum, 16384 is maximum).
+param **`rx`** The number of bytes for receive buffer memory for secured mode BearSSL (512 is minimum, 16384 is maximum).
 
-param **`tx`** - The number of bytes for transmit buffer memory for secured mode BearSSL (512 is minimum, 16384 is maximum). 
+param **`tx`** The number of bytes for transmit buffer memory for secured mode BearSSL (512 is minimum, 16384 is maximum). 
 
 
 Set this option to false to support get large Blob and File operations.
@@ -2695,7 +2824,7 @@ void void setBSSLBufferSize(uint16_t rx, uint16_t tx);
 
 #### Set the http response size limit.
 
-param **`len`** - The server response buffer size limit.
+param **`len`** The server response buffer size limit.
 
 ```C++
 void setResponseSize(uint16_t len);
@@ -3173,7 +3302,7 @@ String payload();
 
 #### Store Firebase Cloud Messaging's authentication credentials
     
-param **`serverKey`** - Server key found on Console: Project settings > Cloud Messaging
+param **`serverKey`** Server key found on Console: Project settings > Cloud Messaging
 
 ```C++
 void begin(const String &serverKey);
@@ -3186,7 +3315,7 @@ void begin(const String &serverKey);
 
 #### Add recipient's device registration token or instant ID token
     
-param **`deviceToken`** - Recipient's device registration token to add that message will be sent to.
+param **`deviceToken`** Recipient's device registration token to add that message will be sent to.
 
 ```C++
 void addDeviceToken(const String &deviceToken);
@@ -3198,7 +3327,7 @@ void addDeviceToken(const String &deviceToken);
 
  #### Remove recipient's device registration token or instant ID token
     
-param **`index`** - Index (start from zero) of recipient's device registration token that added to FCM Data Object of Firebase Data object.
+param **`index`** Index (start from zero) of recipient's device registration token that added to FCM Data Object of Firebase Data object.
 
 ```C++
 void removeDeviceToken(uint16_t index);
@@ -3219,9 +3348,9 @@ void removeDeviceToken(uint16_t index);
 
 #### Set the notify message type information
     
-param **`title`** - The title text of notification message.
+param **`title`** The title text of notification message.
 
-param **`body`** - The body text of notification message.
+param **`body`** The body text of notification message.
 
 ```C++
 void setNotifyMessage(const String &title, const String &body);
@@ -3232,11 +3361,11 @@ void setNotifyMessage(const String &title, const String &body);
 
 #### Set the notify message type information
     
-param **`title`** - The title text of notification message.
+param **`title`** The title text of notification message.
 
-param **`body`** - The body text of notification message.
+param **`body`** The body text of notification message.
 
-param **`icon`** - The name and/or included URI/URL of the icon to show on notifying the message.
+param **`icon`** The name and/or included URI/URL of the icon to show on notifying the message.
 
 ```C++
 void setNotifyMessage(const String &title, const String &body, const String &icon);
@@ -3248,13 +3377,13 @@ void setNotifyMessage(const String &title, const String &body, const String &ico
 
 #### Set the notify message type information
     
-param **`title`** - The title text of notification message.
+param **`title`** The title text of notification message.
 
-param **`body`** - The body text of notification message.
+param **`body`** The body text of notification message.
 
-param **`icon`** - The name and/or included URI/URL of the icon to show on notifying the message.
+param **`icon`** The name and/or included URI/URL of the icon to show on notifying the message.
 
-param **`click_action`** - The URL or intent to accept click event on the notification message.
+param **`click_action`** The URL or intent to accept click event on the notification message.
 
 ```C++
 void setNotifyMessage(const String &title, const String &body, const String &icon, const String &click_action);
@@ -3264,9 +3393,9 @@ void setNotifyMessage(const String &title, const String &body, const String &ico
 
 #### add the custom key/value in the notify message type information.
     
-param **`key`** - The key field in notification message.
+param **`key`** The key field in notification message.
 
-param **`value`** - The value field in the notification message.
+param **`value`** The value field in the notification message.
 
 ```C++
 void addCustomNotifyMessage(const String &key, const String &value);
@@ -3288,7 +3417,7 @@ void clearNotifyMessage();
 
 #### Set the custom data message type information
     
-param **`jsonString`** - The JSON structured data string.
+param **`jsonString`** The JSON structured data string.
 
 ```C++
 void setDataMessage(const String &jsonString);
@@ -3298,7 +3427,7 @@ void setDataMessage(const String &jsonString);
 
 #### Set the custom data message type information
     
-param **`json`** - The FirebaseJson object.
+param **`json`** The FirebaseJson object.
 
 ```C++
 void setDataMessage(FirebaseJson &json);
@@ -3320,7 +3449,7 @@ void clearDataMessage();
 
 #### Set the priority of the message (notification and custom data)
     
-param **`priority`** - The priority string i.e. normal and high.
+param **`priority`** The priority string i.e. normal and high.
 
 ```C++
 void setPriority(const String &priority);
@@ -3333,7 +3462,7 @@ void setPriority(const String &priority);
 
 #### Set the collapse key of the message (notification and custom data)
     
-param **`key`** - String of collapse key.
+param **`key`** String of collapse key.
 
 ```C++
 void setCollapseKey(const String &key);
@@ -3345,7 +3474,7 @@ void setCollapseKey(const String &key);
 
 #### Set the Time To Live of the message (notification and custom data)
     
-param **`seconds`** - Number of seconds from 0 to 2,419,200 (4 weeks).
+param **`seconds`** Number of seconds from 0 to 2,419,200 (4 weeks).
 
 ```C++
 void setTimeToLive(uint32_t seconds);
@@ -3395,7 +3524,7 @@ FirebaseJson &clear();
 
 #### Set JSON data (JSON object string) to FirebaseJson object.
     
-param **`data`** - The JSON object string.
+param **`data`** The JSON object string.
 
 return **`instance of an object.`**
 
@@ -3410,7 +3539,7 @@ FirebaseJson &setJsonData(const String &data);
 
 #### Add null to FirebaseJson object.
     
-param **`key`** - The new key string that null to be added.
+param **`key`** The new key string that null to be added.
 
 return **`instance of an object.`**
 
@@ -3425,9 +3554,9 @@ FirebaseJson &add(const String &key);
 
 #### Add string to FirebaseJson object.
     
-param **`key`** - The new key string that string value to be added.
+param **`key`** The new key string that string value to be added.
 
-param **`value`** - The String value for the new specified key.
+param **`value`** The String value for the new specified key.
 
 return **`instance of an object.`**
 
@@ -3442,9 +3571,9 @@ FirebaseJson &add(const String &key, const String &value);
 
 #### Add string (chars array) to FirebaseJson object.
     
-param **`key`** - The new key string that string (chars array) value to be added.
+param **`key`** The new key string that string (chars array) value to be added.
 
-param **`value`** - The char array for the new specified key.
+param **`value`** The char array for the new specified key.
 
 return **`instance of an object.`**
 
@@ -3459,9 +3588,9 @@ FirebaseJson &add(const String &key, const char *value);
 
 #### Add integer/unsigned short to FirebaseJson object.
     
-param **`key`** - The new key string that the value to be added.
+param **`key`** The new key string that the value to be added.
 
-param **`value`** - The integer/unsigned short value for new specified key.
+param **`value`** The integer/unsigned short value for new specified key.
 
 return **`instance of an object.`**
 
@@ -3476,9 +3605,9 @@ FirebaseJson &add(const String &key, unsigned short value);
 
 #### Add float to FirebaseJson object.
     
-param **`key`** - The new key string that float value to be added.
+param **`key`** The new key string that float value to be added.
 
-param **`value`** - The float value for the new specified key.
+param **`value`** The float value for the new specified key.
 
 return **`instance of an object.`**
 
@@ -3493,9 +3622,9 @@ FirebaseJson &add(const String &key, float value);
 
 #### Add double to FirebaseJson object.
     
-param **`key`** - The new key string that double value to be added.
+param **`key`** The new key string that double value to be added.
 
-param **`value`** - The double value for the new specified key.
+param **`value`** The double value for the new specified key.
 
 return **`instance of an object.`**
 
@@ -3509,9 +3638,9 @@ FirebaseJson &add(const String &key, double value);
 
 #### Add boolean to FirebaseJson object.
     
-param **`key`** - The new key string that bool value to be added.
+param **`key`** The new key string that bool value to be added.
 
-param **`value`** - The boolean value for new specified key.
+param **`value`** The boolean value for new specified key.
 
 return **`instance of an object.`**
 
@@ -3525,9 +3654,9 @@ FirebaseJson &add(const String &key, bool value);
 
 #### Add nested FirebaseJson object into FirebaseJson object.
     
-param **`key`** - The new key string that FirebaseJson object to be added.
+param **`key`** The new key string that FirebaseJson object to be added.
 
-param **`json`** - The FirebaseJson object for the new specified key.
+param **`json`** The FirebaseJson object for the new specified key.
 
 return **`instance of an object.`**
 
@@ -3542,9 +3671,9 @@ FirebaseJson &add(const String &key, FirebaseJson &json);
 
 #### Add nested FirebaseJsonArray object into FirebaseJson object.
     
-param **`key`** - The new key string that FirebaseJsonArray object to be added.
+param **`key`** The new key string that FirebaseJsonArray object to be added.
 
-param **`arr`** - The FirebaseJsonArray for the new specified key.
+param **`arr`** The FirebaseJsonArray for the new specified key.
 
 return **`instance of an object.`**
 
@@ -3559,9 +3688,9 @@ FirebaseJson &add(const String &key, FirebaseJsonArray &arr);
 
 #### Get the FirebaseJson object serialized string.
 
-param **`buf`** - The returning String object.
+param **`buf`** The returning String object.
 
-param **`prettify`** - Boolean flag for return the pretty format string i.e. with text indentation and newline. 
+param **`prettify`** Boolean flag for return the pretty format string i.e. with text indentation and newline. 
 
 
 ```C++
@@ -3575,11 +3704,11 @@ void toString(String &buf, bool prettify = false);
 
 #### Get the value from the specified node path in FirebaseJson object.
 
-param **`jsonData`** - The returning FirebaseJsonData that hold the returned data.
+param **`jsonData`** The returning FirebaseJsonData that hold the returned data.
 
-param **`path`** - Relative path to the specific node in FirebaseJson object.
+param **`path`** Relative path to the specific node in FirebaseJson object.
 
-param **`prettify`** - The bool flag for the prettifying string in FirebaseJsonData's stringValue.
+param **`prettify`** The bool flag for the prettifying string in FirebaseJsonData's stringValue.
 
 return **`boolean status of the operation.`**
 
@@ -3624,7 +3753,7 @@ return **`boolean status of the operation.`**
 
 #### Parse and collect all node/array elements in FirebaseJson object.  
 
-param **`data`** - The JSON data string to parse (optional for replacing the internal buffer with new data).
+param **`data`** The JSON data string to parse (optional for replacing the internal buffer with new data).
 
 return **`number`** of child/array elements in FirebaseJson object.
 
@@ -3639,13 +3768,13 @@ return **`number`** of child/array elements in FirebaseJson object.
 
 #### Get child/array elements from FirebaseJson objects at specified index.
     
-param **`index`** - The element index to get.
+param **`index`** The element index to get.
 
-param **`type`** - The integer which holds the type of data i.e. FirebaseJson::OBJECT and FirebaseJson::ARR
+param **`type`** The integer which holds the type of data i.e. FirebaseJson::OBJECT and FirebaseJson::ARR
 
-param **`key`** - The string which holds the key/name of the object, can return empty String if the data type is an array.
+param **`key`** The string which holds the key/name of the object, can return empty String if the data type is an array.
 
-param **`value`** - The string which holds the value for the element key or array.   
+param **`value`** The string which holds the value for the element key or array.   
 
  ```C++
  void iteratorGet(size_t index, int &type, String &key, String &value);
@@ -3666,7 +3795,7 @@ param **`value`** - The string which holds the value for the element key or arra
 
 #### Set null to FirebaseJson object at the specified node path.
     
-param **`path`** - The relative path that null to be set.
+param **`path`** The relative path that null to be set.
 
 
 The relative path can be mixed with array index (number placed inside square brackets) and node names e.g. /myRoot/[2]/Sensor1/myData/[3].
@@ -3682,9 +3811,9 @@ void set(const String &path);
 
 #### Set String value to FirebaseJson object at the specified node path.
     
-param **`path`** - The relative path that string value to be set.
+param **`path`** The relative path that string value to be set.
 
-param **`value`** - The string value to set.
+param **`value`** The string value to set.
 
 
 The relative path can be mixed with array index (number placed inside square brackets) and node names 
@@ -3700,9 +3829,9 @@ void set(const String &path, const String &value);
 
 #### Set string (chars array) value to FirebaseJson object at the specified node path.
     
-param **`path`** - The relative path that string (chars array) to be set.
+param **`path`** The relative path that string (chars array) to be set.
 
-param **`value`** - The char array to set.
+param **`value`** The char array to set.
 
 The relative path can be mixed with array index (number placed inside square brackets) and node names 
 e.g. /myRoot/[2]/Sensor1/myData/[3].
@@ -3717,9 +3846,9 @@ void set(const String &path, const char *value);
 
 #### Set integer/unsigned short value to FirebaseJson object at specified node path.
     
-param **`path`** - The relative path that int value to be set.
+param **`path`** The relative path that int value to be set.
 
-param **`value`** - The integer/unsigned short value to set.
+param **`value`** The integer/unsigned short value to set.
 
 The relative path can be mixed with array index (number placed inside square brackets) and node names 
 e.g. /myRoot/[2]/Sensor1/myData/[3].
@@ -3736,9 +3865,9 @@ void set(const String &path, unsigned short value);
 
 #### Set the float value to FirebaseJson object at the specified node path.
     
-param **`path`** - The relative path that float value to be set.
+param **`path`** The relative path that float value to be set.
 
-param **`value`** - The float value to set.
+param **`value`** The float value to set.
 
 The relative path can be mixed with array index (number placed inside square brackets) and node names 
 e.g. /myRoot/[2]/Sensor1/myData/[3].
@@ -3754,9 +3883,9 @@ void set(const String &path, float value);
 
 #### Set the double value to FirebaseJson object at the specified node path.
     
-param **`path`** - The relative path that double value to be set.
+param **`path`** The relative path that double value to be set.
 
-param **`value`** - The double value to set.
+param **`value`** The double value to set.
 
 The relative path can be mixed with array index (number placed inside square brackets) and node names 
 e.g. /myRoot/[2]/Sensor1/myData/[3].
@@ -3773,9 +3902,9 @@ void set(const String &path, double value);
 
 #### Set the boolean value to FirebaseJson object at the specified node path.
     
-param **`path`** - The relative path that bool value to be set.
+param **`path`** The relative path that bool value to be set.
 
-param **`value`** - The boolean value to set.
+param **`value`** The boolean value to set.
 
 The relative path can be mixed with array index (number placed inside square brackets) and node names 
 e.g. /myRoot/[2]/Sensor1/myData/[3].
@@ -3792,9 +3921,9 @@ void set(const String &path, bool value);
 
 #### Set nested FirebaseJson object to FirebaseJson object at the specified node path.
     
-param **`path`** - The relative path that nested FirebaseJson object to be set.
+param **`path`** The relative path that nested FirebaseJson object to be set.
 
-param **`json`** - The FirebaseJson object to set.
+param **`json`** The FirebaseJson object to set.
 
 The relative path can be mixed with array index (number placed inside square brackets) and node names 
 e.g. /myRoot/[2]/Sensor1/myData/[3].
@@ -3811,9 +3940,9 @@ void set(const String &path, FirebaseJson &json);
 
 #### Set nested FirebaseJsonAtrray object to FirebaseJson object at specified node path.
     
-param **`path`** - The relative path that nested FirebaseJsonAtrray object to be set.
+param **`path`** The relative path that nested FirebaseJsonAtrray object to be set.
 
-param **`arr`** - The FirebaseJsonAtrray object to set.
+param **`arr`** The FirebaseJsonAtrray object to set.
 
 The relative path can be mixed with array index (number placed inside square brackets) and node names 
 e.g. /myRoot/[2]/Sensor1/myData/[3].
@@ -3829,7 +3958,7 @@ void set(const String &path, FirebaseJsonArray &arr);
 
 #### Remove the specified node and its content.
 
-param **`path`** - The relative path to remove its contents/children.
+param **`path`** The relative path to remove its contents/children.
 
 return **`bool`** value represents the successful operation.
 
@@ -3859,7 +3988,7 @@ FirebaseJsonArray &add();
 
 #### Add string to FirebaseJsonArray object.
 
-param **`value`** - The String value to add.
+param **`value`** The String value to add.
 
 return **`instance of an object.`**
 
@@ -3874,7 +4003,7 @@ FirebaseJsonArray &add(const String &value);
 
 #### Add string (chars arrar) to FirebaseJsonArray object.
 
-param **`value`** - The chars array to add.
+param **`value`** The chars array to add.
 
 return **`instance of an object.`**
 
@@ -3888,7 +4017,7 @@ FirebaseJsonArray &add(const char *value);
 
 #### Add integer/unsigned short to FirebaseJsonArray object.
 
-param **`value`** - The integer/unsigned short value to add.
+param **`value`** The integer/unsigned short value to add.
 
 return **`instance of an object.`**
 
@@ -3903,7 +4032,7 @@ FirebaseJsonArray &add(unsigned short value);
 
 #### Add float to FirebaseJsonArray object.
 
-param **`value`** - The float value to add.
+param **`value`** The float value to add.
 
 return **`instance of an object.`**
 
@@ -3918,7 +4047,7 @@ FirebaseJsonArray &add(float value);
 
 #### Add double to FirebaseJsonArray object.
 
-param **`value`** - The double value to add.
+param **`value`** The double value to add.
 
 return **`instance of an object.`**
 
@@ -3933,7 +4062,7 @@ FirebaseJsonArray &add(double value);
 
 #### Add boolean to FirebaseJsonArray object.
 
-param **`value`** - The boolean value to add.
+param **`value`** The boolean value to add.
 
 return **`instance of an object.`**
 
@@ -3948,7 +4077,7 @@ FirebaseJsonArray &add(bool value);
 
 #### Add nested FirebaseJson object  to FirebaseJsonArray object.
 
-param **`json`** - The FirebaseJson object to add.
+param **`json`** The FirebaseJson object to add.
 
 return **`instance of an object.`**
 
@@ -3962,7 +4091,7 @@ FirebaseJsonArray &add(FirebaseJson &json);
 
 #### Add nested FirebaseJsonArray object  to FirebaseJsonArray object.
 
-param **`arr`** - The FirebaseJsonArray object to add.
+param **`arr`** The FirebaseJsonArray object to add.
 
 return **`instance of an object.`**
 
@@ -3976,9 +4105,9 @@ FirebaseJsonArray &add(FirebaseJsonArray &arr);
 
 #### Get the array value at specified index from FirebaseJsonArray object.
 
-param **`jsonObj`** - The returning FirebaseJsonData object that holds data at the specified index.
+param **`jsonObj`** The returning FirebaseJsonData object that holds data at the specified index.
 
-param **`index`** - Index of data in FirebaseJsonArray object.    
+param **`index`** Index of data in FirebaseJsonArray object.    
 
 return **`boolean`** status of the operation.
 
@@ -3995,9 +4124,9 @@ bool get(FirebaseJsonData *jsonData, int index);
 
 #### Get the array value at the specified path from FirebaseJsonArray object.
 
-param **`jsonObj`** - The returning FirebaseJsonData object that holds data at the specified path.
+param **`jsonObj`** The returning FirebaseJsonData object that holds data at the specified path.
 
-param **`path`** - Relative path to data in FirebaseJsonArray object.    
+param **`path`** Relative path to data in FirebaseJsonArray object.    
 
 return **`boolean status of the operation.`**
 
@@ -4028,9 +4157,9 @@ size_t size();
 
 #### Get the FirebaseJsonArray object serialized string.
 
-param **`buf`** - The returning String object.
+param **`buf`** The returning String object.
 
-param **`prettify`** - Boolean flag for return the pretty format string i.e. with text indentation and newline. 
+param **`prettify`** Boolean flag for return the pretty format string i.e. with text indentation and newline. 
 
 
 ```C++
@@ -4058,7 +4187,7 @@ FirebaseJsonArray &clear();
 
 #### Set null to FirebaseJsonArray object at specified index.
     
-param **`index`** - The array index to set null.
+param **`index`** The array index to set null.
 
 ```C++
 void set(int index);
@@ -4072,9 +4201,9 @@ void set(int index);
 
 #### Set String to FirebaseJsonArray object at specified index.
     
-param **`index`** -The array index that String value to be set.
+param **`index`**The array index that String value to be set.
 
-param **`value`** - The String to set.
+param **`value`** The String to set.
 
 
 ```C++
@@ -4089,9 +4218,9 @@ void set(int index, const String &value);
 
 #### Set string (chars array) to FirebaseJsonArray object at specified index.
     
-param **`index`** - The array index that string (chars array) to be set.
+param **`index`** The array index that string (chars array) to be set.
 
-param **`value`** - The char array to set.
+param **`value`** The char array to set.
 
 ```C++
 void set(int index, const char *value);
@@ -4103,9 +4232,9 @@ void set(int index, const char *value);
 
 #### Set integer/unsigned short value to FirebaseJsonArray object at specified index.
     
-param **`index`** - The array index that int/unsigned short to be set.
+param **`index`** The array index that int/unsigned short to be set.
 
-param **`value`** - The integer/unsigned short value to set.
+param **`value`** The integer/unsigned short value to set.
 
 ```C++
 void set(int index, int value);
@@ -4117,9 +4246,9 @@ void set(int index, unsigned short value);
 
 #### Set float value to FirebaseJsonArray object at specified index.
     
-param **`index`** - The array index that float value to be set.
+param **`index`** The array index that float value to be set.
 
-param **`value`** - The float value to set.
+param **`value`** The float value to set.
 
 ```C++
 void set(int index, float value);
@@ -4132,9 +4261,9 @@ void set(int index, float value);
 
 #### Set double value to FirebaseJsonArray object at specified index.
     
-param **`index`** - The array index that double value to be set.
+param **`index`** The array index that double value to be set.
 
-param **`value`** - The double value to set.
+param **`value`** The double value to set.
 
 ```C++
 void set(int index, double value);
@@ -4147,9 +4276,9 @@ void set(int index, double value);
 
 #### Set boolean value to FirebaseJsonArray object at specified index.
     
-param **`index`** - The array index that bool value to be set.
+param **`index`** The array index that bool value to be set.
 
-param **`value`** - The boolean value to set.
+param **`value`** The boolean value to set.
 
 ```C++
 void set(int index, bool value);
@@ -4162,9 +4291,9 @@ void set(int index, bool value);
 
 #### Set nested FirebaseJson object to FirebaseJsonArray object at specified index.
     
-param **`index`** - The array index that nested FirebaseJson object to be set.
+param **`index`** The array index that nested FirebaseJson object to be set.
 
-param **`value`** - The FirebaseJson object to set.
+param **`value`** The FirebaseJson object to set.
 
 ```C++
 void set(int index, FirebaseJson &json);
@@ -4177,9 +4306,9 @@ void set(int index, FirebaseJson &json);
 
 #### Set nested FirebaseJsonArray object to FirebaseJsonArray object at specified index.
     
-param **`index`** - The array index that nested FirebaseJsonArray object to be set.
+param **`index`** The array index that nested FirebaseJsonArray object to be set.
 
-param **`value`** - The FirebaseJsonArray object to set.
+param **`value`** The FirebaseJsonArray object to set.
 
 ```C++
 void set(int index, FirebaseJsonArray &arr);
@@ -4193,7 +4322,7 @@ void set(int index, FirebaseJsonArray &arr);
     
 #### Set null to FirebaseJson object at the specified path.
     
-param **`path`** - The relative path that null to be set.
+param **`path`** The relative path that null to be set.
 
 The relative path must begin with array index (number placed inside square brackets) followed by 
 other array indexes or node names e.g. /[2]/myData would get the data from myData key inside the array indexes 2.
@@ -4208,9 +4337,9 @@ void set(const String &path);
 
 #### Set String to FirebaseJsonArray object at specified path.
     
-param **`path`** - The relative path that string value to be set.
+param **`path`** The relative path that string value to be set.
 
-param **`value`** - The String to set.
+param **`value`** The String to set.
 
 The relative path must begin with array index (number placed inside square brackets) followed by 
 other array indexes or node names e.g. /[2]/myData would get the data from myData key inside the array indexes 2.
@@ -4224,9 +4353,9 @@ void set(const String &path, const String &value);
 
 #### Set string (chars array) to FirebaseJsonArray object at specified path.
     
-param **`path`** - The relative path that string (chars array) value to be set.
+param **`path`** The relative path that string (chars array) value to be set.
 
-param **`value`** - The char array to set.
+param **`value`** The char array to set.
 
 The relative path must begin with array index (number placed inside square brackets) followed by 
 other array indexes or node names e.g. /[2]/myData would get the data from myData key inside the array indexes 2.
@@ -4241,9 +4370,9 @@ void set(const String &path, const char *value);
 
 #### Set integer/unsigned short value to FirebaseJsonArray object at specified path.
     
-param **`path`** - The relative path that integer/unsigned short value to be set.
+param **`path`** The relative path that integer/unsigned short value to be set.
 
-param **`value`** - The integer value to set.
+param **`value`** The integer value to set.
 
 The relative path must begin with array index (number placed inside square brackets) followed by 
 other array indexes or node names e.g. /[2]/myData would get the data from myData key inside the array indexes 2.
@@ -4259,9 +4388,9 @@ void set(const String &path, unsigned short value);
 
 #### Set float value to FirebaseJsonArray object at specified path.
     
-param **`path`** - The relative path that float value to be set.
+param **`path`** The relative path that float value to be set.
 
-param **`value`** - The float to set.
+param **`value`** The float to set.
 
 The relative path must begin with array index (number placed inside square brackets) followed by 
 other array indexes or node names e.g. /[2]/myData would get the data from myData key inside the array indexes 2.
@@ -4278,9 +4407,9 @@ void set(const String &path, float value);
 
 #### Set double value to FirebaseJsonArray object at specified path.
     
-param **`path`** - The relative path that double value to be set.
+param **`path`** The relative path that double value to be set.
 
-param **`value`** - The double to set.
+param **`value`** The double to set.
 
 The relative path must begin with array index (number placed inside square brackets) followed by 
 other array indexes or node names e.g. /[2]/myData would get the data from myData key inside the array indexes 2.
@@ -4295,9 +4424,9 @@ void set(const String &path, double value);
 
 #### Set boolean value to FirebaseJsonArray object at specified path.
     
-param **`path`** - The relative path that bool value to be set.
+param **`path`** The relative path that bool value to be set.
 
-param **`value`** - The boolean value to set.
+param **`value`** The boolean value to set.
 
 The relative path must begin with array index (number placed inside square brackets) followed by 
 other array indexes or node names e.g. /[2]/myData would get the data from myData key inside the array indexes 2.
@@ -4312,9 +4441,9 @@ void set(const String &path, bool value);
 
 #### Set the nested FirebaseJson object to FirebaseJsonArray object at the specified path.
     
-param **`path`** - The relative path that nested FirebaseJson object to be set.
+param **`path`** The relative path that nested FirebaseJson object to be set.
 
-param **`value`** - The FirebaseJson object to set.
+param **`value`** The FirebaseJson object to set.
 
 The relative path must begin with array index (number placed inside square brackets) followed by 
 other array indexes or node names e.g. /[2]/myData would get the data from myData key inside the array indexes 2.
@@ -4330,9 +4459,9 @@ void set(const String &path, FirebaseJson &json);
 
 #### Set the nested FirebaseJsonArray object to FirebaseJsonArray object at specified path.
     
-param **`path`** - The relative path that nested FirebaseJsonArray object to be set.
+param **`path`** The relative path that nested FirebaseJsonArray object to be set.
 
-param **`value`** - The FirebaseJsonArray object to set.
+param **`value`** The FirebaseJsonArray object to set.
 
 The relative path must begin with array index (number placed inside square brackets) followed by 
 other array indexes or node names e.g. /[2]/myData would get the data from myData key inside the array indexes 2.
@@ -4348,7 +4477,7 @@ void set(const String &path, FirebaseJsonArray &arr);
 
 #### Remove the array value at specified index from FirebaseJsonArray object.
 
-param **`index`** - The array index to be removed.
+param **`index`** The array index to be removed.
 
 return **`bool`** value represents the successful operation.
 
@@ -4363,7 +4492,7 @@ bool remove(int index);
 
 #### Remove the array value at the specified path from FirebaseJsonArray object.
 
-param **`path`** - The relative path to array in FirebaseJsonArray object to be removed.
+param **`path`** The relative path to array in FirebaseJsonArray object to be removed.
 
 return **`bool`** value represents the successful operation.
 
@@ -4383,7 +4512,7 @@ bool remove(const String &path);
 
 #### Get array data as FirebaseJsonArray object from FirebaseJsonData object.
     
-param **`jsonArray`** -The returning FirebaseJsonArray object.
+param **`jsonArray`**The returning FirebaseJsonArray object.
 
 return **`bool`** status for successful operation.
 
@@ -4399,7 +4528,7 @@ bool getArray(FirebaseJsonArray &jsonArray);
 
 #### Get array data as FirebaseJson object from FirebaseJsonData object.
     
-param **`jsonArray`** - The returning FirebaseJson object.
+param **`jsonArray`** The returning FirebaseJson object.
 
 return **`bool`** status for successful operation.
 
