@@ -416,7 +416,7 @@ bool FirebaseESP8266::getIdToken(bool createUser, const char *email, const char 
     _cfg->signer.tokens.status = token_status_on_request;
     processing = true;
 
-    setTokenError(FIREBASE_ERROR_TOKEN_NOT_REDY);
+    setTokenError(FIREBASE_ERROR_TOKEN_NOT_READY);
 
     _cfg->signer.wcs = new WiFiClientSecure();
     _cfg->signer.json = new FirebaseJson();
@@ -865,7 +865,7 @@ bool FirebaseESP8266::requestTokens()
 
     _cfg->signer.tokens.status = token_status_on_request;
     processing = true;
-    setTokenError(FIREBASE_ERROR_TOKEN_NOT_REDY);
+    setTokenError(FIREBASE_ERROR_TOKEN_NOT_READY);
 
     _cfg->signer.wcs = new WiFiClientSecure();
     _cfg->signer.json = new FirebaseJson();
@@ -1061,7 +1061,7 @@ void FirebaseESP8266::encodeBase64Url(char *encoded, unsigned char *string, size
 
 bool FirebaseESP8266::createJWT(int step)
 {
-    setTokenError(FIREBASE_ERROR_TOKEN_NOT_REDY);
+    setTokenError(FIREBASE_ERROR_TOKEN_NOT_READY);
 
     if (time(nullptr) < default_ts)
     {
@@ -1306,7 +1306,7 @@ void FirebaseESP8266::setTokenError(int code)
         case FIREBASE_ERROR_TOKEN_EXCHANGE:
             appendP(_cfg->signer.tokens.error.message, fb_esp_pgm_str_177, true);
             break;
-        case FIREBASE_ERROR_TOKEN_NOT_REDY:
+        case FIREBASE_ERROR_TOKEN_NOT_READY:
             appendP(_cfg->signer.tokens.error.message, fb_esp_pgm_str_252, true);
             break;
         case FIREBASE_ERROR_HTTPC_ERROR_NOT_CONNECTED:
@@ -3371,7 +3371,7 @@ int FirebaseESP8266::sendRequest(FirebaseData &fbdo, const std::string &path, fb
         return FIREBASE_ERROR_HTTPC_ERROR_CONNECTION_LOST;
 
     if (!tokenReady(fbdo))
-        return FIREBASE_ERROR_TOKEN_NOT_REDY;
+        return FIREBASE_ERROR_TOKEN_NOT_READY;
 
     if (!validRequest(fbdo, path))
         return FIREBASE_ERROR_HTTP_CODE_BAD_REQUEST;
@@ -5054,7 +5054,7 @@ bool FirebaseESP8266::tokenReady(FirebaseData &fbdo)
     checkToken(fbdo);
     if (_cfg->signer.tokens.status != token_status_ready)
     {
-        fbdo._httpCode = FIREBASE_ERROR_TOKEN_NOT_REDY;
+        fbdo._httpCode = FIREBASE_ERROR_TOKEN_NOT_READY;
         closeHTTP(fbdo);
         return false;
     }
@@ -5879,7 +5879,7 @@ bool FirebaseESP8266::hanldeToken()
 
                 if (setClock(_cfg->time_zone))
                 {
-                    setTokenError(FIREBASE_ERROR_TOKEN_NOT_REDY);
+                    setTokenError(FIREBASE_ERROR_TOKEN_NOT_READY);
                     if (_cfg->signer.step == fb_esp_jwt_generation_step_sign)
                         set_scheduled_callback(std::bind(&FirebaseESP8266::runJWT, this));
                 }
@@ -6062,7 +6062,7 @@ void FirebaseESP8266::errorToString(int httpCode, std::string &buff)
     case FIREBASE_ERROR_FILE_IO_ERROR:
         appendP(buff, fb_esp_pgm_str_192);
         return;
-    case FIREBASE_ERROR_TOKEN_NOT_REDY:
+    case FIREBASE_ERROR_TOKEN_NOT_READY:
         appendP(buff, fb_esp_pgm_str_252);
         return;
     case FIREBASE_ERROR_UNINITIALIZED:
