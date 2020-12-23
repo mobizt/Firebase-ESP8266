@@ -12,7 +12,7 @@ This library supports ESP8266 MCU from Espressif. The following are platforms in
 
 * [Arduino WiFi Shield 101 and Arduino MKR1000 WIFI](https://github.com/mobizt/Firebase-Arduino-WiFi101)
 
-
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4390794.svg)](https://doi.org/10.5281/zenodo.4390794)
 
 ## Tested Devices
 
