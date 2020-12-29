@@ -1,7 +1,9 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4390794.svg)](https://doi.org/10.5281/zenodo.4390794)
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 3.0.4
+
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 3.0.5
 
 
 This library supports ESP8266 MCU from Espressif. The following are platforms in which libraries are also available.
@@ -12,7 +14,6 @@ This library supports ESP8266 MCU from Espressif. The following are platforms in
 
 * [Arduino WiFi Shield 101 and Arduino MKR1000 WIFI](https://github.com/mobizt/Firebase-Arduino-WiFi101)
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4390794.svg)](https://doi.org/10.5281/zenodo.4390794)
 
 ## Tested Devices
 
@@ -20,6 +21,11 @@ This library supports ESP8266 MCU from Espressif. The following are platforms in
  * NodeMCU
  * ESP-12F
  * LinkNode
+
+
+ ## Unsupported Mobile network modem bridge
+
+The library access the internet through WiFi connection.  The others UART/Serial bridge mobile network modem which work with AT commands and ESP8266 AT commands were unsupported.
 
 
 ## Features
@@ -141,11 +147,12 @@ See [Function description](/src/README.md) for all available functions.
 
 
 ```C++
-//Include Firebase ESP8266 library (this library)
-#include "FirebaseESP8266.h"
 
 //Include ESP8266WiFi.h
 #include <ESP8266WiFi.h>
+
+//Include Firebase ESP8266 library (this library)
+#include <FirebaseESP8266.h>
 
 //Define the Firebase Data object
 FirebaseData fbdo;
@@ -186,11 +193,11 @@ Firebase.enableClassicRequest(fbdo, true);
 //Optional, set the size of BearSSL WiFi to receive and transmit buffers
 //Firebase may not support the data transfer fragmentation, you may need to reserve the buffer to match
 //the data to transport.
-fbdo.setBSSLBufferSize(1024, 1024); //minimum size is 4096 bytes, maximum size is 16384 bytes
+fbdo.setBSSLBufferSize(1024, 1024); //minimum size is 512 bytes, maximum size is 16384 bytes
 
 //Optional, set the size of HTTP response buffer
 //Prevent out of memory for large payload but data may be truncated and can't determine its type.
-fbdo.setResponseSize(1024); //minimum size is 4096 bytes
+fbdo.setResponseSize(1024); //minimum size is 1024 bytes
 ```
 See [Other authentication examples](/examples/Authentications) for more sign in methods.
 

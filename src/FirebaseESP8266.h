@@ -1,12 +1,12 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 3.0.4
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 3.0.5
  * 
- * December 24, 2020
+ * December 29, 2020
  * 
  *   Updates:
- * - Add support for more authentication methods.
- * - Remove the domain name checking for the host name parsing.
- * - Update examples and documents for new authentication support
+ * - Fix the possible crash due to access the enexpected closed ssl client resources.
+ * - Fix the invalid path in setPriority function.
+ * - Fix getJson function.
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -68,11 +68,12 @@
 #define MAX_BLOB_PAYLOAD_SIZE 1024
 #define MAX_EXCHANGE_TOKEN_ATTEMPTS 5
 
-    enum fb_esp_fcm_msg_type {
-      msg_single,
-      msg_multicast,
-      msg_topic
-    };
+enum fb_esp_fcm_msg_type
+{
+  msg_single,
+  msg_multicast,
+  msg_topic
+};
 
 enum fb_esp_data_type
 {
@@ -252,7 +253,6 @@ struct fb_esp_auth_signin_provider_t
   struct fb_esp_auth_signin_user_t user;
   struct fb_esp_auth_signin_token_t token;
 };
-
 
 struct fb_esp_token_signer_resources_t
 {
@@ -498,7 +498,7 @@ static const char fb_esp_pgm_str_187[] PROGMEM = "pool.ntp.org";
 static const char fb_esp_pgm_str_188[] PROGMEM = "time.nist.gov";
 static const char fb_esp_pgm_str_189[] PROGMEM = "payload too large";
 static const char fb_esp_pgm_str_190[] PROGMEM = "cannot config time";
-static const char fb_esp_pgm_str_191[] PROGMEM = "SSL client rx buffer size is too small";
+static const char fb_esp_pgm_str_191[] PROGMEM = "incomplete SSL client data";
 static const char fb_esp_pgm_str_192[] PROGMEM = "File I/O error";
 static const char fb_esp_pgm_str_193[] PROGMEM = "www";
 static const char fb_esp_pgm_str_194[] PROGMEM = "/identitytoolkit/v3/relyingparty/";
@@ -821,7 +821,6 @@ public:
   friend class FCMObject;
   friend class QueryFilter;
   friend class MultiPathStreamData;
-  friend class AuthProvider;
 
   typedef void (*StreamEventCallback)(StreamData);
   typedef void (*MultiPathStreamEventCallback)(MultiPathStreamData);

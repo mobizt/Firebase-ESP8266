@@ -1,12 +1,12 @@
 /*
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 3.0.4
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 3.0.5
  * 
- * December 24, 2020
+ * December 29, 2020
  * 
  *   Updates:
- * - Add support for more authentication methods.
- * - Remove the domain name checking for the host name parsing.
- * - Update examples and documents for new authentication support
+ * - Fix the possible crash due to access the enexpected closed ssl client resources.
+ * - Fix the invalid path in setPriority function.
+ * - Fix getJson function.
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -1739,10 +1739,10 @@ bool FirebaseESP8266::setPriority(FirebaseData &fbdo, const String &path, float 
 {
     char *num = floatStr(priority);
     trimDigits(num);
-    char *tmp = strP(fb_esp_pgm_str_156);
-    bool ret = processRequest(fbdo, fb_esp_method::m_set_priority, fb_esp_data_type::d_float, tmp, num, false, "", "");
+    std::string _path = path.c_str();
+    appendP(_path, fb_esp_pgm_str_156);
+    bool ret = processRequest(fbdo, fb_esp_method::m_set_priority, fb_esp_data_type::d_float, _path.c_str(), num, false, "", "");
     delS(num);
-    delS(tmp);
     return ret;
 }
 
@@ -3143,7 +3143,7 @@ bool FirebaseESP8266::getArray(FirebaseData &fbdo, const String &path, FirebaseJ
 
     for (int i = 0; i < maxAttempt; i++)
     {
-        ret = handleRequest(fbdo, 0, path.c_str(), fb_esp_method::m_get, fb_esp_data_type::d_json, "", "", "");
+        ret = handleRequest(fbdo, 0, path.c_str(), fb_esp_method::m_get, fb_esp_data_type::d_array, "", "", "");
         target = fbdo.jsonArrayPtr();
         if (ret)
             break;
@@ -3154,9 +3154,9 @@ bool FirebaseESP8266::getArray(FirebaseData &fbdo, const String &path, FirebaseJ
     }
 
     if (!ret && errCount == maxAttempt && fbdo._qMan._maxQueue > 0)
-        fbdo.addQueue(fb_esp_method::m_get, 0, fb_esp_data_type::d_json, path.c_str(), "", "", false, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, target);
+        fbdo.addQueue(fb_esp_method::m_get, 0, fb_esp_data_type::d_array, path.c_str(), "", "", false, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, target);
 
-    if (ret && fbdo.resp_dataType != fb_esp_data_type::d_json && fbdo.resp_dataType != fb_esp_data_type::d_null)
+    if (ret && fbdo.resp_dataType != fb_esp_data_type::d_array && fbdo.resp_dataType != fb_esp_data_type::d_null)
         ret = false;
 
     return ret;
@@ -3168,8 +3168,8 @@ bool FirebaseESP8266::getArray(FirebaseData &fbdo, const String &path, QueryFilt
     if (query._orderBy != "")
         fbdo.setQuery(query);
 
-    bool ret = handleRequest(fbdo, 0, path.c_str(), fb_esp_method::m_get, fb_esp_data_type::d_json, "", "", "");
-    if (fbdo.resp_dataType != fb_esp_data_type::d_json && fbdo.resp_dataType != fb_esp_data_type::d_null)
+    bool ret = handleRequest(fbdo, 0, path.c_str(), fb_esp_method::m_get, fb_esp_data_type::d_array, "", "", "");
+    if (fbdo.resp_dataType != fb_esp_data_type::d_array && fbdo.resp_dataType != fb_esp_data_type::d_null)
         ret = false;
     return ret;
 }
@@ -3189,7 +3189,7 @@ bool FirebaseESP8266::getArray(FirebaseData &fbdo, const String &path, QueryFilt
 
     for (int i = 0; i < maxAttempt; i++)
     {
-        ret = handleRequest(fbdo, 0, path.c_str(), fb_esp_method::m_get, fb_esp_data_type::d_json, "", "", "");
+        ret = handleRequest(fbdo, 0, path.c_str(), fb_esp_method::m_get, fb_esp_data_type::d_array, "", "", "");
         target = fbdo.jsonArrayPtr();
         if (ret)
             break;
@@ -3200,9 +3200,9 @@ bool FirebaseESP8266::getArray(FirebaseData &fbdo, const String &path, QueryFilt
     }
 
     if (!ret && errCount == maxAttempt && fbdo._qMan._maxQueue > 0)
-        fbdo.addQueue(fb_esp_method::m_get, 0, fb_esp_data_type::d_json, path.c_str(), "", "", true, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, target);
+        fbdo.addQueue(fb_esp_method::m_get, 0, fb_esp_data_type::d_array, path.c_str(), "", "", true, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, target);
 
-    if (ret && fbdo.resp_dataType != fb_esp_data_type::d_json && fbdo.resp_dataType != fb_esp_data_type::d_null)
+    if (ret && fbdo.resp_dataType != fb_esp_data_type::d_array && fbdo.resp_dataType != fb_esp_data_type::d_null)
         ret = false;
 
     return ret;
@@ -3617,6 +3617,9 @@ int FirebaseESP8266::sendRequest(FirebaseData &fbdo, const std::string &path, fb
 
     if (dataType == fb_esp_data_type::d_blob)
         std::vector<uint8_t>().swap(fbdo._blob);
+
+    if (!reconnect(fbdo))
+        return FIREBASE_ERROR_HTTPC_ERROR_CONNECTION_LOST;
 
     //Send request
     ret = fbdo.httpClient.send(header.c_str(), payloadBuf.c_str());
@@ -4353,15 +4356,15 @@ bool FirebaseESP8266::handleResponse(FirebaseData &fbdo)
     if (!reconnect(fbdo))
         return false;
 
-    if (!fbdo._httpConnected)
+    WiFiClient *stream = fbdo.httpClient.stream();
+
+    if (!fbdo._httpConnected || stream == nullptr)
     {
         fbdo._httpCode = FIREBASE_ERROR_HTTPC_ERROR_NOT_CONNECTED;
         return false;
     }
 
     unsigned long dataTime = millis();
-
-    WiFiClient *stream = fbdo.httpClient.stream();
 
     char *pChunk = nullptr;
     char *tmp = nullptr;
@@ -4399,8 +4402,11 @@ bool FirebaseESP8266::handleResponse(FirebaseData &fbdo)
     {
         while (fbdo.httpClient.connected() && chunkBufSize <= 0)
         {
-            if (!reconnect(fbdo, dataTime))
+            if (!reconnect(fbdo, dataTime) || stream == nullptr)
+            {
+                fbdo._httpCode = FIREBASE_ERROR_HTTPC_ERROR_NOT_CONNECTED;
                 return false;
+            }
             chunkBufSize = stream->available();
             delay(0);
         }
@@ -4412,8 +4418,11 @@ bool FirebaseESP8266::handleResponse(FirebaseData &fbdo)
     {
         while (chunkBufSize > 0)
         {
-            if (!reconnect(fbdo, dataTime))
+            if (!reconnect(fbdo, dataTime) || stream == nullptr)
+            {
+                fbdo._httpCode = FIREBASE_ERROR_HTTPC_ERROR_NOT_CONNECTED;
                 return false;
+            }
 
             chunkBufSize = stream->available();
 
