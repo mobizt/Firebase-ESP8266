@@ -1,4 +1,4 @@
-/*
+/**
  * HTTP Client wrapper v1.1.4
  * 
  * The MIT License (MIT)
