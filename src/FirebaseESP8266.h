@@ -1,10 +1,10 @@
 /**
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 3.0.6
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 3.0.7
  * 
- * December 30, 2020
+ * January 7, 2021
  * 
  *   Updates:
- * - Fix the possible crash due too small FCM chunk buffer size.
+ * - Remove BearSSL' s Arduino ported sources that may cause conflicts with the compiled BearSSL version library.
  * 
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -13,7 +13,7 @@
  * The library was tested and work well with ESP8266 based module and add support for multiple stream event paths.
  * 
  * The MIT License (MIT)
- * Copyright (c) 2019 K. Suwatchai (Mobizt)
+ * Copyright (c) 2021 K. Suwatchai (Mobizt)
  * 
  * 
  * Permission is hereby granted, free of charge, to any person returning a copy of
@@ -2582,7 +2582,7 @@ public:
    * 
    * @return WiFi client instance.
   */
-  SSL_CLIENT *getWiFiClient();
+  FB_ESP8266_SSL_CLIENT *getWiFiClient();
 
   /** Close the keep-alive connection of the internal WiFi client.
    * 

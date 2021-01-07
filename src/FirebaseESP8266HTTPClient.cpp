@@ -1,8 +1,8 @@
 /**
- * HTTP Client wrapper v1.1.4
+ * HTTP Client wrapper v1.1.5
  * 
  * The MIT License (MIT)
- * Copyright (c) 2019 K. Suwatchai (Mobizt)
+ * Copyright (c) 2021 K. Suwatchai (Mobizt)
  * 
  * 
  * Permission is hereby granted, free of charge, to any person returning a copy of

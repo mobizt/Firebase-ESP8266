@@ -95,6 +95,8 @@ void setup()
     Serial.println("------------------------------------");
     Serial.println();
 
+    String filename = fbdo.getBackupFilename();
+
     if (fbdo.pauseFirebase(true))
     {
 
@@ -122,9 +124,9 @@ void setup()
       message.sender.name = "ESP Mail";
       message.sender.email = AUTHOR_EMAIL;
       message.subject = "Firebase Database Backup File";
-      message.addRecipient("Someone", "####@#####_dot_com");
+      message.addRecipient("Someone", "k_suwatchai@hotmail.com");
 
-      message.text.content = "Firebase Database Backup File\r\nSent from ESP32";
+      message.text.content = "Firebase Database Backup File\r\nSent from ESP8266";
 
       /** The Plain text message character set */
       message.text.charSet = "us-ascii";
@@ -139,11 +141,12 @@ void setup()
       SMTP_Attachment att;
 
       /** Set the attachment info */
-      att.descr.filename = fbdo.getBackupFilename().c_str();
+      att.descr.filename = filename.c_str();
       att.descr.mime = "application/octet-stream";
-      String path = "/" + fbdo.getBackupFilename();
+      String path = "/" + filename;
+
       att.file.path = path.c_str();
-      att.file.storage_type = esp_mail_file_storage_type_sd;
+      att.file.storage_type = esp_mail_file_storage_type_flash;
       att.descr.transfer_encoding = Content_Transfer_Encoding::enc_base64;
 
       /* Add attachment to the message */

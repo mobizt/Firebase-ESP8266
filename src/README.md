@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 3.0.6
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 3.0.7
 
 
 ## Global functions
@@ -21,6 +21,45 @@ void begin(FirebaseConfig *config, FirebaseAuth *auth);
 ```
 
 
+
+
+
+#### Provide the details of token generation.
+
+param **`return`** token_info_t The token_info_t structured data that indicates the status.
+
+param **`note`** Use type property to get the type enum value.
+
+token_type_undefined or 0,
+
+token_type_legacy_token or 1,
+
+token_type_id_token or 2,
+
+token_type_custom_token or 3,
+
+token_type_oauth2_access_token or 4
+
+Use status property to get the status enum value.
+
+token_status_uninitialized or 0,
+
+token_status_on_signing or 1,
+
+token_status_on_request or 2,
+
+token_status_on_refresh or 3,
+
+token_status_ready or 4
+
+In case of token generation and refreshment errors,
+use error.code property to get the error code number.
+
+Use error.message property to get the error message string.
+
+```C++
+struct token_info_t authTokenInfo();
+```
 
 
 
@@ -4585,7 +4624,7 @@ bool getJSON(FirebaseJson &json);
 
 The MIT License (MIT)
 
-Copyright (c) 2019 K. Suwatchai (Mobizt)
+Copyright (c) 2021 K. Suwatchai (Mobizt)
 
 
 Permission is hereby granted, free of charge, to any person returning a copy of

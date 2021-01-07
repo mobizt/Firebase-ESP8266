@@ -1,5 +1,5 @@
 /**
- * HTTP Client wrapper v1.1.4
+ * HTTP Client wrapper v1.1.5
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
  * and delete calls. 
@@ -7,7 +7,7 @@
  * The library was test and work well with ESP32s based module and add support for multiple stream event path.
  * 
  * The MIT License (MIT)
- * Copyright (c) 2019 K. Suwatchai (Mobizt)
+ * Copyright (c) 2021 K. Suwatchai (Mobizt)
  * 
  * 
  * Permission is hereby granted, free of charge, to any person returning a copy of
@@ -65,17 +65,17 @@
 #if ARDUINO_ESP8266_GIT_VER != 0xf6d232f1 && ARDUINO_ESP8266_GIT_VER != 0x0c897c37 && ARDUINO_ESP8266_GIT_VER != 0x4ceabea9 && ARDUINO_ESP8266_GIT_VER != 0x614f7c32 && ARDUINO_ESP8266_GIT_VER != 0xbb28d4a3
 #include <WiFiClientSecure.h>
 #include <CertStoreBearSSL.h>
-#define SSL_CLIENT BearSSL::WiFiClientSecure
+#define FB_ESP8266_SSL_CLIENT BearSSL::WiFiClientSecure
 
 #elif ARDUINO_ESP8266_GIT_VER == 0xbb28d4a3
 #define USING_AXTLS
 #include <WiFiClientSecureAxTLS.h>
 using namespace axTLS;
-#define SSL_CLIENT axTLS::WiFiClientSecure
+#define FB_ESP8266_SSL_CLIENT axTLS::WiFiClientSecure
 #else
 #define USING_AXTLS
 #include <WiFiClientSecure.h>
-#define SSL_CLIENT WiFiClientSecure
+#define FB_ESP8266_SSL_CLIENT WiFiClientSecure
 #endif
 
 #define FS_NO_GLOBALS
@@ -194,7 +194,7 @@ public:
 
 
 protected:
-  std::unique_ptr<SSL_CLIENT> _wcs = std::unique_ptr<SSL_CLIENT>(new SSL_CLIENT());
+  std::unique_ptr<FB_ESP8266_SSL_CLIENT> _wcs = std::unique_ptr<FB_ESP8266_SSL_CLIENT>(new FB_ESP8266_SSL_CLIENT());
   std::unique_ptr<char> _cacert;
   std::string _host = "";
   uint16_t _port = 0;
