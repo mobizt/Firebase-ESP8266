@@ -3,7 +3,7 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4390794.svg)](https://doi.org/10.5281/zenodo.4390794)
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 3.0.7
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 3.1.0
 
 
 This library supports ESP8266 MCU from Espressif. The following are platforms in which libraries are also available.
@@ -314,12 +314,7 @@ The server's **Timestamp** can be stored in the database through `Firebase.setTi
 
 The returned **Timestamp** value can get from `fbdo.getInt()`. 
 
-
-To use LittleFS file system for flash memory instead of SPIFFS, add the following macro in **FirebaseFS.h**
-
-```C++
-#define USE_LITTLEFS
-```
+The file systems for flash and sd memory can be changed in [**FirebaseFS.h**](/src/FirebaseFS.h).
 
 The following example showed how to store file data to flash memory at "/test/file_data".
 
@@ -329,7 +324,7 @@ The following example showed how to store file data to flash memory at "/test/fi
 
 if (Firebase.getFile(fbdo, StorateType::FLASH, "/test/file_data", "/test.txt"))
 {
-  //To use LittleFS file system, add #define USE_LITTLEFS in FirebaseFS.h
+  //The file systems for flash and sd memory can be changed in FirebaseFS.h.
   File file = FLASH_FS.open("/test.txt", "r");
 
   while (file.available())
@@ -704,13 +699,9 @@ if (fbdo.streamAvailable())
 
 This library allows you to backup and restores the database at the defined path.
 
-The backup file will store in SD card or flash memory (SPIFFS or LittleFS file systems).
+The backup file will store in SD card or flash memory (file systems).
 
-To use LittleFS file system for flash memory instead of SPIFFS, add the following macro in **FirebaseFS.h**
-
-```C++
-#define USE_LITTLEFS
-```
+The file systems for flash and sd memory can be changed in [**FirebaseFS.h**](/src/FirebaseFS.h).
 
 Due to SD library used, only 8.3 DOS format file name supported.
 
@@ -881,15 +872,13 @@ Serial.println();
 
 Error Queues can be saved as a file in SD card or flash memory with function `saveErrorQueue`.
 
-To use LittleFS file system for flash memory instead of SPIFFS, add the following macro in **FirebaseFS.h**
-
-```C++
-#define USE_LITTLEFS
-```
+The file systems for flash and sd memory can be changed in [**FirebaseFS.h**](/src/FirebaseFS.h).
 
 Error Queues store as a file can be restored to Error Queue collection with function `restoreErrorQueue`.
 
 Two types of storage can be assigned with these functions, `StorageType::FLASH` and `StorageType::SD`.
+
+The file systems for flash and sd memory can be changed in [**FirebaseFS.h**](/src/FirebaseFS.h).
 
 Read data (get) operation is not support queues restore
 

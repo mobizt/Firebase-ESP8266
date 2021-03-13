@@ -23,7 +23,7 @@
 */
 #define FIREBASE_AUTH "DATABASE_SECRET"
 
-const char cert[] PROGMEM = "-----BEGIN CERTIFICATE-----\n"
+const char CA_cert[] PROGMEM = "-----BEGIN CERTIFICATE-----\n"
                             "MIIDujCCAqKgAwIBAgILBAAAAAABD4Ym5g0wDQYJKoZIhvcNAQEFBQAwTDEgMB4G\n"
                             "A1UECxMXR2xvYmFsU2lnbiBSb290IENBIC0gUjIxEzARBgNVBAoTCkdsb2JhbFNp\n"
                             "Z24xEzARBgNVBAMTCkdsb2JhbFNpZ24wHhcNMDYxMjE1MDgwMDAwWhcNMjExMjE1\n"
@@ -76,17 +76,19 @@ void setup()
   Serial.println("------------------------------------");
   Serial.println("Save the Firebase credentials and config the device time from NTP server...");
   Serial.println();
-  Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH, cert);
+  Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH, CA_cert);
+
+  //For Storage Type,don't assign number, use struct instead e.g. StorageType::FLASH or StorageType::SD
 
   /*
   //The following feature is for ESP8266 Arduino Core SDK v2.5.x.
   
-  //To set root CA cert file, DER format (rootCA.der in data folder) in this example, use this plugin to upload
+  //To set root CA cert file, DER format (gsr2.pem in data folder) in this example, use this plugin to upload
   //https://github.com/esp8266/arduino-esp8266fs-plugin
-  Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH, "/rootCA.der",StorageType::FLASH);
+  Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH, "/gsr2.pem",StorageType::FLASH);
   
-  //or add rootCA.der file to SD card
-  Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH, "/rootCA.der",StorageType::SD);
+  //or add gsr2.pem file to SD card
+  Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH, "/gsr2.pem",StorageType::SD);
   
   */
   Firebase.reconnectWiFi(true);
