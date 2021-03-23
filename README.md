@@ -3,7 +3,7 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4390794.svg)](https://doi.org/10.5281/zenodo.4390794)
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 3.1.2
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 3.1.3
 
 
 This library supports ESP8266 MCU from Espressif. The following are platforms in which libraries are also available.
@@ -208,6 +208,59 @@ fbdo.setBSSLBufferSize(1024, 1024); //minimum size is 512 bytes, maximum size is
 fbdo.setResponseSize(1024); //minimum size is 1024 bytes
 ```
 See [Other authentication examples](/examples/Authentications) for more sign in methods.
+
+
+
+
+
+### Authentication
+
+This library supports many authentication methods.
+
+See [Other authentication examples](/examples/Authentications) for more authentication methods.
+
+Some authentication methods need the token generaion and exchanging process which take more time than using the legacy token.
+
+The authentication with custom and OAuth2.0 tokens take the time in overall process included NTP time acquisition, JWT token generation and signing, more than 10 seconds in ESP8266 and 1 or 2 seconds in ESP32.
+
+While using Email and password sign-in which use in the id token generation process takes minimum time.
+
+The time for legacy token generation is zero as it was taken from database secret (FIREBASE_AUTH in the example).
+
+The data transmission time depends on the SSL/TLS handshaking, the size of http request header/payload and response header/payload.
+
+The time used in data transmission also depending on the size of token (string) which is the part of request header.
+
+The legacy token size is smallest, approx 40 bytes, the lowest data trasmission time (averaged 200 - 400 ms for 1 byte of payload).
+
+The id token using sign-in Email and password has approx 900 bytes in its size, the maximum data trasmission time (averaged 400 - 500 ms for 1 byte of payload).
+
+
+The SSL/TLS handshake process may take 1-2 seconds to complete. The http session will be reused when you dont share a Firebase Data object usage among with the normal Firebase calls i.e. set, get, push, update and delete with other stream, messaging and storage operations.
+
+The system time setting is required when you use the custom and OAuth2.0 tokens or when you provide the certificate for secured transmission, and it used the time for acquiring the NTP server time data.
+
+To use Email/Password sign-in authentication as in the examples, the Email/Password Sign-in provider must be enabled.
+
+![Enable Email/Password Sign-in provider](/media/images/Enable_Email_Password_Provider.png)
+
+To get API Key used in Email/Password sign-in
+
+![API Key](/media/images/API_Key.png)
+
+To get the Service accounts key JSON file used in Custom and OAuth2.0 tokens athentications.
+
+![Service Account Key File](/media/images/Service_Account_Key.png)
+
+
+The Firebase Host and database secret for RTDB usages.
+
+![Firebase Host](/media/images/Firebase_Host.png)
+
+![Firebase Auth](/media/images/Firebase_Auth.png)
+
+
+
 
 
 ### Read Data
