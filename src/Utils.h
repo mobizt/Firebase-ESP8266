@@ -310,9 +310,11 @@ public:
         char *tmp = strP(fb_esp_pgm_str_441);
         int x = sscanf(url.c_str(), tmp, host, uri);
         delS(tmp);
+
         tmp = strP(fb_esp_pgm_str_442);
         x ? p1 = 8 : x = sscanf(url.c_str(), tmp, host, uri);
         delS(tmp);
+
         tmp = strP(fb_esp_pgm_str_443);
         x ? p1 = 7 : x = sscanf(url.c_str(), tmp, host, uri);
         delS(tmp);
@@ -323,6 +325,7 @@ public:
             tmp = strP(fb_esp_pgm_str_173);
             p2 = strpos(host, tmp, 0);
             delS(tmp);
+
             if (p2 > -1)
             {
                 tmp = strP(fb_esp_pgm_str_444);
@@ -336,6 +339,7 @@ public:
             tmp = strP(fb_esp_pgm_str_445);
             p2 = strpos(uri, tmp, 0);
             delS(tmp);
+            
             if (p2 > -1)
             {
                 tmp = strP(fb_esp_pgm_str_446);

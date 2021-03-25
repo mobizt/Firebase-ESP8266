@@ -494,7 +494,7 @@ bool FB_RTDB::pushJSON(FirebaseData *fbdo, const char *path, FirebaseJson *json,
 bool FB_RTDB::pushJSON(FirebaseData *fbdo, const char *path, FirebaseJson *json, const char *priority)
 {
     std::string s;
-    json->_toStdString(s);
+    json->int_toStdString(s);
     struct fb_esp_rtdb_request_info_t req;
     req.path = path;
     req.method = m_post;
@@ -526,7 +526,7 @@ bool FB_RTDB::pushArray(FirebaseData *fbdo, const char *path, FirebaseJsonArray 
 bool FB_RTDB::pushArray(FirebaseData *fbdo, const char *path, FirebaseJsonArray *arr, const char *priority)
 {
     std::string s;
-    arr->_toStdString(s);
+    arr->int_toStdString(s);
     struct fb_esp_rtdb_request_info_t req;
     req.path = path;
     req.method = m_post;
@@ -1220,7 +1220,7 @@ bool FB_RTDB::setJSON(FirebaseData *fbdo, const char *path, FirebaseJson *json, 
 bool FB_RTDB::setJSON(FirebaseData *fbdo, const char *path, FirebaseJson *json, const char *priority, const char *etag)
 {
     std::string s;
-    json->_toStdString(s);
+    json->int_toStdString(s);
     struct fb_esp_rtdb_request_info_t req;
     req.path = path;
     req.method = m_put;
@@ -1271,7 +1271,7 @@ bool FB_RTDB::setArray(FirebaseData *fbdo, const char *path, FirebaseJsonArray *
 bool FB_RTDB::setArray(FirebaseData *fbdo, const char *path, FirebaseJsonArray *arr, const char *priority, const char *etag)
 {
     std::string s;
-    arr->_toStdString(s);
+    arr->int_toStdString(s);
     struct fb_esp_rtdb_request_info_t req;
     req.path = path;
     req.method = m_put;
@@ -1405,7 +1405,7 @@ bool FB_RTDB::setTimestamp(FirebaseData *fbdo, const char *path)
 bool FB_RTDB::updateNode(FirebaseData *fbdo, const char *path, FirebaseJson *json)
 {
     std::string s;
-    json->_toStdString(s);
+    json->int_toStdString(s);
     struct fb_esp_rtdb_request_info_t req;
     req.path = path;
     req.method = m_patch;
@@ -1422,7 +1422,7 @@ bool FB_RTDB::updateNode(FirebaseData *fbdo, const char *path, FirebaseJson *jso
     char *buf = ut->floatStr(priority);
     ut->trimDigits(buf);
     std::string s;
-    json->_toStdString(s);
+    json->int_toStdString(s);
     struct fb_esp_rtdb_request_info_t req;
     req.path = path;
     req.method = m_patch;
@@ -1439,7 +1439,7 @@ bool FB_RTDB::updateNode(FirebaseData *fbdo, const char *path, FirebaseJson *jso
 bool FB_RTDB::updateNodeSilent(FirebaseData *fbdo, const char *path, FirebaseJson *json)
 {
     std::string s;
-    json->_toStdString(s);
+    json->int_toStdString(s);
     struct fb_esp_rtdb_request_info_t req;
     req.path = path;
     req.method = m_patch_nocontent;
@@ -1456,7 +1456,7 @@ bool FB_RTDB::updateNodeSilent(FirebaseData *fbdo, const char *path, FirebaseJso
     char *buf = ut->floatStr(priority);
     ut->trimDigits(buf);
     std::string s;
-    json->_toStdString(s);
+    json->int_toStdString(s);
     struct fb_esp_rtdb_request_info_t req;
     req.path = path;
     req.method = m_patch_nocontent;
