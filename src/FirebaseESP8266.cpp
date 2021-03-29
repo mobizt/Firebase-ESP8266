@@ -1,5 +1,5 @@
 /**
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 3.1.5
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 3.1.6
  * 
  * March 29, 2021
  * 
