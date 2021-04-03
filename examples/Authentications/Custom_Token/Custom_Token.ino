@@ -6,7 +6,7 @@
  * 
  * Github: https://github.com/mobizt
  * 
- * Copyright (c) 2020 mobizt
+ * Copyright (c) 2021 mobizt
  *
 */
 
@@ -35,7 +35,7 @@
 /** 3. Define the API key
  * 
  * The API key can be obtained since you created the project and set up 
- * the Authentication in Firebase conssole.
+ * the Authentication in Firebase console.
  * 
  * You may need to enable the Identity provider at https://console.cloud.google.com/customer-identity/providers 
  * Select your project, click at ENABLE IDENTITY PLATFORM button.
@@ -185,7 +185,7 @@ void setup()
      * To modify the database rules in this exanple, we need the full access rights then 
      * using the database secret in prepareDatabaseRules function to sign in.
      * 
-     * If you database rules has been modified, plesse comment this code out.
+     * If you database rules has been modified, please comment this code out.
      * 
      * The character $ is to make a wildcard variable (can be any name) represents any node key 
      * which located at some level in the rule structure and use as reference variable
