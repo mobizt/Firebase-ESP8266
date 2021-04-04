@@ -1,10 +1,11 @@
 /**
  * Google's Firebase Realtime Database Arduino Library for ESP8266, version 3.1.9
  * 
- * April 3, 2021
+ * April 4, 2021
  * 
  *   Updates:
- * - Allows other Firebase calls inside the stream and multipath stream callback function.
+ * - Fix the memory leaks in internal JSON parser.
+ * - Fix the token pre-refreshment issue.
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
  * and delete calls. 
@@ -317,22 +318,12 @@ bool FirebaseESP8266::push(FirebaseData &fbdo, const String &path, const String 
     return RTDB.pushString(&fbdo, path.c_str(), stringValue);
 }
 
-bool FirebaseESP8266::push(FirebaseData &fbdo, const String &path, const StringSumHelper &stringValue)
-{
-    return RTDB.pushString(&fbdo, path.c_str(), stringValue);
-}
-
 bool FirebaseESP8266::push(FirebaseData &fbdo, const String &path, const char *stringValue, float priority)
 {
     return RTDB.pushString(&fbdo, path.c_str(), stringValue, priority);
 }
 
 bool FirebaseESP8266::push(FirebaseData &fbdo, const String &path, const String &stringValue, float priority)
-{
-    return RTDB.pushString(&fbdo, path.c_str(), stringValue, priority);
-}
-
-bool FirebaseESP8266::push(FirebaseData &fbdo, const String &path, const StringSumHelper &stringValue, float priority)
 {
     return RTDB.pushString(&fbdo, path.c_str(), stringValue, priority);
 }
@@ -390,8 +381,6 @@ bool FirebaseESP8266::push(FirebaseData &fbdo, const String &path, T value)
         return pushString(fbdo, path, value);
     else if (std::is_same<T, const String &>::value)
         return pushString(fbdo, path, value);
-    else if (std::is_same<T, const StringSumHelper &>::value)
-        return pushString(fbdo, path, value);
     else if (std::is_same<T, FirebaseJson &>::value)
         return pushJson(fbdo, path, value);
     else if (std::is_same<T, FirebaseJsonArray &>::value)
@@ -417,8 +406,6 @@ bool FirebaseESP8266::push(FirebaseData &fbdo, const String &path, T value, floa
     else if (std::is_same<T, const char *>::value)
         return pushString(fbdo, path, value, priority);
     else if (std::is_same<T, const String &>::value)
-        return pushString(fbdo, path, value, priority);
-    else if (std::is_same<T, const StringSumHelper &>::value)
         return pushString(fbdo, path, value, priority);
     else if (std::is_same<T, FirebaseJson &>::value)
         return pushJson(fbdo, path, value, priority);
@@ -618,22 +605,12 @@ bool FirebaseESP8266::set(FirebaseData &fbdo, const String &path, const String &
     return RTDB.setString(&fbdo, path.c_str(), stringValue);
 }
 
-bool FirebaseESP8266::set(FirebaseData &fbdo, const String &path, const StringSumHelper &stringValue)
-{
-    return RTDB.setString(&fbdo, path.c_str(), stringValue);
-}
-
 bool FirebaseESP8266::set(FirebaseData &fbdo, const String &path, const char *stringValue, float priority)
 {
     return RTDB.setString(&fbdo, path.c_str(), stringValue, priority);
 }
 
 bool FirebaseESP8266::set(FirebaseData &fbdo, const String &path, const String &stringValue, float priority)
-{
-    return RTDB.setString(&fbdo, path.c_str(), stringValue, priority);
-}
-
-bool FirebaseESP8266::set(FirebaseData &fbdo, const String &path, const StringSumHelper &stringValue, float priority)
 {
     return RTDB.setString(&fbdo, path.c_str(), stringValue, priority);
 }
@@ -648,22 +625,12 @@ bool FirebaseESP8266::set(FirebaseData &fbdo, const String &path, const String &
     return RTDB.setString(&fbdo, path.c_str(), stringValue, ETag.c_str());
 }
 
-bool FirebaseESP8266::set(FirebaseData &fbdo, const String &path, const StringSumHelper &stringValue, const String &ETag)
-{
-    return RTDB.setString(&fbdo, path.c_str(), stringValue, ETag.c_str());
-}
-
 bool FirebaseESP8266::set(FirebaseData &fbdo, const String &path, const char *stringValue, float priority, const String &ETag)
 {
     return RTDB.setString(&fbdo, path.c_str(), stringValue, priority, ETag.c_str());
 }
 
 bool FirebaseESP8266::set(FirebaseData &fbdo, const String &path, const String &stringValue, float priority, const String &ETag)
-{
-    return RTDB.setString(&fbdo, path.c_str(), stringValue, priority, ETag.c_str());
-}
-
-bool FirebaseESP8266::set(FirebaseData &fbdo, const String &path, const StringSumHelper &stringValue, float priority, const String &ETag)
 {
     return RTDB.setString(&fbdo, path.c_str(), stringValue, priority, ETag.c_str());
 }
@@ -761,8 +728,6 @@ bool FirebaseESP8266::set(FirebaseData &fbdo, const String &path, T value)
         return setString(fbdo, path, value);
     else if (std::is_same<T, const String &>::value)
         return setString(fbdo, path, value);
-    else if (std::is_same<T, const StringSumHelper &>::value)
-        return setString(fbdo, path, value);
     else if (std::is_same<T, FirebaseJson &>::value)
         return setJson(fbdo, path, value);
     else if (std::is_same<T, FirebaseJson *>::value)
@@ -791,8 +756,6 @@ bool FirebaseESP8266::set(FirebaseData &fbdo, const String &path, T value, float
         return setString(fbdo, path, value, priority);
     else if (std::is_same<T, const String &>::value)
         return setString(fbdo, path, value, priority);
-    else if (std::is_same<T, const StringSumHelper &>::value)
-        return setString(fbdo, path, value, priority);
     else if (std::is_same<T, FirebaseJson &>::value)
         return setJson(fbdo, path, value, priority);
     else if (std::is_same<T, FirebaseJsonArray &>::value)
@@ -819,8 +782,6 @@ bool FirebaseESP8266::set(FirebaseData &fbdo, const String &path, T value, const
         return setString(fbdo, path, value, ETag);
     else if (std::is_same<T, const String &>::value)
         return setString(fbdo, path, value, ETag);
-    else if (std::is_same<T, const StringSumHelper &>::value)
-        return setString(fbdo, path, value, ETag);
     else if (std::is_same<T, FirebaseJson &>::value)
         return setJson(fbdo, path, value, ETag);
     else if (std::is_same<T, FirebaseJsonArray &>::value)
@@ -846,8 +807,6 @@ bool FirebaseESP8266::set(FirebaseData &fbdo, const String &path, T value, float
     else if (std::is_same<T, const char *>::value)
         return setString(fbdo, path, value, priority, ETag);
     else if (std::is_same<T, const String &>::value)
-        return setString(fbdo, path, value, priority, ETag);
-    else if (std::is_same<T, const StringSumHelper &>::value)
         return setString(fbdo, path, value, priority, ETag);
     else if (std::is_same<T, FirebaseJson &>::value)
         return setJson(fbdo, path, value, priority, ETag);

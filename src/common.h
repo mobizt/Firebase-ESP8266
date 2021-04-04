@@ -1,6 +1,6 @@
 
 /**
- * Created March 23, 2021
+ * Created April 3, 2021
  * 
  * This work is a part of Firebase ESP Client library
  * Copyright (c) 2020, 2021 K. Suwatchai (Mobizt)
@@ -65,6 +65,7 @@ class FunctionsConfig;
 #define MAX_BLOB_PAYLOAD_SIZE 1024
 #define MAX_EXCHANGE_TOKEN_ATTEMPTS 5
 #define ESP_DEFAULT_TS 1510644967
+#define ESP_SIGNER_DEFAULT_RESPONSE_BUFFER_SIZE 2560
 
 enum fb_esp_fcm_msg_mode
 {
