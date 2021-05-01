@@ -1,9 +1,9 @@
 /**
- * Google's Firebase Util class, Utils.h version 1.0.10
+ * Google's Firebase Util class, Utils.h version 1.0.12
  * 
  * This library supports Espressif ESP8266 and ESP32
  * 
- * Created April 4, 2021
+ * Created May 1, 2021
  * 
  * This work is a part of Firebase ESP Client library
  * Copyright (c) 2021 K. Suwatchai (Mobizt)
@@ -339,7 +339,7 @@ public:
             tmp = strP(fb_esp_pgm_str_445);
             p2 = strpos(uri, tmp, 0);
             delS(tmp);
-            
+
             if (p2 > -1)
             {
                 tmp = strP(fb_esp_pgm_str_446);
@@ -379,7 +379,7 @@ public:
         return o - dec;
     }
 
-    std::string url_encode(std::string s)
+    std::string url_encode(const std::string &s)
     {
         const char *str = s.c_str();
         std::vector<char> v(s.size());
@@ -554,8 +554,12 @@ public:
         int res = -1;
         char c = 0;
         int idx = 0;
+        if (!stream)
+            return idx;
         while (stream->available() && idx <= bufLen)
         {
+            if (!stream)
+                break;
             res = stream->read();
             if (res > -1)
             {
@@ -574,8 +578,12 @@ public:
         int res = -1;
         char c = 0;
         int idx = 0;
+        if (!stream)
+            return idx;
         while (stream->available())
         {
+            if (!stream)
+                break;
             res = stream->read();
             if (res > -1)
             {
@@ -1712,6 +1720,12 @@ public:
         }
 
         return status;
+    }
+
+    int setTimestamp(time_t ts)
+    {
+        struct timeval tm = {ts, 0}; // sec, us
+        return settimeofday((const timeval *)&tm, 0);
     }
 
 private:

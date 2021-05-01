@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v 3.1.9
+Google's Firebase Realtime Database Arduino Library for ESP8266 v 3.1.12
 
 
 ## Global functions
@@ -19,6 +19,24 @@ param **`auth`** The pointer to FirebaseAuth data.
 ```C++
 void begin(FirebaseConfig *config, FirebaseAuth *auth);
 ```
+
+
+
+
+
+
+#### Set system time with timestamp.
+
+param **`ts`** timestamp in seconds from midnight Jan 1, 1970.
+
+return **`Boolean`** type status indicates the success of the operation.
+
+This function allows the internal time setting by timestamp i.e. timestamp from external RTC. 
+
+```cpp
+bool setSystemTime(time_t ts);
+```
+
 
 
 
@@ -64,35 +82,26 @@ struct token_info_t authTokenInfo();
 
 
 
-#### Store Firebase's authentication credentials using the authentication data provider.
 
-param **`host`** Your Firebase database project host e.g. Your_ProjectID.firebaseio.com.
 
-param **`auth`** The Auth_Provider data.
+#### Provide the ready status of token generation.
 
-param **`rootCA`** Root CA certificate base64 string (PEM file).
-
-param **`rootCAFile`** Root CA certificate DER file (binary).
-
-param **`storageType`** Type of storage, StorageType::SD and StorageType::FLASH.
-
-param **`GMTOffset`** GMT time offset in hour is required to set time in order to make BearSSL 
-                        data decryption/encryption to work.
-
-                        This parameter is only required for ESP8266 Core SDK v2.5.x or later.
-
-Root CA certificate DER file is only supported in Core SDK v2.5.x
-
-The file systems for flash and sd memory can be changed in FirebaseFS.h.
-
-For Auth_Provider data usage, see the examples.
+return **`Boolean`** type status indicates the token generation is completed.
 
 ```C++
-void begin(const String &host, Auth_Provider &auth);
+bool ready();
+```
 
-void begin(const String &host, Auth_Provider &auth, const char *rootCA, float GMTOffset = 0.0);
-  
-void begin(const String &host, Auth_Provider &auth, const String &rootCAFile, uint8_t storageType, float GMTOffset = 0.0);
+
+
+
+
+#### Provide the grant access status for Firebase Services.
+
+return **`Boolean`** type status indicates the device can access to the services.
+
+```C++
+bool authenticated();
 ```
 
 
@@ -100,11 +109,11 @@ void begin(const String &host, Auth_Provider &auth, const String &rootCAFile, ui
 
 
 
-#### Store Firebase's authentication credentials using database secret (obsoleted).
+#### Store Firebase's legacy authentication credentials.
 
-param **`host`** Your Firebase database project host e.g. Your_ProjectID.firebaseio.com.
+param **`databaseURL`** Your RTDB URL e.g. <databaseName>.firebaseio.com or <databaseName>.<region>.firebasedatabase.app
 
-param **`auth`** Your database secret.
+param **`databaseSecret`** Your database secret.
 
 param **`rootCA`** Root CA certificate base64 string (PEM file).
 
@@ -122,12 +131,13 @@ Root CA certificate DER file is only supported in Core SDK v2.5.x
 The file systems for flash and sd memory can be changed in FirebaseFS.h.
 
 ```C++
-void begin(const String &host, const String &auth);
+void begin(const String &databaseURL, const String &databaseSecret);
 
-void begin(const String &host, const String &auth, const char *rootCA, float GMTOffset = 0.0);
+void begin(const String &databaseURL, const String &databaseSecret, const char *rootCA, float GMTOffset = 0.0);
   
-void begin(const String &host, const String &auth, const String &rootCAFile, uint8_t storageType, float GMTOffset = 0.0);
+void begin(const String &databaseURL, const String &databaseSecret, const String &rootCAFile, uint8_t storageType, float GMTOffset = 0.0);
 ```
+
 
 
 
@@ -300,6 +310,77 @@ bool setRules(FirebaseData &dataObj, const String &rules);
 
 
 
+#### Set the .read and .write database rules.
+
+param **`fbdo`** The pointer to Firebase Data Object.
+
+param **`path`** The parent path of child's node that the .read and .write rules are being set.
+
+param **`var`** The child node key that the .read and .write rules are being set.
+
+param **`readVal`** The child node key .read value.
+
+param **`writeVal`** The child node key .write value.
+
+param **`databaseSecret`** The database secret.
+
+return - **`Boolean`** value, indicates the success of the operation.
+
+note: The databaseSecret can be empty if the auth type is OAuth2.0 or legacy and required if auth type is Email/Password sign-in. 
+
+```cpp
+bool setReadWriteRules(FirebaseData &fbdo, const String &path, const String &var, const String &readVal, const String &writeVal, const String &databaseSecret);
+```
+
+
+
+
+
+#### Set the query index to the database rules.
+
+param **`fbdo`** The pointer to Firebase Data Object.
+
+param **`path`** The parent path of child's node that being query.
+
+param **`node`** The child node key that being query.
+
+param **`databaseSecret`** The database secret.
+
+return - **`Boolean`** value, indicates the success of the operation.
+
+note: The databaseSecret can be empty if the auth type is OAuth2.0 or legacy and required if auth type is Email/Password sign-in.
+
+```cpp
+bool setQueryIndex(FirebaseData &fbdo, const String &path, const String &node, const String &databaseSecret);
+```
+
+
+
+
+
+
+
+
+#### Remove the query index from the database rules.
+
+param **`fbdo`** The pointer to Firebase Data Object.
+
+param **`path`** The parent path of child's node that the index is being removed.
+
+param **`databaseSecret`** The database secret.
+
+return - **`Boolean`** value, indicates the success of the operation.
+
+note: The databaseSecret can be empty if the auth type is OAuth2.0 or legacy and required if auth type is Email/Password sign-in.
+
+```cpp
+bool removeQueryIndex(FirebaseData &fbdo, const String &path, const String &databaseSecret);
+```
+
+
+
+
+
 
 #### Determine whether the defined database path has existed or not.
 
@@ -312,6 +393,8 @@ path was existed or not.
 
 ```C++
 bool pathExist(FirebaseData &dataObj, const String &path);
+
+bool pathExisted(FirebaseData &dataObj, const String &path);
 ```
 
 

@@ -1,9 +1,9 @@
 /**
- * Google's Firebase Data class, FB_Session.h version 1.0.7
+ * Google's Firebase Data class, FB_Session.h version 1.0.9
  * 
  * This library supports Espressif ESP8266 and ESP32
  * 
- * Created  March 31, 2021
+ * Created  May 1, 2021
  * 
  * This work is a part of Firebase ESP Client library
  * Copyright (c) 2021 K. Suwatchai (Mobizt)
@@ -195,6 +195,8 @@ private:
   uint16_t _port = FIREBASE_PORT;
   std::vector<std::string> _deviceToken;
   UtilsClass *_ut = nullptr;
+  FirebaseAuth _auth_;
+  FirebaseConfig _cfg_;
 };
 
 class FirebaseData
@@ -240,6 +242,12 @@ public:
    * @return Boolean type status indicates the success of operation.
   */
   bool pauseFirebase(bool pause);
+
+  /** Check the pause status of Firebase Data object.
+  *
+  * @return Boolean type value of pause status.
+ */
+  bool isPause();
 
   /** Get a WiFi client instance.
    * 
