@@ -1,5 +1,5 @@
 /**
- * Google's Firebase Util class, Utils.h version 1.0.12
+ * Google's Firebase Util class, Utils.h version 1.0.11
  * 
  * This library supports Espressif ESP8266 and ESP32
  * 
@@ -59,6 +59,7 @@ public:
         size_t len = strlen_P(pgm) + 5;
         char *buf = newS(len);
         strcpy_P(buf, pgm);
+        buf[strlen_P(pgm)] = 0;
         return buf;
     }
 
@@ -283,7 +284,7 @@ public:
         }
         return out;
     }
-    
+
     void getUrlInfo(const std::string url, struct fb_esp_url_info_t &info)
     {
         char *host = newS(url.length() + 5);
@@ -294,11 +295,9 @@ public:
         char *tmp = strP(fb_esp_pgm_str_441);
         int x = sscanf(url.c_str(), tmp, host, uri);
         delS(tmp);
-
         tmp = strP(fb_esp_pgm_str_442);
         x ? p1 = 8 : x = sscanf(url.c_str(), tmp, host, uri);
         delS(tmp);
-
         tmp = strP(fb_esp_pgm_str_443);
         x ? p1 = 7 : x = sscanf(url.c_str(), tmp, host, uri);
         delS(tmp);
@@ -309,7 +308,6 @@ public:
             tmp = strP(fb_esp_pgm_str_173);
             p2 = strpos(host, tmp, 0);
             delS(tmp);
-
             if (p2 > -1)
             {
                 tmp = strP(fb_esp_pgm_str_444);
@@ -323,7 +321,6 @@ public:
             tmp = strP(fb_esp_pgm_str_445);
             p2 = strpos(uri, tmp, 0);
             delS(tmp);
-
             if (p2 > -1)
             {
                 tmp = strP(fb_esp_pgm_str_446);
@@ -779,6 +776,43 @@ public:
         }
 
         return nullptr;
+    }
+
+    void getHeaderStr(const std::string &in, std::string &out, PGM_P beginH, PGM_P endH, int &beginPos, int endPos)
+    {
+
+        char *tmp = strP(beginH);
+        int p1 = strpos(in.c_str(), tmp, beginPos);
+        int ofs = 0;
+        delS(tmp);
+        if (p1 != -1)
+        {
+            tmp = strP(endH);
+            int p2 = -1;
+            if (endPos > 0)
+                p2 = endPos;
+            else if (endPos == 0)
+            {
+                ofs = strlen_P(endH);
+                p2 = strpos(in.c_str(), tmp, p1 + strlen_P(beginH) + 1);
+            }
+            else if (endPos == -1)
+            {
+                beginPos = p1 + strlen_P(beginH);
+            }
+
+            if (p2 == -1)
+                p2 = in.length();
+
+            delS(tmp);
+
+            if (p2 != -1)
+            {
+                beginPos = p2 + ofs;
+                int len = p2 - p1 - strlen_P(beginH);
+                out = in.substr(p1 + strlen_P(beginH), len);
+            }
+        }
     }
 
     void parseRespPayload(const char *buf, struct server_response_data_t &response, bool getOfs)
@@ -1476,6 +1510,7 @@ public:
         return ((len + 2) / 3 * 4) + 1;
     }
 
+#if defined(CARD_TYPE_SD)
     bool sdBegin(int8_t ss, int8_t sck, int8_t miso, int8_t mosi)
     {
         if (config)
@@ -1500,6 +1535,22 @@ public:
             return SD_FS.begin(SD_CS_PIN);
 #endif
     }
+#endif
+
+#if defined(ESP32)
+#if defined(CARD_TYPE_SD_MMC)
+    bool sdBegin(const char *mountpoint, bool mode1bit, bool format_if_mount_failed)
+    {
+        if (config)
+        {
+            config->_int.sd_config.sd_mmc_mountpoint = mountpoint;
+            config->_int.sd_config.sd_mmc_mode1bit = mode1bit;
+            config->_int.sd_config.sd_mmc_format_if_mount_failed = format_if_mount_failed;
+        }
+        return SD_FS.begin(mountpoint, mode1bit, format_if_mount_failed);
+    }
+#endif
+#endif
 
     bool flashTest()
     {
@@ -1517,10 +1568,16 @@ public:
     bool sdTest(fs::File file)
     {
         std::string filepath = "/sdtest01.txt";
-
+#if defined(CARD_TYPE_SD)
         if (!sdBegin(config->_int.sd_config.ss, config->_int.sd_config.sck, config->_int.sd_config.miso, config->_int.sd_config.mosi))
             return false;
-
+#endif
+#if defined(ESP32)
+#if defined(CARD_TYPE_SD_MMC)
+        if (!sdBegin(config->_int.sd_config.sd_mmc_mountpoint, config->_int.sd_config.sd_mmc_mode1bit, config->_int.sd_config.sd_mmc_format_if_mount_failed))
+            return false;
+#endif
+#endif
         file = SD_FS.open(filepath.c_str(), FILE_WRITE);
         if (!file)
             return false;

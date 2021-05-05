@@ -1,13 +1,12 @@
 /**
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 3.1.13
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 3.1.14
  * 
- * May 4, 2021
+ * May 5, 2021
  *
  *   Updates:
  * 
- * - Fix multiPathStream issue with token authentication.
- * - Add uninitialized handler.
- * - Add RTDB setAsync, pushAsync and updateNodeAsync functions for faster store.
+ * - Add missing RTDB deleteNodesByTimestamp function.
+ * - Code optimization for flash usage.
  *
  * 
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
@@ -1773,6 +1772,11 @@ bool FirebaseESP8266::deleteNode(FirebaseData &fbdo, const String &path)
 bool FirebaseESP8266::deleteNode(FirebaseData &fbdo, const String &path, const String &ETag)
 {
     return RTDB.deleteNode(&fbdo, path.c_str(), ETag.c_str());
+}
+
+bool FirebaseESP8266::deleteNodesByTimestamp(FirebaseData &fbdo, const String &path, const String &timestampNode, size_t limit, unsigned long dataRetentionPeriod)
+{
+  return RTDB.deleteNodesByTimestamp(&fbdo, path.c_str(), timestampNode.c_str(), limit, dataRetentionPeriod);
 }
 
 bool FirebaseESP8266::beginStream(FirebaseData &fbdo, const String &path)
