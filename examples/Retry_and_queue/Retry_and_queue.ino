@@ -32,9 +32,7 @@
 #define API_KEY "API_KEY"
 
 /* 3. Define the RTDB URL */
-#define DATABASE_URL                                                           \
-  "URL" //<databaseName>.firebaseio.com or
-        //<databaseName>.<region>.firebasedatabase.app
+#define DATABASE_URL "URL" //<databaseName>.firebaseio.com or <databaseName>.<region>.firebasedatabase.app
 
 /* 4. Define the user Email and password that alreadey registerd or added in
  * your project */
@@ -57,9 +55,11 @@ double mydouble = 0;
 uint32_t queueID[20];
 uint8_t qIdx = 0;
 
-void callback(QueueInfo queueinfo) {
+void callback(QueueInfo queueinfo)
+{
 
-  if (queueinfo.isQueueFull()) {
+  if (queueinfo.isQueueFull())
+  {
     Serial.println("Queue is full");
   }
 
@@ -81,7 +81,8 @@ void callback(QueueInfo queueinfo) {
   Serial.println();
 }
 
-void setup() {
+void setup()
+{
 
   Serial.begin(115200);
   Serial.println();
@@ -89,7 +90,8 @@ void setup() {
 
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   Serial.print("Connecting to Wi-Fi");
-  while (WiFi.status() != WL_CONNECTED) {
+  while (WiFi.status() != WL_CONNECTED)
+  {
     Serial.print(".");
     delay(300);
   }
@@ -131,7 +133,8 @@ void setup() {
 
   // Open and retore Firebase Error Queues from file.
   // The file systems for flash and SD/SDMMC can be changed in FirebaseFS.h.
-  if (Firebase.errorQueueCount(fbdo, "/test.txt", StorageType::FLASH) > 0) {
+  if (Firebase.errorQueueCount(fbdo, "/test.txt", StorageType::FLASH) > 0)
+  {
     Firebase.restoreErrorQueue(fbdo, "/test.txt", StorageType::FLASH);
     Firebase.deleteStorageFile("/test.txt", StorageType::FLASH);
   }
@@ -150,8 +153,10 @@ void setup() {
   // Firebase.beginAutoRunErrorQueue(fbdo);
 }
 
-void loop() {
-  if (Firebase.ready() && !taskCompleted) {
+void loop()
+{
+  if (Firebase.ready() && !taskCompleted)
+  {
     taskCompleted = true;
 
     Serial.println("------------------------------------");
@@ -159,7 +164,8 @@ void loop() {
 
     String node = path + "/Double/Data";
 
-    if (Firebase.setDouble(fbdo, node.c_str(), 340.123456789)) {
+    if (Firebase.setDouble(fbdo, node.c_str(), 340.123456789))
+    {
       Serial.println("PASSED");
       Serial.println("PATH: " + fbdo.dataPath());
       Serial.println("TYPE: " + fbdo.dataType());
@@ -167,10 +173,13 @@ void loop() {
       printResult(fbdo); // see addons/RTDBHelper.h
       Serial.println("------------------------------------");
       Serial.println();
-    } else {
+    }
+    else
+    {
       Serial.println("FAILED");
       Serial.println("REASON: " + fbdo.errorReason());
-      if (Firebase.getErrorQueueID(fbdo) > 0) {
+      if (Firebase.getErrorQueueID(fbdo) > 0)
+      {
         Serial.println("Error Queue ID: " +
                        String(Firebase.getErrorQueueID(fbdo)));
         queueID[qIdx] = Firebase.getErrorQueueID(fbdo);
@@ -191,14 +200,18 @@ void loop() {
     node = path + "/Binary/Blob/data";
 
     // Set binary data to database
-    if (Firebase.setBlob(fbdo, node.c_str(), data, sizeof(data))) {
+    if (Firebase.setBlob(fbdo, node.c_str(), data, sizeof(data)))
+    {
       Serial.println("PASSED");
       Serial.println("------------------------------------");
       Serial.println();
-    } else {
+    }
+    else
+    {
       Serial.println("FAILED");
       Serial.println("REASON: " + fbdo.errorReason());
-      if (Firebase.getErrorQueueID(fbdo) > 0) {
+      if (Firebase.getErrorQueueID(fbdo) > 0)
+      {
         Serial.println("Error Queue ID: " +
                        String(Firebase.getErrorQueueID(fbdo)));
         queueID[qIdx] = Firebase.getErrorQueueID(fbdo);
@@ -208,7 +221,8 @@ void loop() {
       Serial.println();
     }
 
-    if (WiFi.status() == WL_CONNECTED) {
+    if (WiFi.status() == WL_CONNECTED)
+    {
       Serial.println("---------------------------------------------------------"
                      "-----------------");
       Serial.println("To test error queue, turn off WiFi AP to make error in "
@@ -227,16 +241,19 @@ void loop() {
 
     // Get binary data from database
     // Assign myblob as the target variable
-    if (Firebase.getBlob(fbdo, node.c_str(), myblob)) {
+    if (Firebase.getBlob(fbdo, node.c_str(), myblob))
+    {
       Serial.println("PASSED");
       Serial.println("PATH: " + fbdo.dataPath());
       Serial.println("TYPE: " + fbdo.dataType());
       Serial.print("VALUE: ");
-      if (fbdo.dataType() == "blob") {
+      if (fbdo.dataType() == "blob")
+      {
 
         Serial.println();
 
-        for (size_t i = 0; i < myblob.size(); i++) {
+        for (size_t i = 0; i < myblob.size(); i++)
+        {
           if (i > 0 && i % 16 == 0)
             Serial.println();
 
@@ -251,10 +268,13 @@ void loop() {
       }
       Serial.println("------------------------------------");
       Serial.println();
-    } else {
+    }
+    else
+    {
       Serial.println("FAILED");
       Serial.println("REASON: " + fbdo.errorReason());
-      if (Firebase.getErrorQueueID(fbdo) > 0) {
+      if (Firebase.getErrorQueueID(fbdo) > 0)
+      {
         Serial.println("Error Queue ID: " +
                        String(Firebase.getErrorQueueID(fbdo)));
         queueID[qIdx] = Firebase.getErrorQueueID(fbdo);
@@ -269,7 +289,8 @@ void loop() {
 
     node = path + "/Double/Data";
 
-    if (Firebase.getDouble(fbdo, node.c_str(), mydouble)) {
+    if (Firebase.getDouble(fbdo, node.c_str(), mydouble))
+    {
       Serial.println("PASSED");
       Serial.println("PATH: " + fbdo.dataPath());
       Serial.println("TYPE: " + fbdo.dataType());
@@ -278,10 +299,13 @@ void loop() {
       Serial.println("------------------------------------");
       Serial.println();
       mydouble = 0;
-    } else {
+    }
+    else
+    {
       Serial.println("FAILED");
       Serial.println("REASON: " + fbdo.errorReason());
-      if (Firebase.getErrorQueueID(fbdo) > 0) {
+      if (Firebase.getErrorQueueID(fbdo) > 0)
+      {
         Serial.println("Error Queue ID: " +
                        String(Firebase.getErrorQueueID(fbdo)));
         queueID[qIdx] = Firebase.getErrorQueueID(fbdo);
@@ -291,7 +315,8 @@ void loop() {
       Serial.println();
     }
 
-    if (Firebase.errorQueueCount(fbdo) > 0) {
+    if (Firebase.errorQueueCount(fbdo) > 0)
+    {
       Serial.println("---------------------------------------------------------"
                      "--------------------");
       Serial.println(
@@ -312,7 +337,8 @@ void loop() {
   if (!Firebase.ready())
     return;
 
-  if (mydouble > 0) {
+  if (mydouble > 0)
+  {
     Serial.println("------------------------------------");
     Serial.println("Double Data gets from Queue");
     printf("%.9lf\n", mydouble);
@@ -320,7 +346,8 @@ void loop() {
     mydouble = 0;
   }
 
-  if (Firebase.errorQueueCount(fbdo) > 0) {
+  if (Firebase.errorQueueCount(fbdo) > 0)
+  {
 
     /*
 
@@ -354,7 +381,8 @@ void loop() {
 
     */
 
-    if (mydouble > 0) {
+    if (mydouble > 0)
+    {
       Serial.println("------------------------------------");
       Serial.println("Double Data gets from Queue");
       Serial.println(mydouble, 9);
@@ -362,11 +390,13 @@ void loop() {
       mydouble = 0;
     }
 
-    if (myblob.size() > 0) {
+    if (myblob.size() > 0)
+    {
       Serial.println("------------------------------------");
       Serial.println("Blob Data gets from Queue");
       Serial.println();
-      for (size_t i = 0; i < myblob.size(); i++) {
+      for (size_t i = 0; i < myblob.size(); i++)
+      {
         if (i > 0 && i % 16 == 0)
           Serial.println();
         if (myblob[i] < 16)
