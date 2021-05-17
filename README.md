@@ -3,7 +3,7 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4390794.svg)](https://doi.org/10.5281/zenodo.4390794)
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v3.2.0
+Google's Firebase Realtime Database Arduino Library for ESP8266 v3.2.1
 
 
 This library supports ESP8266 MCU from Espressif. The following are platforms in which libraries are also available.
@@ -216,7 +216,7 @@ See [Other authentication examples](/examples/Authentications) for more sign in 
 
 ### Important Information
 
-In ESP8266 Aruino Core SDK v3.x.x
+In ESP8266 Arduino Core SDK v3.x.x
 
 The free heap is significantly reduced as much as 5-6 kB from v2.7.4.
 
