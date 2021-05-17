@@ -3,7 +3,7 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4390794.svg)](https://doi.org/10.5281/zenodo.4390794)
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v3.1.16
+Google's Firebase Realtime Database Arduino Library for ESP8266 v3.2.0
 
 
 This library supports ESP8266 MCU from Espressif. The following are platforms in which libraries are also available.
@@ -208,6 +208,25 @@ fbdo.setBSSLBufferSize(1024, 1024); //minimum size is 512 bytes, maximum size is
 fbdo.setResponseSize(1024); //minimum size is 1024 bytes
 ```
 See [Other authentication examples](/examples/Authentications) for more sign in methods.
+
+
+
+
+
+
+### Important Information
+
+In ESP8266 Aruino Core SDK v3.x.x
+
+The free heap is significantly reduced as much as 5-6 kB from v2.7.4.
+
+This may lead to out of memory sitation when two Firebase Data objects are used simultaneously (when sessions connected).
+
+Minimize the reserved memory for BearSSL will gain the free heap a bit but may not enough for your usage.
+
+You can stay with Core SDK v2.7.4 until this memory issue was solve in the Core SDK.
+
+
 
 
 

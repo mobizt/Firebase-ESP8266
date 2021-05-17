@@ -40,6 +40,15 @@
 FirebaseData fbdo1;
 FirebaseData fbdo2;
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//Important information
+//In ESP8266 Aruino Core SDK v3.x.x
+//The free heap is significantly reduced as much as 5-6 kB from v2.7.4.
+//This may lead to out of memory sitation when two Firebase Data objects are used simultaneously (when sessions connected).
+//Minimize the reserved memory for BearSSL will gain the free heap a bit but may not enough for your usage.
+//You can stay with Core SDK v2.7.4 until this memory issue was solve in the Core SDK.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 FirebaseAuth auth;
 FirebaseConfig config;
 
@@ -126,7 +135,7 @@ void setup()
 
 #if defined(ESP8266)
   //Set the size of WiFi rx/tx buffers in the case where we want to work with large data.
-  fbdo2.setBSSLBufferSize(1024, 1024);
+  fbdo2.setBSSLBufferSize(512, 512);
 #endif
 
   //Set the size of HTTP response buffers in the case where we want to work with large data.
@@ -170,18 +179,9 @@ void loop()
       json.set("node1/num", count);
       json.set("node2/data", "hi");
       json.set("node2/num", count);
-      if (Firebase.setJSONAsync(fbdo2, parentPath.c_str(), json))
-      {
-        Serial.println("PASSED");
-        Serial.println();
-      }
-      else
-      {
-        Serial.println("FAILED");
-        Serial.println("REASON: " + fbdo2.errorReason());
-        Serial.println("------------------------------------");
-        Serial.println();
-      }
+      //The response is ignored in this async function, it may return true as long as the connection is established.
+      //The purpose for this async function is to set, push and update data instantly. 
+      Firebase.setJSONAsync(fbdo2, parentPath.c_str(), json);
       count++;
     }
   }

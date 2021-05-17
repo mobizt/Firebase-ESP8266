@@ -1,11 +1,11 @@
 /**
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 3.1.16
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, version 3.2.0
  * 
- * May 12, 2021
+ * May 17, 2021
  *
  *   Updates:
  * 
- * - Fix FirebaseJson tokens extraction issue.
+ * - Add support ESP8266 Core SDK v3.x.x.
  *
  *
  * 
