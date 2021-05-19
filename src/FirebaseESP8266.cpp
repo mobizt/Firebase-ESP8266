@@ -1,12 +1,11 @@
 /**
- * Google's Firebase Realtime Database Arduino Library for ESP8266, version 3.2.1
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, v3.2.2
  * 
- * May 17, 2021
+ * May 19, 2021
  *
  *   Updates:
  * 
- * - Fix the SD check issue.
- * - Fix RTDB File get issue.
+ * - Rewrite Authentications and RTDB examples.
  *
  *
  * 
