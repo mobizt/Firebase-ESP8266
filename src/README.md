@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v3.2.2
+Google's Firebase Realtime Database Arduino Library for ESP8266 v3.2.3
 
 
 ## Global functions
@@ -382,7 +382,7 @@ bool removeQueryIndex(FirebaseData &fbdo, const String &path, const String &data
 
 
 
-#### Determine whether the defined database path has existed or not.
+#### Get whether the defined database path has existed or not.
 
 param **`dataObj`** Firebase Data Object to hold data and instances.
 
@@ -401,7 +401,7 @@ bool pathExisted(FirebaseData &dataObj, const String &path);
 
 
 
-#### Determine the unique identifier (ETag) of current data at the defined database path.
+#### Get the unique identifier (ETag) of current data at the defined database path.
 
 return **`String`** of unique identifier.
 
@@ -3020,7 +3020,7 @@ bool restoreErrorQueue(FirebaseData &dataObj, const String &filename, uint8_t st
 
 
 
-#### Determine the number of Firebase Error Queues stored in defined FLASH file
+#### Get the number of Firebase Error Queues stored in defined FLASH file
 
 param **`dataObj`** Firebase Data Object to hold data and instances.
 
@@ -3041,7 +3041,7 @@ uint8_t errorQueueCount(FirebaseData &dataObj, const String &filename, uint8_t s
 
 
 
-#### Determine number of queues in Firebase Data object Firebase Error Queues collection
+#### Get number of queues in Firebase Data object Firebase Error Queues collection
 
 param **`dataObj`** Firebase Data Object to hold data and instances.
 
@@ -3056,7 +3056,7 @@ uint8_t errorQueueCount(FirebaseData &dataObj);
 
 
 
-#### Determine whether the Firebase Error Queues collection was full or not
+#### Get whether the Firebase Error Queues collection was full or not
 
 param **`dataObj`** Firebase Data Object to hold data and instances.
 
@@ -3101,7 +3101,7 @@ uint32_t getErrorQueueID(FirebaseData &dataObj);
 
 
 
-#### Determine whether Firebase Error Queue has currently existed in Error Queue collection or not
+#### Get whether Firebase Error Queue has currently existed in Error Queue collection or not
 
 param **`dataObj`** Firebase Data Object to hold data and instances.
 
@@ -3256,11 +3256,12 @@ bool pauseFirebase(bool pause);
 
 
 
-#### Determine the data type of payload returned from the server
+
+#### Get the data type of payload returned from the server (RTDB only)
 
 return **`The one of these data type e.g. integer, float, string, JSON and blob.`**
 
-```C++
+```cpp
 String dataType();
 ```
 
@@ -3269,7 +3270,43 @@ String dataType();
 
 
 
-#### Determine the event type of stream
+
+#### Get the data type of payload returned from the server (RTDB only)
+
+return **`The enumeration value of fb_esp_rtdb_data_type.`**
+
+fb_esp_rtdb_data_type_null or 1,
+
+fb_esp_rtdb_data_type_integer or 2,
+
+fb_esp_rtdb_data_type_float or 3,
+
+fb_esp_rtdb_data_type_double or 4,
+
+fb_esp_rtdb_data_type_boolean or 5,
+
+fb_esp_rtdb_data_type_string or 6,
+
+fb_esp_rtdb_data_type_json or 7,
+
+fb_esp_rtdb_data_type_array or 8,
+
+fb_esp_rtdb_data_type_blob or 9,
+
+fb_esp_rtdb_data_type_file or 10
+
+```cpp
+uint8_t dataTypeEnum();
+```
+
+
+
+
+
+
+
+
+#### Get the event type of stream
 
 return **`The one of these event type String e.g. put, patch, cancel, and auth_revoked.`**
 
@@ -3290,7 +3327,7 @@ String eventType();
 
 
 
-#### Determine the unique identifier (ETag) of current data
+#### Get the unique identifier (ETag) of current data
 
 return **`String.`** of unique identifier.
 
@@ -3303,7 +3340,7 @@ String ETag();
 
 
 
-#### Determine the current stream path
+#### Get the current stream path
 
 return **`The database streaming path.`**
 
@@ -3317,7 +3354,7 @@ String streamPath();
 
 
 
-#### Determine the current data path
+#### Get the current data path
 
 return **`The database path which belongs to server' s returned payload.`**
 
@@ -3334,7 +3371,7 @@ String dataPath();
 
 
 
-#### Determine the error reason String from the process
+#### Get the error reason String from the process
 
 return **`The error description string (String object).`**
 
@@ -3525,7 +3562,7 @@ String pushName();
 
 
 
-#### Determine the stream connection status
+#### Get the stream connection status
 
 return **`Boolean`** type status indicates whether the Firebase Data object is working with the stream or not.
 
@@ -3538,7 +3575,7 @@ bool isStream();
 
 
 
-#### Determine the server connection status
+#### Get the server connection status
 
 return **`Boolean`** type status indicates whether the Firebase Data object is connected to the server or not.
 
@@ -3550,7 +3587,7 @@ bool httpConnected();
 
 
 
-#### Determine the timeout event of server's stream (30 sec is the default)
+#### Get the timeout event of server's stream (30 sec is the default)
 
 Nothing to do when stream connection timeout, the stream connection will be automatically resumed.
 
@@ -3564,7 +3601,7 @@ bool streamTimeout();
 
 
 
-#### Determine the availability of data or payload returned from the server
+#### Get the availability of data or payload returned from the server
 
 return **`Boolean`** type status indicates whether the server returns the new payload or not.
 
@@ -3576,7 +3613,7 @@ bool dataAvailable();
 
 
 
-#### Determine the availability of stream event-data payload returned from the server
+#### Get the availability of stream event-data payload returned from the server
 
 return **`Boolean`** type status indicates whether the server returns the stream event-data 
 payload or not.
@@ -3589,7 +3626,7 @@ bool streamAvailable();
 
 
 
-#### Determine the matching between data type that intend to get from/store to database and the server's return payload data type
+#### Get the matching between data type that intend to get from/store to database and the server's return payload data type
 
 return **`Boolean`** type status indicates whether the type of data being get from/store to database 
 and the server's returned payload is matched or not.
@@ -3602,7 +3639,7 @@ bool mismatchDataType();
 
 
 
-#### Determine the HTTP status code return from the server
+#### Get the HTTP status code return from the server
 
 return **`Integer`** number of HTTP status.
 
@@ -3630,7 +3667,7 @@ bool bufferOverflow();
 
 
 
-#### Determine the name (full path) of backup file in SD card/flash memory
+#### Get the name (full path) of backup file in SD card/flash memory
 
 return **`String`** (String object) of a file name that stores on SD card/flash memory after backup operation.
 
@@ -3641,7 +3678,7 @@ String getBackupFilename();
 
 
 
-#### Determine the size of the backup file
+#### Get the size of the backup file
 
 return **`Number of byte`** of backup file in byte after backup operation.
 
@@ -3663,7 +3700,7 @@ void clear();
 
 
 
-#### Determine the error description for file transferring (pushFile, setFile, backup and restore)
+#### Get the error description for file transferring (pushFile, setFile, backup and restore)
 
 return **`Error description string* (String object).`**
 

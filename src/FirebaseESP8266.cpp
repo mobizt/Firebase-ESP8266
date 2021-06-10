@@ -1,11 +1,11 @@
 /**
- * Google's Firebase Realtime Database Arduino Library for ESP8266, v3.2.2
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, v3.2.3
  * 
- * May 19, 2021
+ * June 10, 2021
  *
  *   Updates:
  * 
- * - Rewrite Authentications and RTDB examples.
+ * - Add payload and dataTypeEnum functions for the StreamData object.
  *
  *
  * 
