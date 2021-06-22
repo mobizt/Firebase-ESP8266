@@ -3,7 +3,7 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4390794.svg)](https://doi.org/10.5281/zenodo.4390794)
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v3.2.3
+Google's Firebase Realtime Database Arduino Library for ESP8266 v3.3.0
 
 
 This library supports ESP8266 MCU from Espressif. The following are platforms in which libraries are also available.
@@ -411,6 +411,18 @@ The Firebase Host and database secret for RTDB usages.
 ![Firebase Auth](/media/images/Firebase_Auth.png)
 
 
+
+
+## Excludes the unused classes to save memory
+
+
+The internal classes, RTDB and FCM in this library can be excluded or disabled to save memory usage through [**FirebaseFS.h**](/src/FirebaseFS.h).
+
+By comment the following macros.
+
+ENABLE_RTDB
+
+ENABLE_FCM
 
 
 

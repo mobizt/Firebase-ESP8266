@@ -41,6 +41,10 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+#include "FirebaseFS.h"
+
+#ifdef ENABLE_RTDB
+
 #ifndef FireSenseClass_H
 #define FireSenseClass_H
 #include <Arduino.h>
@@ -66,6 +70,7 @@
 #define FIREBASE_STREAM_CLASS StreamData
 #endif
 #endif
+
 
 class MillisTimer
 {
@@ -1910,7 +1915,7 @@ void FireSenseClass::int_run()
                 sendLastSeen();
 
                 if (!config->stream_fbdo && !config->disable_command)
-                    readStream(config->shared_fbdo);
+                  readStream(config->shared_fbdo);
             }
         }
     }
@@ -1928,8 +1933,7 @@ void FireSenseClass::run()
 
     static FireSenseClass *_this = this;
 
-    TaskFunction_t taskCode = [](void *param)
-    {
+    TaskFunction_t taskCode = [](void *param) {
         for (;;)
         {
             _this->int_run();
@@ -2506,8 +2510,7 @@ void FireSenseClass::loadConditionsList()
 #if defined(ESP8266)
 void FireSenseClass::set_scheduled_callback(callback_function_t callback)
 {
-    _callback_function = std::move([callback]()
-                                   { schedule_function(callback); });
+    _callback_function = std::move([callback]() { schedule_function(callback); });
     _callback_function();
 }
 #endif
@@ -4528,3 +4531,5 @@ void FireSenseClass::setLogQueryIndex()
 }
 
 #endif
+
+#endif //ENABLE

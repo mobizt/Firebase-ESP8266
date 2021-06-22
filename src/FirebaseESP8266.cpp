@@ -1,11 +1,12 @@
 /**
- * Google's Firebase Realtime Database Arduino Library for ESP8266, v3.2.3
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, v3.3.0
  * 
- * June 10, 2021
+ * June 22, 2021
  *
  *   Updates:
  * 
- * - Add payload and dataTypeEnum functions for the StreamData object.
+ * - Improve memory usage.
+ * - Add support classes exclusion.
  *
  *
  * 
@@ -51,23 +52,29 @@ FirebaseESP8266::~FirebaseESP8266()
 {
     if (ut)
         delete ut;
+
+    if (cfg)
+        delete cfg;
+
+    if (auth)
+        delete auth;
 }
 
 void FirebaseESP8266::begin(FirebaseConfig *config, FirebaseAuth *auth)
 {
     init(config, auth);
 
-    if (_cfg->service_account.json.path.length() > 0)
+    if (cfg->service_account.json.path.length() > 0)
     {
         if (!Signer.parseSAFile())
-            _cfg->signer.tokens.status = token_status_uninitialized;
+            cfg->signer.tokens.status = token_status_uninitialized;
     }
 
-    if (_cfg->signer.tokens.legacy_token.length() > 0)
+    if (cfg->signer.tokens.legacy_token.length() > 0)
         Signer.setTokenType(token_type_legacy_token);
     else if (Signer.tokenSigninDataReady())
     {
-        if (_auth->token.uid.length() == 0)
+        if (auth->token.uid.length() == 0)
             Signer.setTokenType(token_type_oauth2_access_token);
         else
             Signer.setTokenType(token_type_custom_token);
@@ -76,24 +83,24 @@ void FirebaseESP8266::begin(FirebaseConfig *config, FirebaseAuth *auth)
         Signer.setTokenType(token_type_id_token);
 
     struct fb_esp_url_info_t uinfo;
-    _cfg->_int.fb_auth_uri = _cfg->signer.tokens.token_type == token_type_legacy_token || _cfg->signer.tokens.token_type == token_type_id_token;
+    cfg->_int.fb_auth_uri = cfg->signer.tokens.token_type == token_type_legacy_token || cfg->signer.tokens.token_type == token_type_id_token;
 
-    if (_cfg->host.length() > 0)
-        _cfg->database_url = _cfg->host;
+    if (cfg->host.length() > 0)
+        cfg->database_url = cfg->host;
 
-    if (_cfg->database_url.length() > 0)
+    if (cfg->database_url.length() > 0)
     {
-        ut->getUrlInfo(_cfg->database_url.c_str(), uinfo);
-        _cfg->database_url = uinfo.host;
+        ut->getUrlInfo(cfg->database_url.c_str(), uinfo);
+        cfg->database_url = uinfo.host;
     }
-    if (strlen_P(_cfg->cert.data))
-        _cfg->_int.fb_caCert = _cfg->cert.data;
+    if (strlen_P(cfg->cert.data))
+        cfg->_int.fb_caCert = cfg->cert.data;
 
-    if (_cfg->cert.file.length() > 0)
+    if (cfg->cert.file.length() > 0)
     {
-        if (_cfg->cert.file_storage == mem_storage_type_sd && !_cfg->_int.fb_sd_rdy)
-            _cfg->_int.fb_sd_rdy = ut->sdTest(_cfg->_int.fb_file);
-        else if (_cfg->cert.file_storage == mem_storage_type_flash && !_cfg->_int.fb_flash_rdy)
+        if (cfg->cert.file_storage == mem_storage_type_sd && !cfg->_int.fb_sd_rdy)
+            cfg->_int.fb_sd_rdy = ut->sdTest(cfg->_int.fb_file);
+        else if (cfg->cert.file_storage == mem_storage_type_flash && !cfg->_int.fb_flash_rdy)
             ut->flashTest();
     }
 
@@ -102,40 +109,58 @@ void FirebaseESP8266::begin(FirebaseConfig *config, FirebaseAuth *auth)
 
 void FirebaseESP8266::begin(const String &databaseURL, const String &databaseSecret)
 {
-    _cfg_.database_url = databaseURL.c_str();
-    _cfg_.signer.tokens.legacy_token = databaseSecret.c_str();
-    begin(&_cfg_, &_auth_);
+    if (!cfg)
+        cfg = new FirebaseConfig();
+
+    if (!auth)
+        auth = new FirebaseAuth();
+
+    cfg->database_url = databaseURL.c_str();
+    cfg->signer.tokens.legacy_token = databaseSecret.c_str();
+    begin(cfg, auth);
 }
 
 void FirebaseESP8266::begin(const String &databaseURL, const String &databaseSecret, const char *caCert, float GMTOffset)
 {
-    _cfg_.database_url = databaseURL.c_str();
-    _cfg_.signer.tokens.legacy_token = databaseSecret.c_str();
+    if (!cfg)
+        cfg = new FirebaseConfig();
+
+    if (!auth)
+        auth = new FirebaseAuth();
+
+    cfg->database_url = databaseURL.c_str();
+    cfg->signer.tokens.legacy_token = databaseSecret.c_str();
     if (strlen_P(caCert))
     {
         float _gmtOffset = GMTOffset;
-        _cfg_.cert.data = caCert;
+        cfg->cert.data = caCert;
         if (GMTOffset >= -12.0 && GMTOffset <= 14.0)
             _gmtOffset = GMTOffset;
         ut->setClock(_gmtOffset);
     }
-    begin(&_cfg_, &_auth_);
+    begin(cfg, auth);
 }
 
 void FirebaseESP8266::begin(const String &databaseURL, const String &databaseSecret, const String &caCertFile, uint8_t storageType, float GMTOffset)
 {
-    _cfg_.database_url = databaseURL.c_str();
-    _cfg_.signer.tokens.legacy_token = databaseSecret.c_str();
+    if (!cfg)
+        cfg = new FirebaseConfig();
+
+    if (!auth)
+        auth = new FirebaseAuth();
+
+    cfg->database_url = databaseURL.c_str();
+    cfg->signer.tokens.legacy_token = databaseSecret.c_str();
     if (caCertFile.length() > 0)
     {
         float _gmtOffset = GMTOffset;
-        _cfg_.cert.file = caCertFile.c_str();
-        _cfg_.cert.file_storage = storageType;
+        cfg->cert.file = caCertFile.c_str();
+        cfg->cert.file_storage = storageType;
         if (GMTOffset >= -12.0 && GMTOffset <= 14.0)
             _gmtOffset = GMTOffset;
         ut->setClock(_gmtOffset);
     }
-    begin(&_cfg_, &_auth_);
+    begin(cfg, auth);
 }
 
 bool FirebaseESP8266::signUp(FirebaseConfig *config, FirebaseAuth *auth, const char *email, const char *password)
@@ -158,8 +183,10 @@ bool FirebaseESP8266::sendResetPassword(FirebaseConfig *config, const char *emai
 
 void FirebaseESP8266::end(FirebaseData &fbdo)
 {
+#ifdef ENABLE_RTDB
     endStream(fbdo);
     removeStreamCallback(fbdo);
+#endif
     fbdo.clear();
 }
 
@@ -180,28 +207,34 @@ bool FirebaseESP8266::authenticated()
 
 void FirebaseESP8266::init(FirebaseConfig *config, FirebaseAuth *auth)
 {
-    _auth = auth;
-    _cfg = config;
+    if (this->cfg)
+        delete this->cfg;
 
-    if (_cfg == nullptr)
-        _cfg = &_cfg_;
+    if (this->auth)
+        delete this->auth;
 
-    if (_auth == nullptr)
-        _auth = &_auth_;
+    this->auth = auth;
+    this->cfg = config;
+
+    if (!this->cfg)
+        this->cfg = new FirebaseConfig();
+
+    if (!this->auth)
+        this->auth = new FirebaseAuth();
 
     if (ut)
         delete ut;
 
-    ut = new UtilsClass(config);
-
+    ut = new UtilsClass(this->cfg);
+#ifdef ENABLE_RTDB
     RTDB.begin(ut);
+#endif
+    cfg->_int.fb_reconnect_wifi = WiFi.getAutoReconnect();
 
-    _cfg->_int.fb_reconnect_wifi = WiFi.getAutoReconnect();
-
-    _cfg->signer.signup = false;
-    _cfg_.signer.signup = false;
-    Signer.begin(ut, _cfg, _auth);
-    std::string().swap(_cfg_.signer.tokens.error.message);
+    cfg->signer.signup = false;
+    cfg->signer.signup = false;
+    Signer.begin(ut, this->cfg, this->auth);
+    ut->clearS(cfg->signer.tokens.error.message);
 }
 
 void FirebaseESP8266::reconnectWiFi(bool reconnect)
@@ -212,15 +245,16 @@ void FirebaseESP8266::reconnectWiFi(bool reconnect)
 void FirebaseESP8266::setFloatDigits(uint8_t digits)
 {
     if (digits < 7)
-        _cfg->_int.fb_float_digits = digits;
+        cfg->_int.fb_float_digits = digits;
 }
 
 void FirebaseESP8266::setDoubleDigits(uint8_t digits)
 {
     if (digits < 9)
-        _cfg->_int.fb_double_digits = digits;
+        cfg->_int.fb_double_digits = digits;
 }
 
+#ifdef ENABLE_RTDB
 void FirebaseESP8266::setReadTimeout(FirebaseData &fbdo, int millisec)
 {
     RTDB.setReadTimeout(&fbdo, millisec);
@@ -1776,7 +1810,7 @@ bool FirebaseESP8266::deleteNode(FirebaseData &fbdo, const String &path, const S
 
 bool FirebaseESP8266::deleteNodesByTimestamp(FirebaseData &fbdo, const String &path, const String &timestampNode, size_t limit, unsigned long dataRetentionPeriod)
 {
-  return RTDB.deleteNodesByTimestamp(&fbdo, path.c_str(), timestampNode.c_str(), limit, dataRetentionPeriod);
+    return RTDB.deleteNodesByTimestamp(&fbdo, path.c_str(), timestampNode.c_str(), limit, dataRetentionPeriod);
 }
 
 bool FirebaseESP8266::beginStream(FirebaseData &fbdo, const String &path)
@@ -1904,45 +1938,59 @@ uint8_t FirebaseESP8266::errorQueueCount(FirebaseData &fbdo)
     return RTDB.errorQueueCount(&fbdo);
 }
 
+#endif
+
+#ifdef ENABLE_FCM
 bool FirebaseESP8266::handleFCMRequest(FirebaseData &fbdo, fb_esp_fcm_msg_type messageType)
 {
     if (!fbdo.reconnect())
         return false;
 
+    if(!ut)
+        ut = new UtilsClass(nullptr);
+
     if (!ut->waitIdle(fbdo._ss.http_code))
         return false;
 
-    if (fbdo.fcm._server_key.length() == 0)
+    FirebaseJsonData data;
+
+    FirebaseJson json(fbdo.fcm.raw);
+
+    std::string s;
+    ut->appendP(s, fb_esp_pgm_str_577, true);
+
+    json.get(data, s.c_str());
+
+    if (data.stringValue.length() == 0)
     {
         fbdo._ss.http_code = FIREBASE_ERROR_HTTPC_NO_FCM_SERVER_KEY_PROVIDED;
         return false;
     }
 
-    if (fbdo.fcm._deviceToken.size() == 0 && messageType == fb_esp_fcm_msg_type::msg_single)
+    if (fbdo.fcm.idTokens.length() == 0 && messageType == fb_esp_fcm_msg_type::msg_single)
     {
         fbdo._ss.http_code = FIREBASE_ERROR_HTTPC_NO_FCM_DEVICE_TOKEN_PROVIDED;
         return false;
     }
 
-    if (messageType == fb_esp_fcm_msg_type::msg_single && fbdo.fcm._deviceToken.size() > 0 && fbdo.fcm._index > fbdo.fcm._deviceToken.size() - 1)
+    FirebaseJsonArray arr;
+    arr.setJsonArrayData(fbdo.fcm.idTokens.c_str());
+
+    if (messageType == fb_esp_fcm_msg_type::msg_single && fbdo.fcm.idTokens.length() > 0 && fbdo.fcm._index > arr.size() - 1)
     {
         fbdo._ss.http_code = FIREBASE_ERROR_HTTPC_NO_FCM_INDEX_NOT_FOUND_IN_DEVICE_TOKEN_PROVIDED;
         return false;
     }
 
-    if (messageType == fb_esp_fcm_msg_type::msg_topic && fbdo.fcm._topic.length() == 0)
+    ut->appendP(s, fb_esp_pgm_str_576, true);
+
+    json.get(data, s.c_str());
+
+    if (messageType == fb_esp_fcm_msg_type::msg_topic && data.stringValue.length() == 0)
     {
         fbdo._ss.http_code = FIREBASE_ERROR_HTTPC_NO_FCM_TOPIC_PROVIDED;
         return false;
     }
-
-    if (Signer.getCfg()->_int.fb_processing)
-    {
-        fbdo._ss.http_code = FIREBASE_ERROR_HTTPC_ERROR_CONNECTION_INUSED;
-        return false;
-    }
-
-    Signer.getCfg()->_int.fb_processing = true;
 
     fbdo.fcm.fcm_begin(fbdo);
 
@@ -1964,6 +2012,8 @@ bool FirebaseESP8266::sendTopic(FirebaseData &fbdo)
 {
     return handleFCMRequest(fbdo, fb_esp_fcm_msg_type::msg_topic);
 }
+
+#endif
 
 bool FirebaseESP8266::sdBegin(int8_t ss)
 {
