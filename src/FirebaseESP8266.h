@@ -1,17 +1,17 @@
 
 #ifndef FIREBASE_CLIENT_VERSION
-#define FIREBASE_CLIENT_VERSION "3.3.0"
+#define FIREBASE_CLIENT_VERSION "3.3.1"
 #endif
 
 /**
- * Google's Firebase Realtime Database Arduino Library for ESP8266, v3.3.0
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, v3.3.1
  * 
- * June 22, 2021
+ * June 24, 2021
  *
  *   Updates:
  * 
- * - Improve memory usage.
- * - Add support classes exclusion.
+ * - Fix the unreadable RTDB.MultiPathStream's event type. 
+ * - Fix invalid input data in FirebaseJson getArray.
  *
  *
  * 
