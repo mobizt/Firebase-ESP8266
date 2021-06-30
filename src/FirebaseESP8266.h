@@ -1,16 +1,16 @@
 
 #ifndef FIREBASE_CLIENT_VERSION
-#define FIREBASE_CLIENT_VERSION "3.3.3"
+#define FIREBASE_CLIENT_VERSION "3.3.5"
 #endif
 
 /**
- * Google's Firebase Realtime Database Arduino Library for ESP8266, v3.3.3
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, v3.3.5
  * 
- * June 27, 2021
+ * June 30, 2021
  *
  *   Updates:
  * 
- * - Fix the empty JSON and JSON Array objects issues in RTDB's Firebase Data object response payload.
+ * - Fix unhandled exception caused by Firebase.begin when using database url and secret as arguments.
  *
  *
  * 
@@ -2014,6 +2014,7 @@ private:
   UtilsClass *ut = nullptr;
   FirebaseAuth *auth = nullptr;
   FirebaseConfig *cfg = nullptr;
+  bool extConfig = true;
 };
 
 extern FirebaseESP8266 Firebase;

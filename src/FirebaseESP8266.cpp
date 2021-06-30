@@ -1,11 +1,11 @@
 /**
- * Google's Firebase Realtime Database Arduino Library for ESP8266, v3.3.3
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, v3.3.5
  * 
- * June 27, 2021
+ * June 30, 2021
  *
  *   Updates:
  * 
- * - Fix the empty JSON and JSON Array objects issues in RTDB's Firebase Data object response payload.
+ * - Fix unhandled exception caused by Firebase.begin when using database url and secret as arguments.
  *
  *
  * 
@@ -52,11 +52,14 @@ FirebaseESP8266::~FirebaseESP8266()
     if (ut)
         delete ut;
 
-    if (cfg)
-        delete cfg;
+    if (!extConfig)
+    {
+        if (cfg)
+            delete cfg;
 
-    if (auth)
-        delete auth;
+        if (auth)
+            delete auth;
+    }
 }
 
 void FirebaseESP8266::begin(FirebaseConfig *config, FirebaseAuth *auth)
@@ -108,11 +111,13 @@ void FirebaseESP8266::begin(FirebaseConfig *config, FirebaseAuth *auth)
 
 void FirebaseESP8266::begin(const String &databaseURL, const String &databaseSecret)
 {
-    if (!cfg)
+     if (!cfg)
         cfg = new FirebaseConfig();
 
     if (!auth)
         auth = new FirebaseAuth();
+
+    extConfig = false;
 
     cfg->database_url = databaseURL.c_str();
     cfg->signer.tokens.legacy_token = databaseSecret.c_str();
@@ -121,11 +126,13 @@ void FirebaseESP8266::begin(const String &databaseURL, const String &databaseSec
 
 void FirebaseESP8266::begin(const String &databaseURL, const String &databaseSecret, const char *caCert, float GMTOffset)
 {
-    if (!cfg)
+     if (!cfg)
         cfg = new FirebaseConfig();
 
     if (!auth)
         auth = new FirebaseAuth();
+
+    extConfig = false;
 
     cfg->database_url = databaseURL.c_str();
     cfg->signer.tokens.legacy_token = databaseSecret.c_str();
@@ -142,11 +149,13 @@ void FirebaseESP8266::begin(const String &databaseURL, const String &databaseSec
 
 void FirebaseESP8266::begin(const String &databaseURL, const String &databaseSecret, const String &caCertFile, uint8_t storageType, float GMTOffset)
 {
-    if (!cfg)
+     if (!cfg)
         cfg = new FirebaseConfig();
 
     if (!auth)
         auth = new FirebaseAuth();
+
+    extConfig = false;
 
     cfg->database_url = databaseURL.c_str();
     cfg->signer.tokens.legacy_token = databaseSecret.c_str();
@@ -206,25 +215,22 @@ bool FirebaseESP8266::authenticated()
 
 void FirebaseESP8266::init(FirebaseConfig *config, FirebaseAuth *auth)
 {
-    if (this->cfg)
-        delete this->cfg;
-
-    if (this->auth)
-        delete this->auth;
-
+  if (!this->auth)
     this->auth = auth;
+
+  if (!this->cfg)
     this->cfg = config;
 
-    if (!this->cfg)
-        this->cfg = new FirebaseConfig();
+  if (!this->cfg)
+    this->cfg = new FirebaseConfig();
 
-    if (!this->auth)
-        this->auth = new FirebaseAuth();
+  if (!this->auth)
+    this->auth = new FirebaseAuth();
 
-    if (ut)
-        delete ut;
+  if (ut)
+    delete ut;
 
-    ut = new UtilsClass(this->cfg);
+  ut = new UtilsClass(this->cfg);
 #ifdef ENABLE_RTDB
     RTDB.begin(ut);
 #endif
