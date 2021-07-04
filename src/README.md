@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v3.3.5
+Google's Firebase Realtime Database Arduino Library for ESP8266 v3.3.6
 
 
 ## Global functions
@@ -884,22 +884,6 @@ bool pushAsync(FirebaseData &fbdo, const String &path, uint8_t *blob, size_t siz
 
 
 
-#### Append new blob (binary data) and the virtual child ".priority" to the defined database path.
-
-```C++
-bool pushBlob(FirebaseData &fbdo, const String &path, uint8_t *blob, size_t size, float priority);
-
-bool push(FirebaseData &fbdo, const String &path, uint8_t *blob, size_t size, float priority);
-
-bool pushBlobAsync(FirebaseData &fbdo, const String &path, uint8_t *blob, size_t size, float priority);
-
-bool pushAsync(FirebaseData &fbdo, const String &path, uint8_t *blob, size_t size, float priority);
-```
-
-
-
-
-
 
 #### Append new binary data from file stored on SD card/Flash memory to the defined database path.
 
@@ -926,23 +910,6 @@ bool push(FirebaseData &fbdo, uint8_t storageType, const String &path, const Str
 bool pushFileAsync(FirebaseData &fbdo, uint8_t storageType, const String &path, const String &fileName);
 
 bool pushAsync(FirebaseData &fbdo, uint8_t storageType, const String &path, const String &fileName);
-```
-
-
-
-
-
-
-#### Append new binary data from file stored on SD card/Flash memory and the virtual child ".priority" to the defined database path.
-
-```C++
-bool pushFile(FirebaseData &fbdo, uint8_t storageType, const String &path, const String &fileName, float priority);
-
-bool push(FirebaseData &fbdo, uint8_t storageType, const String &path, const String &fileName, float priority);
-
-bool pushFileAsync(FirebaseData &fbdo, uint8_t storageType, const String &path, const String &fileName, float priority);
-
-bool pushAsync(FirebaseData &fbdo, uint8_t storageType, const String &path, const String &fileName, float priority);
 ```
 
 
@@ -1738,22 +1705,6 @@ bool setAsync(FirebaseData &fbdo, const String &path, uint8_t *blob, size_t size
 
 
 
-#### Set blob data and virtual child ".priority" at the defined database path.
-
-```C++
-bool setBlob(FirebaseData &fbdo, const String &path, uint8_t *blob, size_t size, float priority);
-
-bool set(FirebaseData &fbdo, const String &path, uint8_t *blob, size_t size, float priority);
-
-bool setBlobAsync(FirebaseData &fbdo, const String &path, uint8_t *blob, size_t size, float priority);
-
-bool setAsync(FirebaseData &fbdo, const String &path, uint8_t *blob, size_t size, float priority);
-```
-
-
-
-
-
 
 #### Set blob (binary data) at the defined database path if defined database path's ETag matched the ETag value
 
@@ -1790,21 +1741,6 @@ bool setAsync(FirebaseData &fbdo, const String &path, uint8_t *blob, size_t size
 
 
 
-#### Set blob data and the virtual child ".priority" if defined ETag matches at the defined database path 
-
-```C++
-bool setBlob(FirebaseData &fbdo, const String &path, uint8_t *blob, size_t size, float priority, const String &ETag);
-
-bool set(FirebaseData &fbdo, const String &path, uint8_t *blob, size_t size, float priority, const String &ETag);
-
-bool setBlobAsync(FirebaseData &fbdo, const String &path, uint8_t *blob, size_t size, float priority, const String &ETag);
-
-bool setAsync(FirebaseData &fbdo, const String &path, uint8_t *blob, size_t size, float priority, const String &ETag);
-```
-
-
-
-
 
 #### Set binary data from the file store on SD card/Flash memory to the defined database path.
 
@@ -1830,22 +1766,6 @@ bool set(FirebaseData &fbdo, uint8_t storageType, const String &path, const Stri
 bool setFileAsync(FirebaseData &fbdo, uint8_t storageType, const String &path, const String &fileName);
 
 bool setAsync(FirebaseData &fbdo, uint8_t storageType, const String &path, const String &fileName);
-```
-
-
-
-
-
-#### Set binary data from the file and virtual child ".priority" at the defined database path.
-
-```C++
-bool setFile(FirebaseData &fbdo, uint8_t storageType, const String &path, const String &fileName, float priority);
-
-bool set(FirebaseData &fbdo, uint8_t storageType, const String &path, const String &fileName, float priority);
-
-bool setFileAsync(FirebaseData &fbdo, uint8_t storageType, const String &path, const String &fileName, float priority);
-
-bool setAsync(FirebaseData &fbdo, uint8_t storageType, const String &path, const String &fileName, float priority);
 ```
 
 
@@ -1884,23 +1804,6 @@ bool setFileAsync(FirebaseData &fbdo, uint8_t storageType, const String &path, c
 bool setAsync(FirebaseData &fbdo, uint8_t storageType, const String &path, const String &fileName, const String &ETag);
 ```
 
-
-
-
-
-
-#### Set binary data from a file and the virtual child ".priority" if defined ETag matches at the defined database path 
-
-```C++
-bool setFile(FirebaseData &fbdo, uint8_t storageType, const String &path, const String &fileName, float priority, const String &ETag);
-
-bool set(FirebaseData &fbdo, uint8_t storageType, const String &path, const String &fileName, float priority, const String &ETag);
-
-bool setFileAsync(FirebaseData &fbdo, uint8_t storageType, const String &path, const String &fileName, float priority, const String &ETag);
-
-bool setAsync(FirebaseData &fbdo, uint8_t storageType, const String &path, const String &fileName, float priority, const String &ETag);
-
-```
 
 
 

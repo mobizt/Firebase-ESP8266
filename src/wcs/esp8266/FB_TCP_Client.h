@@ -1,10 +1,5 @@
 /**
- * HTTP Client wrapper v1.1.8
- * 
- * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
- * and delete calls. 
- * 
- * The library was test and work well with ESP32s based module and add support for multiple stream event path.
+ * Firebase TCP Client v1.1.9
  * 
  * The MIT License (MIT)
  * Copyright (c) 2021 K. Suwatchai (Mobizt)
@@ -28,8 +23,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef FB_HTTPClient_H
-#define FB_HTTPClient_H
+#ifndef FB_TCP_Client_H
+#define FB_TCP_Client_H
 
 #ifdef ESP8266
 
@@ -81,13 +76,13 @@
 
 struct fb_esp_sd_config_info_t
 {
-  int8_t sck = -1;
-  int8_t miso = -1;
-  int8_t mosi = -1;
-  int8_t ss = -1;
+  int sck = -1;
+  int miso = -1;
+  int mosi = -1;
+  int ss = -1;
 };
 
-class FB_HTTPClient
+class FB_TCP_Client
 {
 
   friend class FirebaseData;
@@ -97,21 +92,19 @@ class FB_HTTPClient
   friend class UtilsClass;
 
 public:
-  FB_HTTPClient();
-  ~FB_HTTPClient();
+  FB_TCP_Client();
+  ~FB_TCP_Client();
 
   bool begin(const char *host, uint16_t port);
 
   bool connected(void);
 
-  int send(const char *header, const char *payload);
-
-  bool send(const char *header);
+  int send(const char *data);
 
   WiFiClient *stream(void);
 
   void setCACert(const char *caCert);
-  void setCACertFile(const char *caCertFile, uint8_t storageType, struct fb_esp_sd_config_info_t sd_config);
+  void setCACertFile(const char* caCertFile, uint8_t storageType, struct fb_esp_sd_config_info_t sd_config);
   bool connect(void);
 
 
@@ -135,4 +128,4 @@ private:
 
 #endif /* ESP8266 */
 
-#endif /* FB_HTTPClient_H */
+#endif /* FB_TCP_Client_H */
