@@ -3,7 +3,7 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4390794.svg)](https://doi.org/10.5281/zenodo.4390794)
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v3.3.6
+Google's Firebase Realtime Database Arduino Library for ESP8266 v3.3.7
 
 
 This library supports ESP8266 MCU from Espressif. The following are platforms in which libraries are also available.
