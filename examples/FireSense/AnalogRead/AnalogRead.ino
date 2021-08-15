@@ -13,8 +13,6 @@
 /** 
  * This example shows how to read the and process IO channels programatically.
  * 
- * This example sketch may not compatible with ESP8266 device which may crash due to stack overflow.
- * 
  * The code will read the analog value and calculate the measured voltage and average voltage periodically.
  * 
  * This example used the FireSense, The Programmable Data Logging and IO Control library to
@@ -96,6 +94,7 @@
 /* 5. Define the database secret in case we need to access database rules*/
 #define DATABASE_SECRET "DATABASE_SECRET"
 
+//Define Firebase Data object
 FirebaseData fbdo1;
 FirebaseData fbdo2;
 
@@ -217,9 +216,6 @@ void setup()
 
     Firebase.begin(&config, &auth);
 
-    //Or use legacy authenticate method
-    //Firebase.begin(DATABASE_URL, DATABASE_SECRET);
-
     Firebase.reconnectWiFi(true);
 
     //Set up the config
@@ -246,8 +242,13 @@ void setup()
 
     //Initiate the FireSense class
     FireSense.begin(&fsConfig, DATABASE_SECRET); //The database secret can be empty string when using the OAuthen2.0 sign-in method
+    
     //Load the config from database or create the default config
-    FireSense.loadConfig(loadDefaultConfig); //The loadDefaultConfig is the function to configure the channels and condition information.
+    if (!FireSense.loadConfig())
+    {
+        loadDefaultConfig(); //The loadDefaultConfig is the function to configure the channels and condition information.
+        FireSense.updateConfig();
+    }
 }
 
 void loop()
