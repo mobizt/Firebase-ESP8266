@@ -90,6 +90,8 @@ void setup()
     Firebase.reconnectWiFi(true);
 
     spi_ethernet_module.enc28j60 = &eth;
+    //spi_ethernet_module.w5100 = &eth;
+    //spi_ethernet_module.w5500 = &eth;
 
     fbdo.fcm.begin(FIREBASE_FCM_SERVER_KEY, &spi_ethernet_module);
 
