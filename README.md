@@ -3,7 +3,7 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4390794.svg)](https://doi.org/10.5281/zenodo.4390794)
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v3.5.2
+Google's Firebase Realtime Database Arduino Library for ESP8266 v3.5.4
 
 
 This library supports ESP8266 MCU from Espressif. The following are platforms in which libraries are also available.
@@ -14,6 +14,7 @@ This library supports ESP8266 MCU from Espressif. The following are platforms in
 
 * [Arduino WiFi Shield 101 and Arduino MKR1000 WIFI](https://github.com/mobizt/Firebase-Arduino-WiFi101)
 
+<br/>
 
 ## New library for ESP8266 and ESP32 is available
 
@@ -21,7 +22,7 @@ The unified version for ESP8266 and ESP32 with Cloud Storage and new Cloud Messa
 
 Please try it here https://github.com/mobizt/Firebase-ESP-Client
 
-
+<br/>
 
 ## Tested Devices
 
@@ -30,43 +31,27 @@ Please try it here https://github.com/mobizt/Firebase-ESP-Client
  * ESP-12F
  * LinkNode
 
+<br/>
 
  ## Unsupported Mobile network modem bridge
 
 The library access the internet through WiFi connection.  The others UART/Serial bridge mobile network modem which work with AT commands and ESP8266 AT commands were unsupported.
 
+<br/>
 
 ## Features
 
+* **Complete and secure Firebase RTDB's REST APIs Client**
 
-
-* **Supports Read (get), Store (set), Append (push), Patch (update) and Delete Data**
-
-* **Supports Primitive data types: Integer, Float, Double, Boolean, String and JSON.**
-
-* **Supports BLOB and File Stream Data.**
-
-* **Support Read and Write Database Rules.**
-
-* **Supports ETag, Priority, Data Limits, Timestamp, Filtering, etc.**
-
-* **Supports Stream Event Callbacks**
-
-* **Supports Multiple paths Stream (under the same parent node)**
-
-* **Supports Email/Password, custom and access token authentications using Service Account**
-
-* **Supports Data Backup and Restore.**
+* **Supports database read, store, update, delete and value changes listener**
 
 * **Supports Firebase Cloud Messaging.**
 
-* **Supports SD and flash memory's CA certificate file.**
-
 * **Built-in easiest JSON parser and builder.**
 
-* **Supports Ethernet using ENC28J60, W5100 and W5500 Ethernet modules.**
+* **Supports ethernet using ENC28J60, W5100 and W5500 Ethernet modules.**
 
-
+<br/>
 
 ## Known bugs
 
@@ -74,7 +59,7 @@ From known bugs of BearSSL library in ESP8266 Arduino Core SDK version 2.6.1.
 
 If you're using this SDK version, please update the ESP8266 Arduino Core SDK to version 2.6.2 or newer.
 
-
+<br/>
 
 ## Basic Examples
 
@@ -89,9 +74,9 @@ Don't be confused with other Firebase Arduino libraries, this library has differ
 [Serverless IoTs with Firebase Realtime Database and ESP8266 - Part 2](https://medium.com/@vibrologic/serverless-iots-with-firebase-realtime-database-and-esp8266-e624304c3197)
 
 
+<br/>
 
 ## Dependencies
-
 
 This library required **ESP8266 Core SDK version 2.6.2 and above**.
 
@@ -99,14 +84,13 @@ For Arduino IDE, ESP8266 Core SDK can be installed through **Boards Manager**.
 
 For PlatfoemIO IDE, ESP8266 Core SDK can be installed through **PIO Home** > **Platforms** > **Espressif 8266**.
 
-
-
+<br/>
 
 ## Installation
 
+<br/>
 
 ### Using Library Manager
-
 
 At Arduino IDE, go to menu **Sketch** -> **Include Library** -> **Manage Libraries...**
 
@@ -114,7 +98,7 @@ In Library Manager Window, search **"firebase"** in the search form then select 
 
 Click **"Install"** button.
 
-
+<br/>
 
 For PlatformIO IDE, using the following command.
 
@@ -124,6 +108,7 @@ Or at **PIO Home** -> **Library** -> **Registry** then search **Firebase ESP8266
 
 [More on PlatformIO...](https://platformio.org/lib/show/6247/Firebase%20ESP8266%20Client)
 
+<br/>
 
 ### Manual installation
 
@@ -140,18 +125,16 @@ Go to menu **Files** -> **Examples** -> **Firebase-ESP8266-master** and choose o
 For PlatformIO, in folder **"lib"**, create new folder named **"Firebase-ESP8266"** and add **[these files](https://github.com/mobizt/Firebase-ESP8266/tree/master/src)** in that folder.
 
 
-
-
-
+<br/>
 
 ## Usages
 
 
-See [All examples](/examples) for complete usages.
+See [all examples](/examples) for complete usages.
 
-See [Function description](/src/README.md) for all available functions.
+See [function description](/src/README.md) for all available functions.
 
-
+<br/>
 
 ### Initialization
 
@@ -209,16 +192,13 @@ fbdo.setBSSLBufferSize(1024, 1024); //minimum size is 512 bytes, maximum size is
 //Prevent out of memory for large payload but data may be truncated and can't determine its type.
 fbdo.setResponseSize(1024); //minimum size is 1024 bytes
 ```
-See [Other authentication examples](/examples/Authentications) for more sign in methods.
+See [other authentication examples](/examples/Authentications) for more sign in methods.
 
-
-
-
-
-
-
+<br/>
 
 ## IDE Configuaration for ESP8266 MMU - Adjust the Ratio of ICACHE to IRAM
+
+<br/>
 
 ### Arduino IDE
 
@@ -233,6 +213,8 @@ To increase the Heap, choose the MMU **option 3**, 16KB cache + 48KB IRAM and 2n
 
 More about MMU settings.
 https://arduino-esp8266.readthedocs.io/en/latest/mmu.html
+
+<br/>
 
 ### PlatformIO IDE
 
@@ -259,7 +241,7 @@ monitor_speed = 115200
 3. Delete .pio and .vscode folders in your project.
 4. Clean and Compile the project.
 
-
+<br/>
 
 The supportedd MMU build flags in PlatformIO.
 
@@ -288,6 +270,7 @@ The supportedd MMU build flags in PlatformIO.
    Disables default configuration and expects user-specified flags
 
    
+<br/>
 
 ### Test code for MMU
 
@@ -313,16 +296,13 @@ void loop() {
 
 ```
 
-
-
-
-
+<br/>
 
 ## Authentication
 
 This library supports many types of authentications.
 
-See [Other authentication examples](/examples/Authentications) for more authentication methods.
+See [other authentication examples](/examples/Authentications) for more authentication methods.
 
 Some authentication methods require the token generaion and exchanging process which take more time than using the legacy token.
 
@@ -339,9 +319,9 @@ While authenticate using Email and password, the process will be perform faster 
 
 The authenticate using the legacy token (database secret) does not have these delay time because the token is ready to use.
 
+<br/>
 
-
-#### Speed of data transfer
+### Speed of data transfer
 
 This library focuses on the user privacy and user data protection which follows Google authentication processes. Setting the security rules to allow public access read and write, is not recommended even the data transmision time in this case was significantly reduced as it does not require any auth token then the overall data size was reduced, but anyone can steal, modify, or delete data in your database.
 
@@ -392,31 +372,71 @@ For post (push) or put (set) request in RTDB, to speed up the data transfer, use
 
 With pushAsync and setAsync, the payload response will be ignored and the next data will be processed immediately.
 
+<br/>
 
-#### The authenication credentials and prerequisite
+### The authenication credentials and prerequisite 
 
 
 To use Email/Password sign-in authentication as in the examples, the Email/Password Sign-in provider must be enabled.
 
+<br/>
+
 ![Enable Email/Password Sign-in provider](/media/images/Enable_Email_Password_Provider.png)
+
+![Enable Email/Password Sign-in provider](/media/images/Enable_Email_Password_Provider2.png)
+
+<br/>
+
+Add Email and password for first user in your project then use this Email and password to sign in.
+
+![Enable Email/Password Sign-in provider](/media/images/Enable_Email_Password_Provider3.png)
+
+<br/>
 
 To get API Key used in Email/Password sign-in
 
 ![API Key](/media/images/API_Key.png)
 
+<br/>
+
 To get the Service accounts key JSON file used in Custom and OAuth2.0 tokens athentications.
 
 ![Service Account Key File](/media/images/Service_Account_Key.png)
 
+<br/>
 
-The Firebase Host and database secret for RTDB usages.
+For RTDB usages, create new real-time database (if not setup yet)
 
-![Firebase Host](/media/images/Firebase_Host.png)
+![Firebase Host](/media/images/Create_New_RTDB.png)
 
-![Firebase Auth](/media/images/Firebase_Auth.png)
+![Firebase Host](/media/images/Create_New_RTDB2.png)
 
+![Firebase Host](/media/images/Create_New_RTDB3.png)
 
+<br/>
 
+Edit the default database rules as following
+
+<br/>
+
+![Firebase Host](/media/images/Create_New_RTDB4.png)
+
+```json
+{
+  "rules": {
+    ".read": "auth != null", 
+    ".write": "auth != null", 
+  }
+}
+```
+
+To get the database URL and secret (legacy token).
+
+![Firebase Host](/media/images/RTDB_URL.png)
+
+![Firebase Auth](/media/images/RTDB_Secret.png)
+
+<br/>
 
 ## Excludes the unused classes to save memory
 
@@ -425,11 +445,13 @@ The internal classes, RTDB and FCM in this library can be excluded or disabled t
 
 By comment the following macros.
 
+<br/>
+
 ENABLE_RTDB
 
 ENABLE_FCM
 
-
+<br/>
 
 ### Read Data
 
@@ -446,9 +468,9 @@ These functions return boolean value indicates the success of the operation whic
 * The data types matched between request and response.
 
 
-For generic get, use Firebase.get(fbdo, <path>).
+For generic get, use Firebase.get(fbdo, \<path\>).
 
-And check its type with fbdo.dataType() or fbdo.dataTypeEnum() and cast the value from it e.g. fbdo.to<int>(), fbdo.to<std::string>().
+And check its type with fbdo.dataType() or fbdo.dataTypeEnum() and cast the value from it e.g. fbdo.to\<int\>(), fbdo.to\<std::string\>().
 
 The data type of returning payload can be determined by `fbdo.dataType()` which returns String or `fbdo.dataTypeEnum()` returns enum value.
 
@@ -456,8 +478,9 @@ The String of type returns from `fbdo.dataType()` can be string, boolean, int, f
 
 The enum value type, fb_esp_rtdb_data_type returns from `fbdo.dataTypeEnum()` can be fb_esp_rtdb_data_type_null (1), fb_esp_rtdb_data_type_integer, fb_esp_rtdb_data_type_float, fb_esp_rtdb_data_type_double, fb_esp_rtdb_data_type_boolean, fb_esp_rtdb_data_type_string, fb_esp_rtdb_data_type_json, fb_esp_rtdb_data_type_array, fb_esp_rtdb_data_type_blob, and fb_esp_rtdb_data_type_file (10)
 
+<br/>
 
-The database data's payload (response) can be read or access through the casting value from FirebaseData object with to<type>() functions (since v2.4.0).
+The database data's payload (response) can be read or access through the casting value from FirebaseData object with to\<type\>() functions (since v2.4.0).
 
 * `String s = fbdo.to<String>();`
 
@@ -513,6 +536,7 @@ Or through the legacy methods
 
  * `File file = fbdo.fileStream();`
 
+<br/>
 
 Read the data which its type does not match the data type in the database from above functions will return empty (string, object or array).
 
@@ -520,9 +544,9 @@ BLOB and file stream data are stored as special base64 encoded string which are 
 
 The encoded base64 string will be prefixed with some header string ("file,base64," and "blob,base64,") for data type manipulation. 
 
+<br/>
 
 The following example showed how to read integer value from node "/test/int".
-
 
 
 ```cpp
@@ -537,7 +561,7 @@ The following example showed how to read integer value from node "/test/int".
   }
 ```
 
-
+<br/>
 
 ### Store Data
 
@@ -579,6 +603,7 @@ The returned **Timestamp** value can get from `fbdo.to<int>()`.
 
 The file systems for flash and sd memory can be changed in [**FirebaseFS.h**](/src/FirebaseFS.h).
 
+<br/>
 
 The following example showed how to store file data to flash memory at node "/test/file_data".
 
@@ -602,9 +627,7 @@ if (Firebase.getFile(fbdo, StorateType::FLASH, "/test/file_data", "/test.txt"))
 }
 ```
 
-
-
-
+<br/>
 
 ### Append Data
 
@@ -626,6 +649,7 @@ The server's **Timestamp** can be appended in the database through `Firebase.pus
 
 The unique key of Timestamp can be determined after Timestamp was appended.
 
+<br/>
 
 The following example showed how to append new data (using FirebaseJson object) to node "/test/append.
 
@@ -652,7 +676,7 @@ if (Firebase.pushJSON(fbdo, "/test/append", json)) {
 }
 ```
 
-
+<br/>
 
 ### Patch Data
 
@@ -668,6 +692,7 @@ The server returns JSON data payload which was successfully patched.
 
 Return of large JSON payload will cost the network data, alternative function `updateNodeSilent` or `updateNodeSilentAsync` should be used to save the network data.
 
+<br/>
 
 The following example showed how to patch data at "/test".
 
@@ -694,7 +719,7 @@ if (Firebase.updateNode(fbdo, "/test/update", updateData)) {
 ```
 
 
-
+<br/>
 
 
 ### Delete Data
@@ -706,9 +731,7 @@ The following example showed how to delete data and its children at "/test/appen
 Firebase.deleteNode(fbdo, "/test/append");
 ```
 
-
-
-
+<br/>
 
 ### Filtering Data
 
@@ -726,7 +749,7 @@ Use **key (or full path) of child nodes** as the `orderBy` parameter if all valu
 
 Use **"$priority"** as `orderBy` parameter if child nodes's **"priority"** was used for query.
 
-
+<br/>
 
 The above `orderBy` parameter can be combined with the following parameters for limited and ranged the queries.
 
@@ -740,7 +763,7 @@ The above `orderBy` parameter can be combined with the following parameters for 
 
 `QueryFilter.equalTo` -       Value (number or string) matches the orderBy param
 
-
+<br/>
 
 The following example showed how to use queries parameter in QueryFilter class to filter the data at node "/test/data"
 
@@ -777,13 +800,9 @@ else
 //Clear all query parameters
 query.clear();
 ```
-
-
-
+<br/>
 
 ### Server Data Changes Listener with Server-Sent Events or HTTP Streaming
-
-
 
 This library uses HTTP GET request with `text/event-stream` header to make [**HTTP streaming**](https://en.wikipedia.org/wiki/Server-sent_events) connection.
 
@@ -827,7 +846,7 @@ In addition, delay function used in the same loop of `readStream()` will defer t
 
 Keep in mind that `FirebaseData` object will create the SSL client inside of HTTPS data transaction and uses large memory.
 
-
+<br/>
 
 The following example showed how to subscribe to the data changes at node "/test/data" with a callback function.
 
@@ -898,6 +917,8 @@ void streamTimeoutCallback(bool timeout)
 
 ```
 
+<br/>
+
 For multiple paths stream, see the MultiPath_stream example.
 
 
@@ -949,7 +970,7 @@ if (fbdo.streamAvailable())
 }
 ```
 
-
+<br/>
 
 ### Backup and Restore Data
 
@@ -996,6 +1017,7 @@ The following example showed how to backup all database data at "/" and restore.
   }
 ```
 
+<br/>
 
 ### Database Error Handling
 
@@ -1086,6 +1108,7 @@ void errorQueueCallback (QueueInfo queueinfo){
   Serial.println();
 }
 ```
+<br/>
 
 The following example showed how to run Error Queues and track its status manually.
 
@@ -1127,6 +1150,7 @@ for (uint8_t i = 0; i < LENGTH_OF_QUEUEID_ARRAY; i++)
 Serial.println();
 ```
 
+<br/>
 
 Error Queues can be saved as a file in SD card or Flash memory with function `saveErrorQueue`.
 
@@ -1152,7 +1176,7 @@ Firebase.saveErrorQueue(fbdo, "/test.txt", StorageType::FLASH);
 
 ```
 
-
+<br/>
 
 
 ## Firebase Cloud Messaging (FCM)
@@ -1189,6 +1213,7 @@ The other options are `priority`, `collapse key`, `Time to Live` of the message 
 
 Call `fbdo.fcm.setPriority` for priority ("normal" or "high"), `fbdo.fcm.setCollapseKey` for collapse key setup, `fbdo.fcm.setTimeToLive` for life span of message setup between 0 sec. to 2,419,200 sec.  (or 4 weeks), and `fbdo.fcm.setTopic` for assigning the topic that message to send to.
 
+<br/>
 
 The following example showed how to send FCM message.
 
@@ -1224,7 +1249,7 @@ else
 }
 ```
 
-
+<br/>
 
 ## Create, Edit, Serializing and Deserializing the JSON Objects
 
@@ -1336,7 +1361,7 @@ Function `FirebaseJsonArray.setFloatDigits` is for float number precision when s
 
 Function `FirebaseJsonArray.setDoubleDigits` is for double number precision when serialized to string.
 
-
+<br/>
 
 The following example shows how to use FirebaseJson.
 
@@ -1505,6 +1530,7 @@ Array index: 6, type: int, value: 25
 
 ```
 
+<br/>
 
 The following example shows how to use FirebaseJsonArray.
 
@@ -1642,7 +1668,7 @@ The result of the above code
 
 ```
 
-
+<br/>
 
 ## License
 
