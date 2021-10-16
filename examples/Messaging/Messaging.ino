@@ -31,9 +31,6 @@
 #include <ESP8266WiFi.h>
 #include <FirebaseESP8266.h>
 
-
-
-
 #define WIFI_SSID "WIFI_AP"
 #define WIFI_PASSWORD "WIFI_PASSWORD"
 

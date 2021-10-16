@@ -77,6 +77,8 @@ void setupFirebase()
 
     firebaseConfigReady = true;
 
+    //For the following credentials, see examples/Authentications/SignInAsUser/EmailPassword/EmailPassword.ino
+
     /* Assign the api key (required) */
     config.api_key = API_KEY;
 
@@ -192,10 +194,18 @@ void testFirebase()
  * If you needed to call arbitrary "get" and "set" based on condition or event, use another FirebaseData object to avoid the session 
  * closing and reopening.
  * 
- * 3. Use of delay or hidden delay or blocking operation to wait for hardware ready in the third party sensor libraries, together with stream functions e.g. Firebase.readStream and fbdo.streamAvailable in the loop.
- * 
+ * 3. Use of delay or hidden delay or blocking operation to wait for hardware ready in the third party sensor libraries, together with stream functions e.g. Firebase.RTDB.readStream and fbdo.streamAvailable in the loop.
  * 
  * Please use non-blocking mode of sensor libraries (if available) or use millis instead of delay in your code.
+ * 
+ * 4. Blocking the token generation process.
+ * 
+ * Let the authentication token generation to run without blocking, the following code MUST BE AVOIDED.
+ * 
+ * while (!Firebase.ready()) <---- Don't do this in while loop
+ * {
+ *     delay(1000);
+ * }
  * 
  */
 

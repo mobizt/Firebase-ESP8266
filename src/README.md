@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v3.5.5
+Google's Firebase Realtime Database Arduino Library for ESP8266 v3.5.6
 
 
 
@@ -76,6 +76,8 @@ bool ready();
 #### Provide the grant access status for Firebase Services.
 
 return **`Boolean`** type status indicates the device can access to the services.
+
+This returns false if ready() returns false (token generation is not ready).
 
 ```cpp
 bool authenticated();
