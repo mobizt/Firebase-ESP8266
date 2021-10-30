@@ -3,7 +3,7 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4390794.svg)](https://doi.org/10.5281/zenodo.4390794)
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v3.5.6
+Google's Firebase Realtime Database Arduino Library for ESP8266 v3.6.0
 
 
 This library supports ESP8266 MCU from Espressif. The following are platforms in which libraries are also available.
@@ -388,7 +388,7 @@ With pushAsync and setAsync, the payload response will be ignored and the next d
 
 
 
-### The authenication credentials and prerequisite 
+### The authenication credentials and prerequisites 
 
 
 To use Email/Password sign-in authentication as in the examples, the Email/Password Sign-in provider must be enabled.
@@ -439,7 +439,7 @@ Edit the default database rules as following
 {
   "rules": {
     ".read": "auth != null", 
-    ".write": "auth != null", 
+    ".write": "auth != null"
   }
 }
 ```
