@@ -1,7 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v3.6.0
+Google's Firebase Realtime Database Arduino Library for ESP8266 v3.6.2
 
 
 
@@ -19,6 +19,30 @@ note: For FirebaseConfig and FirebaseAuth data usage, see the examples.
 
 ```cpp
 void begin(FirebaseConfig *config, FirebaseAuth *auth);
+```
+
+
+#### Setup the ID token for authentication.
+
+param **`param config`** The pointer to FirebaseConfig data.
+
+param **`param`** idToken The ID Token.
+
+param **`param`** expire The expired interval in seeconds (max.3600 sec).
+
+note For FirebaseConfig and FirebaseAuth data usage, see the examples.
+
+```cpp
+void setIdToken(FirebaseConfig *config, const char *idToken, size_t expire = 3600);
+```
+
+
+#### Check for token expiry status.
+
+return **`bool`** of expiry status.
+
+```cpp
+bool isTokenExpired();
 ```
 
 
@@ -152,6 +176,22 @@ select Sign-in method tab, under the Sign-in providers list, enable Anonymous pr
 
 ```cpp
 bool signUp(FirebaseConfig *config, FirebaseAuth *auth, <string> email, <string> password);
+```
+
+
+
+#### Delete user from project.
+
+param **`config`** The pointer to FirebaseConfig data.
+
+param **`auth`** The pointer to FirebaseAuth data.
+
+param **`idToken`** (optional) The id token of user, leave blank to delete the current sign in user.
+
+return **`Boolean`** type status indicates the success of the operation.
+
+```cpp
+bool deleteUser(FirebaseConfig *config, FirebaseAuth *auth, const char* idToken = "");
 ```
 
 
