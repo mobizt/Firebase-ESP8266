@@ -30,6 +30,7 @@
  * #define DEFAULT_SD_FS SD_MMC //For ESP32 SDMMC
  * 
 */
+#include <SD.h>
 #define DEFAULT_SD_FS SD
 
 //Comment to exclude the Firebase Realtime Database
