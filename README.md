@@ -105,7 +105,7 @@ For PlatfoemIO IDE, ESP8266 Core SDK can be installed through **PIO Home** > **P
 
 ### Important Note
 
-Since library v3.6.0, the [Google server issue workaround](https://github.com/mobizt/Firebase-ESP-Client/discussions/165#discussioncomment-1561941) as applied, many functions are affected, now the issue has been solved on server side, this workaround has been removed from the library since v3.6.4.
+Since library v3.6.0, the [Google server issue workaround](https://github.com/mobizt/Firebase-ESP-Client/discussions/165#discussioncomment-1561941) was applied, many functions are affected, now the issue has been solved on server side, this workaround has been removed from the library since v3.6.4.
 
 The library v3.6.4 and later are recommended.
 
