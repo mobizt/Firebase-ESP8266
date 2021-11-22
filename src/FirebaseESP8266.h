@@ -1,15 +1,15 @@
 
 #ifndef FIREBASE_CLIENT_VERSION
-#define FIREBASE_CLIENT_VERSION "3.6.4"
+#define FIREBASE_CLIENT_VERSION "3.6.5"
 #endif
 
 /**
- * Google's Firebase Realtime Database Arduino Library for ESP8266, v3.6.4
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, v3.6.5
  * 
- * Created November 20, 2021
+ * Created November 22, 2021
  *
  *   Updates:
- * - Remove server bug workaround.
+ * - Fixed token refreshment issue for anonymous sign in.
  * 
  *
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
