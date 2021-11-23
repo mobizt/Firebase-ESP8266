@@ -39,4 +39,8 @@
 //Comment to exclude Firebase Cloud Messaging
 #define ENABLE_FCM
 
+
+/** Use PSRAM for supported ESP8266 module */
+#define FIREBASE_USE_PSRAM
+
 #endif

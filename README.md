@@ -3,7 +3,7 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4390794.svg)](https://doi.org/10.5281/zenodo.4390794)
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v3.6.5
+Google's Firebase Realtime Database Arduino Library for ESP8266 v3.7.0
 
 
 This library supports ESP8266 MCU from Espressif. The following are platforms in which libraries are also available.
@@ -232,37 +232,45 @@ To increase the Heap, choose the MMU **option 3**, 16KB cache + 48KB IRAM and 2n
 ![Arduino IDE config](/media/images/ArduinoIDE.png)
 
 
+To use external Heap from 1 Mbit SRAM 23LC1024, choose the MMU **option 5**, 128K External 23LC1024.
+
+![MMU VM 128K](/media/images/ESP8266_VM.png)
+
+To use external Heap from PSRAM, choose the MMU **option 6**, 1M External 64 MBit PSRAM.
+
+The connection between SRAM/PSRAM and ESP8266
+
+```
+23LC1024/ESP-PSRAM64                ESP8266
+
+CS (Pin 1)                          GPIO15
+SCK (Pin 6)                         GPIO14
+MOSI (Pin 5)                        GPIO13
+MISO (Pin 2)                        GPIO12
+/HOLD (Pin 7 on 23LC1024 only)      3V3
+Vcc (Pin 8)                         3V3
+Vcc (Pin 4)                         GND
+```
+
 More about MMU settings.
 https://arduino-esp8266.readthedocs.io/en/latest/mmu.html
 
 
 
-### PlatformIO IDE
-
-When Core SDK v3.0.0 becomes available in PlatformIO,
-
 By default the balanced ratio (32KB cache + 32KB IRAM) configuration is used.
 
 To increase the heap, **PIO_FRAMEWORK_ARDUINO_MMU_CACHE16_IRAM48_SECHEAP_SHARED** build flag should be assigned in platformio.ini.
 
-At the time of writing, to update SDK to v3.0.0 you can follow these steps.
-
-1. In platformio.ini, edit the config as the following
-
 ```ini
 [env:d1_mini]
-platform = https://github.com/platformio/platform-espressif8266.git
+platform = espressif8266
 build_flags = -D PIO_FRAMEWORK_ARDUINO_MMU_CACHE16_IRAM48_SECHEAP_SHARED
 board = d1_mini
 framework = arduino
 monitor_speed = 115200
 ```
 
-2. Delete this folder **C:\Users\UserName\\.platformio\platforms\espressif8266@src-?????????????**
-3. Delete .pio and .vscode folders in your project.
-4. Clean and Compile the project.
-
-
+And to use external Heap from 1 Mbit SRAM 23LC1024 and 64 Mbit PSRAM, **PIO_FRAMEWORK_ARDUINO_MMU_EXTERNAL_128K** and **PIO_FRAMEWORK_ARDUINO_MMU_EXTERNAL_1024K** build flags should be assigned respectively.
 
 The supportedd MMU build flags in PlatformIO.
 
@@ -290,9 +298,14 @@ The supportedd MMU build flags in PlatformIO.
 
    Disables default configuration and expects user-specified flags
 
+
+To use PSRAM/SRAM for internal memory allocation which you can config to use it via [**FirebaseFS.h**](src/FirebaseFS.h) with this macro.
+
+```cpp
+#define FIREBASE_USE_PSRAM
+```
+
    
-
-
 ### Test code for MMU
 
 ```cpp
@@ -302,13 +315,17 @@ The supportedd MMU build flags in PlatformIO.
 
 void setup() 
 {
-  Serial.begin(74880);
+  Serial.begin(115200);
   HeapSelectIram ephemeral;
   Serial.printf("IRAM free: %6d bytes\r\n", ESP.getFreeHeap());
   {
     HeapSelectDram ephemeral;
     Serial.printf("DRAM free: %6d bytes\r\n", ESP.getFreeHeap());
   }
+
+  ESP.setExternalHeap();
+  Serial.printf("External free: %d\n", ESP.getFreeHeap());
+  ESP.resetHeap();
 }
 
 void loop() {
