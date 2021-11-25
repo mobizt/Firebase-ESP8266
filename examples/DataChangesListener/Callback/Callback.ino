@@ -50,6 +50,8 @@ unsigned long sendDataPrevMillis = 0;
 
 int count = 0;
 
+volatile bool dataChanged = false;
+
 void streamCallback(StreamData data)
 {
   Serial.printf("sream path, %s\nevent path, %s\ndata type, %s\nevent type, %s\n\n",
@@ -66,6 +68,10 @@ void streamCallback(StreamData data)
   //This max value will be zero as no payload received in case of ESP8266 which
   //BearSSL reserved Rx buffer size is less than the actual stream payload.
   Serial.printf("Received stream payload size: %d (Max. %d)\n\n", data.payloadLength(), data.maxPayloadLength());
+
+  //Due to limited of stack memory, do not perform any task that used large memory here especially starting connect to server. 
+  //Just set this flag and check it status later.
+  dataChanged = true;
 }
 
 void streamTimeoutCallback(bool timeout)
@@ -167,5 +173,12 @@ void loop()
     json.add("data", "hello");
     json.add("num", count);
     Serial.printf("Set json... %s\n\n", Firebase.setJSON(fbdo, "/test/stream/data/json", json) ? "ok" : fbdo.errorReason().c_str());
+  }
+
+  if (dataChanged)
+  {
+    dataChanged = false;
+    //When stream data is available, do anything here...
+
   }
 }
