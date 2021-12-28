@@ -428,7 +428,7 @@ bool FB_RTDB::buildRequest(FirebaseData *fbdo, fb_esp_method method, const char 
     req.filename = filename;
     req.storageType = storage_type;
 
-    if(type == d_file_ota)
+    if (type == d_file_ota)
         fbdo->closeSession();
 
 #if defined(ESP8266)
