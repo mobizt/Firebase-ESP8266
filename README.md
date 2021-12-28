@@ -59,7 +59,7 @@ Creating the new Firebase library that specific to only GSM connectivity concern
 
 * **Supports database read, store, update, delete and value changes listener**
 
-* **Support Test Mode (No Auth)**
+* **Supports Test Mode (No Auth)**
 
 * **Supports Firmware OTA updates**
 
@@ -67,7 +67,7 @@ Creating the new Firebase library that specific to only GSM connectivity concern
 
 * **Built-in JSON editor and deserializer.**
 
-* **Support external Heap via SRAM/PSRAM.**
+* **Supports external Heap via SRAM/PSRAM.**
 
 * **Supports ethernet using ENC28J60, W5100 and W5500 Ethernet modules.**
 
