@@ -3,7 +3,7 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4390794.svg)](https://doi.org/10.5281/zenodo.4390794)
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v3.7.4
+Google's Firebase Realtime Database Arduino Library for ESP8266 v3.7.5
 
 
 This library supports ESP8266 MCU from Espressif. The following are platforms in which libraries are also available.
@@ -311,6 +311,7 @@ To use PSRAM/SRAM for internal memory allocation which you can config to use it 
 #define FIREBASE_USE_PSRAM
 ```
 
+
    
 ### Test code for MMU
 
@@ -561,6 +562,7 @@ To disable OTA update, comment this macro.
 ```
 ENABLE_OTA_FIRMWARE_UPDATE
 ```
+
 
 
 ### Read Data
@@ -1798,7 +1800,7 @@ The result of the above code
 
 The MIT License (MIT)
 
-Copyright (C) 2021 K. Suwatchai (Mobizt)
+Copyright (C) 2022 K. Suwatchai (Mobizt)
 
 
 Permission is hereby granted, free of charge, to any person returning a copy of
