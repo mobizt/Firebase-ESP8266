@@ -258,9 +258,6 @@ Vcc (Pin 8)                         3V3
 Vcc (Pin 4)                         GND
 ```
 
-More about MMU settings.
-https://arduino-esp8266.readthedocs.io/en/latest/mmu.html
-
 
 
 By default the balanced ratio (32KB cache + 32KB IRAM) configuration is used.
