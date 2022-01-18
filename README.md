@@ -3,7 +3,7 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4390794.svg)](https://doi.org/10.5281/zenodo.4390794)
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266 v3.7.5
+Google's Firebase Realtime Database Arduino Library for ESP8266 v3.8.0
 
 
 This library supports ESP8266 MCU from Espressif. The following are platforms in which libraries are also available.
@@ -107,13 +107,6 @@ For PlatfoemIO IDE, ESP8266 Core SDK can be installed through **PIO Home** > **P
 
 
 ## Installation
-
-
-### Important Note
-
-Since library v3.6.0, the [Google server issue workaround](https://github.com/mobizt/Firebase-ESP-Client/discussions/165#discussioncomment-1561941) was applied, many functions are affected, now the issue has been solved on server side, this workaround has been removed from the library since v3.6.4.
-
-The library v3.6.4 and later are recommended.
 
 
 
@@ -223,28 +216,72 @@ See [other authentication examples](/examples/Authentications) for more sign in 
 
 
 
-## IDE Configuaration for ESP8266 MMU - Adjust the Ratio of ICACHE to IRAM
 
+## Memory Options for ESP8266
 
+When you update the ESP8266 Arduino Core SDK to v3.0.0, the memory can be configurable from IDE.
+
+You can choose the Heap memory between internal and external memory chip from IDE e.g. Arduino IDE and PlatformIO on VSCode or Atom IDE.
 
 ### Arduino IDE
 
-When you update the ESP8266 Arduino Core SDK to v3.0.0, the memory can be configurable from Arduino IDE board settings.
 
-By default MMU **option 1** was selected, the free Heap can be low and may not suitable for the SSL client usage in this library.
-
-To increase the Heap, choose the MMU **option 3**, 16KB cache + 48KB IRAM and 2nd Heap (shared).
+For ESP8266 devices that don't not have external SRAM/PSRAM chip installed, choose the MMU **option 3**, 16KB cache + 48KB IRAM and 2nd Heap (shared).
 
 ![Arduino IDE config](/media/images/ArduinoIDE.png)
 
-
-To use external Heap from 1 Mbit SRAM 23LC1024, choose the MMU **option 5**, 128K External 23LC1024.
+For ESP8266 devices that have external 23LC1024 SRAM chip installed, choose the MMU **option 5**, 128K External 23LC1024.
 
 ![MMU VM 128K](/media/images/ESP8266_VM.png)
 
-To use external Heap from PSRAM, choose the MMU **option 6**, 1M External 64 MBit PSRAM.
+For ESP8266 devices that have external ESP-PSRAM64 chip installed, choose the MMU **option 6**, 1M External 64 MBit PSRAM.
 
-The connection between SRAM/PSRAM and ESP8266
+
+### PlatformIO IDE
+
+The MMU options can be selected from build_flags in your project's platformio.ini file
+
+For ESP8266 devices that don't not have external SRAM/PSRAM chip installed, add build flag as below.
+
+```ini
+[env:d1_mini]
+platform = espressif8266
+build_flags = -D PIO_FRAMEWORK_ARDUINO_MMU_CACHE16_IRAM48_SECHEAP_SHARED
+board = d1_mini
+framework = arduino
+monitor_speed = 115200
+```
+
+
+For ESP8266 devices that have external 23LC1024 SRAM chip installed, add build flag as below.
+
+```ini
+[env:d1_mini]
+platform = espressif8266
+;128K External 23LC1024
+build_flags = -D PIO_FRAMEWORK_ARDUINO_MMU_EXTERNAL_128K
+board = d1_mini
+framework = arduino
+monitor_speed = 115200
+```
+
+
+For ESP8266 devices that have external ESP-PSRAM64 chip installed, add build flag as below.
+
+```ini
+[env:d1_mini]
+platform = espressif8266
+;1M External 64 MBit PSRAM
+build_flags = -D PIO_FRAMEWORK_ARDUINO_MMU_EXTERNAL_1024K
+board = d1_mini
+framework = arduino
+monitor_speed = 115200
+```
+
+
+### ESP8266 andd SRAM/PSRAM Chip connection
+
+Most ESP8266 modules don't have the built-in SRAM/PSRAM on board. External memory chip connection can be done via SPI port as below.
 
 ```
 23LC1024/ESP-PSRAM64                ESP8266
@@ -258,85 +295,14 @@ Vcc (Pin 8)                         3V3
 Vcc (Pin 4)                         GND
 ```
 
+Once the external Heap memory was selected in IDE, to allow the library to use the external memory, you can set it in [**FirebaseFS.h**](src/FirebaseFS.h) by define this macro.
 
-
-By default the balanced ratio (32KB cache + 32KB IRAM) configuration is used.
-
-To increase the heap, **PIO_FRAMEWORK_ARDUINO_MMU_CACHE16_IRAM48_SECHEAP_SHARED** build flag should be assigned in platformio.ini.
-
-```ini
-[env:d1_mini]
-platform = espressif8266
-build_flags = -D PIO_FRAMEWORK_ARDUINO_MMU_CACHE16_IRAM48_SECHEAP_SHARED
-board = d1_mini
-framework = arduino
-monitor_speed = 115200
-```
-
-And to use external Heap from 1 Mbit SRAM 23LC1024 and 64 Mbit PSRAM, **PIO_FRAMEWORK_ARDUINO_MMU_EXTERNAL_128K** and **PIO_FRAMEWORK_ARDUINO_MMU_EXTERNAL_1024K** build flags should be assigned respectively.
-
-The supportedd MMU build flags in PlatformIO.
-
-- **PIO_FRAMEWORK_ARDUINO_MMU_CACHE16_IRAM48**
-
-   16KB cache + 48KB IRAM (IRAM)
-
-- **PIO_FRAMEWORK_ARDUINO_MMU_CACHE16_IRAM48_SECHEAP_SHARED**
-
-   16KB cache + 48KB IRAM and 2nd Heap (shared)
-
-- **PIO_FRAMEWORK_ARDUINO_MMU_CACHE16_IRAM32_SECHEAP_NOTSHARED**
-
-   16KB cache + 32KB IRAM + 16KB 2nd Heap (not shared)
-
-- **PIO_FRAMEWORK_ARDUINO_MMU_EXTERNAL_128K**
-
-   128K External 23LC1024
-
-- **PIO_FRAMEWORK_ARDUINO_MMU_EXTERNAL_1024K**
-
-   1M External 64 MBit PSRAM
-
-- **PIO_FRAMEWORK_ARDUINO_MMU_CUSTOM**
-
-   Disables default configuration and expects user-specified flags
-
-
-To use PSRAM/SRAM for internal memory allocation which you can config to use it via [**FirebaseFS.h**](src/FirebaseFS.h) with this macro.
 
 ```cpp
 #define FIREBASE_USE_PSRAM
 ```
 
-
-   
-### Test code for MMU
-
-```cpp
-
-#include <Arduino.h>
-#include <umm_malloc/umm_heap_select.h>
-
-void setup() 
-{
-  Serial.begin(115200);
-  HeapSelectIram ephemeral;
-  Serial.printf("IRAM free: %6d bytes\r\n", ESP.getFreeHeap());
-  {
-    HeapSelectDram ephemeral;
-    Serial.printf("DRAM free: %6d bytes\r\n", ESP.getFreeHeap());
-  }
-
-  ESP.setExternalHeap();
-  Serial.printf("External free: %d\n", ESP.getFreeHeap());
-  ESP.resetHeap();
-}
-
-void loop() {
-  // put your main code here, to run repeatedly:
-}
-
-```
+This macro was defined by default when you installed or update the library.
 
 
 
