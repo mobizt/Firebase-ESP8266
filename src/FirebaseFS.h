@@ -32,6 +32,7 @@
 */
 #include <SD.h>
 #define DEFAULT_SD_FS SD
+#define CARD_TYPE_SD 1
 
 //Comment to exclude the Firebase Realtime Database
 #define ENABLE_RTDB
