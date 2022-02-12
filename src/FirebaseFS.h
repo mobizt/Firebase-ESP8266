@@ -2,6 +2,8 @@
 #define FirebaseFS_H
 #include <Arduino.h>
 
+#pragma once
+
 #define FIREBASE_ESP8266_CLIENT 1
 
 /**
@@ -19,7 +21,9 @@
  * #define DEFAULT_FLASH_FS FFat  //For ESP32 FAT
  * 
 */
+#if defined(ESP8266) || defined(ESP32)
 #define DEFAULT_FLASH_FS SPIFFS
+#endif
 
 /**
  * To use SD card file systems with different hardware interface
@@ -30,12 +34,17 @@
  * #define DEFAULT_SD_FS SD_MMC //For ESP32 SDMMC
  * 
 */
+
+#if defined(ESP8266) || defined(ESP32)
 #include <SD.h>
 #define DEFAULT_SD_FS SD
 #define CARD_TYPE_SD 1
+#endif
 
 //Comment to exclude the Firebase Realtime Database
 #define ENABLE_RTDB
+
+#define ENABLE_ERROR_QUEUE
 
 //Comment to exclude Firebase Cloud Messaging
 #define ENABLE_FCM

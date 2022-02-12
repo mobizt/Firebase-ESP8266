@@ -1,43 +1,47 @@
 
 #ifndef FIREBASE_CLIENT_VERSION
-#define FIREBASE_CLIENT_VERSION "3.8.3"
+#define FIREBASE_CLIENT_VERSION "3.8.4"
 #endif
 
 /**
- * Google's Firebase Realtime Database Arduino Library for ESP8266, v3.8.3
- * 
- * Created January 21, 2022
+ * Google's Firebase Realtime Database Arduino Library for ESP8266, v3.8.4
+ *
+ * Created February 10, 2022
  *
  *   Updates:
- * - Improve Server data sending process.
- * - Improve Data upload/download progressing reports.
- * 
+ * - Add supports custom (external) Clients.
+ * - Add support $key in deleteNodesByTimestamp.
+ * - Fixed the SdFat filesystem issue.
+ * - Fixed download file OTA issues.
+ * - Fixed RTDB Query filter issue.
+ * - Fixed flash string handler issue.
+ *
  *
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
- * and delete calls. 
- * 
+ * and delete calls.
+ *
  * The library was tested and work well with ESP8266 based modules.
- * 
+ *
  * The MIT License (MIT)
  * Copyright (c) 2021 K. Suwatchai (Mobizt)
- * 
- * 
+ *
+ *
  * Permission is hereby granted, free of charge, to any person returning a copy of
  * this software and associated documentation files (the "Software"), to deal in
  * the Software without restriction, including without limitation the rights to
  * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
  * the Software, and to permit persons to whom the Software is furnished to do so,
  * subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
  * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
  * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-*/
+ */
 
 #include "Firebase.h"

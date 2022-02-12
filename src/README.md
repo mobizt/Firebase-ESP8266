@@ -252,6 +252,28 @@ const char *getToken();
 
 
 
+
+#### Get free Heap memory.
+
+param **`int *`** of free Heap memory size.
+
+```cpp
+int getFreeHeap();
+```
+
+
+
+#### Get current timestamp.
+
+param **`time_t *`** of current timestamp.
+
+```cpp
+time_t getCurrentTime();
+```
+
+
+
+
 #### Set the decimal places for float value to be stored in database.
 
 param **`digits`** The decimal places. 
@@ -3185,6 +3207,28 @@ return **`FirebaseJsonArray object pointer`**.
 ```cpp
 FirebaseJsonArray *jsonArrayPtr();
 ```
+
+
+
+#### Return the internal Firebase JSON Data object.
+
+return **`FirebaseJsonData object`**.
+
+```cpp
+FirebaseJsonData &jsonData();
+```
+
+
+
+#### Return the pointer to internal Firebase JSON Data object.
+
+return **`FirebaseJsonData object pointer`**.
+
+```cpp
+FirebaseJsonData *jsonDataPtr();
+```
+
+
 
 
 
