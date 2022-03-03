@@ -1,5 +1,7 @@
 # Firebase Realtime Database Arduino Library for ESP8266
 
+![](/media/images/flag.svg)
+
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4390794.svg)](https://doi.org/10.5281/zenodo.4390794)
 
 
