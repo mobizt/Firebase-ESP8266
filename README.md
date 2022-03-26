@@ -2,7 +2,7 @@
 
 ![Compile](https://github.com/mobizt/Firebase-ESP8266/actions/workflows/compile_library.yml/badge.svg) ![Examples](https://github.com/mobizt/Firebase-ESP8266/actions/workflows/compile_examples.yml/badge.svg)
 
-[![arduino-library-badge](https://www.ardu-badge.com/badge/Firebase%20ESP8266%20Client.svg?)](https://www.ardu-badge.com/ESP%20Mail%20Client) ![PlatformIO](https://badges.registry.platformio.org/packages/mobizt/library/Firebase%20ESP8266%20Client.svg) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6329778.svg)](https://doi.org/10.5281/zenodo.6329778)
+![arduino-library-badge](https://www.ardu-badge.com/badge/Firebase%20ESP8266%20Client.svg) ![PlatformIO](https://badges.registry.platformio.org/packages/mobizt/library/Firebase%20ESP8266%20Client.svg) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6329778.svg)](https://doi.org/10.5281/zenodo.6329778)
 
 
 This library supports ESP8266 MCU from Espressif. The following are platforms in which libraries are also available.
