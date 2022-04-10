@@ -1,30 +1,30 @@
 /**
  * Created by K. Suwatchai (Mobizt)
- * 
+ *
  * Email: k_suwatchai@hotmail.com
- * 
+ *
  * Github: https://github.com/mobizt/Firebase-ESP8266
- * 
+ *
  * Copyright (c) 2022 mobizt
  *
-*/
+ */
 
-//This example is for ESP8266 and ENC28J60 Ethernet module.
+// This example is for ESP8266 and ENC28J60 Ethernet module.
 
 /**
- * 
+ *
  * The ENC28J60 Ethernet module and ESP8266 board, SPI port wiring connection.
- * 
- * ESP8266 (Wemos D1 Mini or NodeMCU)        ENC28J60         
- * 
+ *
+ * ESP8266 (Wemos D1 Mini or NodeMCU)        ENC28J60
+ *
  * GPIO12 (D6) - MISO                        SO
  * GPIO13 (D7) - MOSI                        SI
  * GPIO14 (D5) - SCK                         SCK
  * GPIO16 (D0) - CS                          CS
  * GND                                       GND
  * 3V3                                       VCC
- * 
-*/
+ *
+ */
 
 #include <ESP8266WiFi.h>
 #include <FirebaseESP8266.h>
@@ -37,15 +37,15 @@
 #define FIREBASE_FCM_DEVICE_TOKEN_1 "RECIPIENT_DEVICE_TOKEN"
 #define FIREBASE_FCM_DEVICE_TOKEN_2 "ANOTHER_RECIPIENT_DEVICE_TOKEN"
 
-#define ETH_CS_PIN 16 //GPIO 16 connected to Ethernet module (ENC28J60) CS pin
+#define ETH_CS_PIN 16 // GPIO 16 connected to Ethernet module (ENC28J60) CS pin
 
 ENC28J60lwIP eth(ETH_CS_PIN);
-//Wiznet5100lwIP eth(ETH_CS_PIN);
-//Wiznet5500lwIP eth(ETH_CS_PIN);
+// Wiznet5100lwIP eth(ETH_CS_PIN);
+// Wiznet5500lwIP eth(ETH_CS_PIN);
 
 SPI_ETH_Module spi_ethernet_module;
 
-//Define Firebase Data object
+// Define Firebase Data object
 FirebaseData fbdo;
 
 unsigned long lastTime = 0;
@@ -90,8 +90,8 @@ void setup()
     Firebase.reconnectWiFi(true);
 
     spi_ethernet_module.enc28j60 = &eth;
-    //spi_ethernet_module.w5100 = &eth;
-    //spi_ethernet_module.w5500 = &eth;
+    // spi_ethernet_module.w5100 = &eth;
+    // spi_ethernet_module.w5500 = &eth;
 
     fbdo.fcm.begin(FIREBASE_FCM_SERVER_KEY, &spi_ethernet_module);
 
@@ -126,8 +126,8 @@ void sendMessage()
 
     fbdo.fcm.setDataMessage(msg.raw());
 
-    //Firebase.broadcastMessage(fbdo)
-    //Firebase.sendTopic(fbdo)
+    // Firebase.broadcastMessage(fbdo)
+    // Firebase.sendTopic(fbdo)
     Serial.printf("Send message... %s\n", Firebase.sendMessage(fbdo, 0) ? "ok" : fbdo.errorReason().c_str());
 
     if (fbdo.httpCode() == FIREBASE_ERROR_HTTP_CODE_OK)

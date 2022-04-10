@@ -8,19 +8,19 @@
 
 /**
  * To use other flash file systems
- * 
+ *
  * LittleFS File system
- * 
+ *
  * #include <LittleFS.h>
  * #define DEFAULT_FLASH_FS LittleFS //For ESP8266 LitteFS
- * 
- * 
+ *
+ *
  * FAT File system
- * 
+ *
  * #include <FFat.h>
  * #define DEFAULT_FLASH_FS FFat  //For ESP32 FAT
- * 
-*/
+ *
+ */
 #if defined(ESP8266) || defined(ESP32)
 #define DEFAULT_FLASH_FS SPIFFS
 #endif
@@ -29,11 +29,11 @@
  * To use SD card file systems with different hardware interface
  * e.g. SDMMC hardware bus on the ESP32
  * https://github.com/espressif/arduino-esp32/tree/master/libraries/SD#faq
- * 
+ *
  * #include <SD_MMC.h>
  * #define DEFAULT_SD_FS SD_MMC //For ESP32 SDMMC
- * 
-*/
+ *
+ */
 
 #if defined(ESP8266) || defined(ESP32)
 #include <SD.h>
@@ -41,14 +41,13 @@
 #define CARD_TYPE_SD 1
 #endif
 
-//Comment to exclude the Firebase Realtime Database
+// Comment to exclude the Firebase Realtime Database
 #define ENABLE_RTDB
 
 #define ENABLE_ERROR_QUEUE
 
-//Comment to exclude Firebase Cloud Messaging
+// Comment to exclude Firebase Cloud Messaging
 #define ENABLE_FCM
-
 
 /** Use PSRAM for supported ESP8266 module */
 #define FIREBASE_USE_PSRAM

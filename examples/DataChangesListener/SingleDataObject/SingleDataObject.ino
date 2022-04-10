@@ -1,13 +1,13 @@
 /**
  * Created by K. Suwatchai (Mobizt)
- * 
+ *
  * Email: k_suwatchai@hotmail.com
- * 
+ *
  * Github: https://github.com/mobizt/Firebase-ESP8266
- * 
+ *
  * Copyright (c) 2022 mobizt
  *
-*/
+ */
 
 #if defined(ESP32)
 #include <WiFi.h>
@@ -17,17 +17,17 @@
 #include <FirebaseESP8266.h>
 #endif
 
-//Provide the token generation process info.
+// Provide the token generation process info.
 #include <addons/TokenHelper.h>
 
-//Provide the RTDB payload printing info and other helper functions.
+// Provide the RTDB payload printing info and other helper functions.
 #include <addons/RTDBHelper.h>
 
 /* 1. Define the WiFi credentials */
 #define WIFI_SSID "WIFI_AP"
 #define WIFI_PASSWORD "WIFI_PASSWORD"
 
-//For the following credentials, see examples/Authentications/SignInAsUser/EmailPassword/EmailPassword.ino
+// For the following credentials, see examples/Authentications/SignInAsUser/EmailPassword/EmailPassword.ino
 
 /* 2. Define the API Key */
 #define API_KEY "API_KEY"
@@ -39,7 +39,7 @@
 #define USER_EMAIL "USER_EMAIL"
 #define USER_PASSWORD "USER_PASSWORD"
 
-//Define Firebase Data object
+// Define Firebase Data object
 FirebaseData fbdo;
 
 FirebaseAuth auth;
@@ -70,7 +70,7 @@ void setup()
 
   Serial.printf("Firebase Client v%s\n\n", FIREBASE_CLIENT_VERSION);
 
-  //For the following credentials, see examples/Authentications/SignInAsUser/EmailPassword/EmailPassword.ino
+  // For the following credentials, see examples/Authentications/SignInAsUser/EmailPassword/EmailPassword.ino
 
   /* Assign the api key (required) */
   config.api_key = API_KEY;
@@ -83,20 +83,20 @@ void setup()
   config.database_url = DATABASE_URL;
 
   /* Assign the callback function for the long running token generation task */
-  config.token_status_callback = tokenStatusCallback; //see addons/TokenHelper.h
+  config.token_status_callback = tokenStatusCallback; // see addons/TokenHelper.h
 
-  //Or use legacy authenticate method
-  //config.database_url = DATABASE_URL;
-  //config.signer.tokens.legacy_token = "<database secret>";
+  // Or use legacy authenticate method
+  // config.database_url = DATABASE_URL;
+  // config.signer.tokens.legacy_token = "<database secret>";
 
-  //To connect without auth in Test Mode, see Authentications/TestMode/TestMode.ino
+  // To connect without auth in Test Mode, see Authentications/TestMode/TestMode.ino
 
   Firebase.begin(&config, &auth);
 
   Firebase.reconnectWiFi(true);
 
-  //The data under the node being stream (parent path) should keep small
-  //Large stream payload leads to the parsing error due to memory allocation.
+  // The data under the node being stream (parent path) should keep small
+  // Large stream payload leads to the parsing error due to memory allocation.
   if (!Firebase.beginStream(fbdo, "/test/stream/data"))
     Serial.printf("sream begin error, %s\n\n", fbdo.errorReason().c_str());
 }
@@ -104,12 +104,14 @@ void setup()
 void loop()
 {
 
+  // Firebase.ready() should be called repeatedly to handle authentication tasks.
+
   if (Firebase.ready() && (millis() - sendDataPrevMillis > idleTimeForStream || sendDataPrevMillis == 0))
   {
     sendDataPrevMillis = millis();
     count++;
 
-    //Due to single FirebaseData object used, stream connection will be interruped to send/receive data 
+    // Due to single FirebaseData object used, stream connection will be interruped to send/receive data
     Serial.printf("Set string... %s\n\n", Firebase.setString(fbdo, "/test/stream/data", "Hello World! " + String(count)) ? "ok" : fbdo.errorReason().c_str());
   }
 

@@ -93,7 +93,7 @@ public:
 
     bool connect()
     {
-       
+
         if (!client)
             return false;
 
@@ -102,7 +102,6 @@ public:
             flush();
             return true;
         }
-
 
 #if !defined(FB_ENABLE_EXTERNAL_CLIENT)
         return setError(FIREBASE_ERROR_EXTERNAL_CLIENT_DISABLED);

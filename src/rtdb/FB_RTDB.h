@@ -1478,25 +1478,25 @@ public:
    */
   bool endStream(FirebaseData *fbdo);
 
-/** Set the stream callback functions.
- *
- * @param fbdo The pointer to Firebase Data Object.
- * @param dataAvailableCallback The Callback function that accepts StreamData parameter.
- * @param timeoutCallback The Callback function will be called when the stream connection was timed out (optional).
- *
- * ESP32 only parameter
- * @param streamTaskStackSize The stream task (RTOS task) reserved stack memory in byte (optional) (8192 is default).
- *
- * @note The dataAvailableCallback will be called When data in the defined path changed or the stream path changed or stream connection
- * was resumed from getXXX, setXXX, pushXXX, updateNode, deleteNode.
- *
- * The payload returned from the server will be one of these integer, float, string, JSON and blob types.
- *
- * Call [StreamData object].dataType to determine what type of data successfully stores in the database.
- *
- * Call [StreamData object].xxxData will return the appropriate data type of
- * the payload returned from the server.
- */
+  /** Set the stream callback functions.
+   *
+   * @param fbdo The pointer to Firebase Data Object.
+   * @param dataAvailableCallback The Callback function that accepts StreamData parameter.
+   * @param timeoutCallback The Callback function will be called when the stream connection was timed out (optional).
+   *
+   * ESP32 only parameter
+   * @param streamTaskStackSize The stream task (RTOS task) reserved stack memory in byte (optional) (8192 is default).
+   *
+   * @note The dataAvailableCallback will be called When data in the defined path changed or the stream path changed or stream connection
+   * was resumed from getXXX, setXXX, pushXXX, updateNode, deleteNode.
+   *
+   * The payload returned from the server will be one of these integer, float, string, JSON and blob types.
+   *
+   * Call [StreamData object].dataType to determine what type of data successfully stores in the database.
+   *
+   * Call [StreamData object].xxxData will return the appropriate data type of
+   * the payload returned from the server.
+   */
 
 #if defined(ESP32)
   void setStreamCallback(FirebaseData *fbdo, FirebaseData::StreamEventCallback dataAvailableCallback, FirebaseData::StreamTimeoutCallback timeoutCallback, size_t streamTaskStackSize = 8192);
@@ -1543,8 +1543,6 @@ public:
    * @param fbdo The pointer to Firebase Data Object.
    */
   void removeMultiPathStreamCallback(FirebaseData *fbdo);
-
-
 
   /** Backup (download) the database at the defined node to the storage memory.
    *
@@ -1846,7 +1844,7 @@ private:
 #if defined(ENABLE_ERROR_QUEUE)
 
   void addQueueData(FirebaseData *fbdo, struct fb_esp_rtdb_request_info_t *req);
-  
+
 #if defined(ESP8266)
   void runErrorQueueTask();
 #endif
