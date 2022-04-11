@@ -125,17 +125,29 @@ If you ever installed this library in Global storage in PlatformIO version prior
 ### Manual installation
 
 
-For Arduino IDE, download zip file from the repository (Github page) by select **Clone or download** dropdown at the top of repository, select **Download ZIP** 
+For Arduino IDE, download zip file from the repository (Github page) by select **Code** dropdown at the top of repository, select **Download ZIP** 
 
 From Arduino IDE, select menu **Sketch** -> **Include Library** -> **Add .ZIP Library...**.
 
 Choose **Firebase-ESP8266-master.zip** that previously downloaded.
+
+Rename **Firebase-ESP8266-master** folder to **Firebase_ESP8266_Client**.
 
 Go to menu **Files** -> **Examples** -> **Firebase-ESP8266-master** and choose one from examples.
 
 
 For PlatformIO, in folder **"lib"**, create new folder named **"Firebase-ESP8266"** and add **[these files](https://github.com/mobizt/Firebase-ESP8266/tree/master/src)** in that folder.
 
+
+### Important Note for Manual Installation in Arduino IDE
+
+Folder renaming to **Firebase_ESP8266_Client** was required for making the library can be updated via Library Manager without problems.
+
+Without folder renaming, when you update the library via Library Manager, library will be updated to the another folder named  **Firebase_ESP8266_Client** which leads to compilation error when there are two different versions of library found in the libraries folder and can cause the conflicts when file structures and functions changed in the newer version. 
+
+For example, the library version 3.7.5 and earlier were installed manually by downloading ZIP file and extracted to **Firebase-ESP8266-master** folder. If the library was later updated to v3.8.2 and newer via Library Manager, the compilation error will take place because the newer version files structures and functions changed and compiler is trying to compile these two versions of source files together. 
+
+In this case, you need to delete **Firebase-ESP8266-master** folder from libraries folder.
 
 
 
