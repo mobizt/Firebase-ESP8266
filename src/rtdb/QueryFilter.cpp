@@ -110,4 +110,4 @@ QueryFilter &QueryFilter::mEqualTo(MB_StringPtr val, bool isString)
 
 #endif
 
-#endif // ENABLE
+#endif //ENABLE

@@ -37,6 +37,7 @@
 #ifndef FIREBASE_QUEUE_MANAGER_CPP
 #define FIREBASE_QUEUE_MANAGER_CPP
 
+
 #include "QueueManager.h"
 
 QueueManager::QueueManager()
@@ -67,7 +68,7 @@ void QueueManager::clear()
             item.address.dout = 0;
             item.address.din = 0;
             item.blobSize = 0;
-            item.address.priority = 0;
+            item.address.priority=0;
             item.address.query = 0;
         }
     }
@@ -101,4 +102,4 @@ size_t QueueManager::size()
 
 #endif
 
-#endif // ENABLE
+#endif //ENABLE
