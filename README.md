@@ -994,6 +994,18 @@ void streamTimeoutCallback(bool timeout)
   }  
 }
 
+
+//For authentication except for legacy token, Firebase.ready() should be called repeatedly in loop() to handle authentication tasks.
+
+void loop()
+{
+  if (Firebase.ready())
+  {
+    // Firebase is ready to use now.
+    
+  }
+}
+
 ```
 
 
@@ -1047,6 +1059,18 @@ if (fbdo.streamAvailable())
   }
     
 }
+
+//For authentication except for legacy token, Firebase.ready() should be called repeatedly in loop() to handle authentication tasks.
+
+void loop()
+{
+  if (Firebase.ready())
+  {
+    // Firebase is ready to use now.
+    
+  }
+}
+
 ```
 
 
