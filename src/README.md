@@ -2888,27 +2888,42 @@ bool sendTopic(FirebaseData &fbdo);
 
 
 
-#### SD card config with GPIO pins.
+
+#### Initiate SD card with SPI port configuration.
+
+param **`ss`** The SPI Chip/Slave Select pin.
+
+param **`sck`** The SPI Clock pin.
+
+param **`miso`** The SPI MISO pin.
+
+param **`mosi`** The SPI MOSI pin.
+
+aram **`frequency`** The SPI frequency.
+
+return **`boolean`** The boolean value indicates the success of operation.
+
+```cpp
+bool sdBegin(int8_t ss = -1, int8_t sck = -1, int8_t miso = -1, int8_t mosi = -1, uint32_t frequency = 4000000);
+```
+
+
+
+
+
+#### Initiate SD card with SD FS configurations (ESP8266 only).
 
 param **`ss`** SPI Chip/Slave Select pin.
 
-return **`Boolean`** type status indicates the success of the operation.
-
-```cpp
-bool sdBegin( int8_t ss = -1);
-```
-
-
-
-#### SD card config with SD FS configurations.
-
 param **`sdFSConfig`** The pointer to SDFSConfig object (ESP8266 only).
 
-return **`Boolean`** type status indicates the success of the operation.
+return **`boolean`** type status indicates the success of the operation.
 
 ```cpp
-bool sdBegin(SDFSConfig *sdFSConfig);
+  bool sdBegin(SDFSConfig *sdFSConfig);
 ```
+
+
 
 
 

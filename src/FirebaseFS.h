@@ -55,4 +55,7 @@
 // To enable OTA updates
 #define ENABLE_OTA_FIRMWARE_UPDATE
 
+// For ESP8266 W5100 Ethernet module
+// #define ENABLE_ESP8266_W5100_ETH
+
 #endif

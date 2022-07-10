@@ -1,11 +1,9 @@
 /**
- * Created January 18, 2022
+ * Created July 10, 2022
  */
 
-#ifndef FB_Net_H
-#define FB_Net_H
-
-#pragma once
+#ifndef FB_Network_H
+#define FB_Network_H
 
 #include "FirebaseFS.h"
 
@@ -24,7 +22,6 @@
 #if __has_include(<esp_idf_version.h>)
 #include <esp_idf_version.h>
 #endif
-static const char esp_idf_branch_str[] PROGMEM = "release/v";
 #endif
 
 
@@ -67,8 +64,12 @@ static const char esp_idf_branch_str[] PROGMEM = "release/v";
 #include <ENC28J60lwIP.h>
 #endif
 
-#if __has_include(<W5100lwIP.h>)
-#define INC_W5100_LWIP
+
+#if __has_include(<W5100lwIP.h>) && defined(ENABLE_ESP8266_W5100_ETH)
+
+#define INC_W5100_LWIP 
+
+// PIO compilation error
 #include <W5100lwIP.h>
 #endif
 
