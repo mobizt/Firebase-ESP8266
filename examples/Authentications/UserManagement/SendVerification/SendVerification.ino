@@ -112,9 +112,8 @@ void setup()
 
 void loop()
 {
-
     // Firebase.ready() should be called repeatedly to handle authentication tasks.
-    
+
     if (Firebase.ready() && !mailSent)
     {
         mailSent = true;

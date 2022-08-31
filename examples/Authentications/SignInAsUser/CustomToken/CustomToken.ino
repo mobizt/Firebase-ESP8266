@@ -194,6 +194,7 @@ void setup()
     /* Assign the callback function for the long running token generation task */
     config.token_status_callback = tokenStatusCallback; // see addons/TokenHelper.h
 
+
     /* Now we start to signin using custom token */
 
     /** Initialize the library with the Firebase authen and config.
@@ -238,6 +239,8 @@ void setup()
      * passed to the Firebase.begin function.
      *
      * The id token can be accessed from Firebase.getToken().
+     * 
+     * The refresh token can be accessed from Firebase.getRefreshToken().
      */
 }
 
