@@ -58,4 +58,10 @@
 // For ESP8266 W5100 Ethernet module
 // #define ENABLE_ESP8266_W5100_ETH
 
+
+// To enable external Client for ESP8266.
+// This will enable automatically for other devices.
+ #define FB_ENABLE_EXTERNAL_CLIENT
+
+
 #endif
