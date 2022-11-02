@@ -61,7 +61,7 @@
 
 // To enable external Client for ESP8266.
 // This will enable automatically for other devices.
-// #define FB_ENABLE_EXTERNAL_CLIENT
+ #define FB_ENABLE_EXTERNAL_CLIENT
 
 
 #endif

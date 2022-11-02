@@ -47,10 +47,12 @@
 
 /* 4. Defined the Ethernet module connection */
 #define WIZNET_RESET_PIN 5 // Connect W5500 Reset pin to GPIO 5 (D1) of ESP8266
-#define WIZNET_CS_PIN 15     // Connect W5500 CS pin to GPIO 15 (D8) of ESP8266
-#define WIZNET_MISO_PIN 12  // Connect W5500 MISO pin to GPIO 12 (D6) of ESP8266
-#define WIZNET_MOSI_PIN 13  // Connect W5500 MOSI pin to GPIO 13 (D7) of ESP8266
-#define WIZNET_SCLK_PIN 14  // Connect W5500 SCLK pin to GPIO 14 (D5) of ESP8266
+#define WIZNET_CS_PIN 4   // Connect W5500 CS pin to GPIO 4 (D2) of ESP8266 
+// If GPIO 15 (D8) of ESP8266 is used as WiZnet CS pin, the modification is needed, otherwise 
+// ESP8266 will not boot, see https://esp8266hints.files.wordpress.com/2018/02/emitter-follower-pnp1.jpg
+#define WIZNET_MISO_PIN 12 // Connect W5500 MISO pin to GPIO 12 (D6) of ESP8266
+#define WIZNET_MOSI_PIN 13 // Connect W5500 MOSI pin to GPIO 13 (D7) of ESP8266
+#define WIZNET_SCLK_PIN 14 // Connect W5500 SCLK pin to GPIO 14 (D5) of ESP8266
 
 
 /* 5. Define MAC */
