@@ -22,7 +22,7 @@
 #include <addons/RTDBHelper.h>
 
 // Built-in ESP8266 SSL Client
-#include "sslclient/MB_ESP8266_SSLClient.h"
+#include "sslclient/esp8266/MB_ESP8266_SSLClient.h"
 
 /* 1. Define the WiFi credentials */
 #define WIFI_SSID "WIFI_AP"

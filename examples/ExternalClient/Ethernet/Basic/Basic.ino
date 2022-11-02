@@ -17,7 +17,7 @@
  * #define FB_ENABLE_EXTERNAL_CLIENT
  */
 
-#include <Firebase_ESP_Client.h>
+#include <FirebaseESP8266.h>
 
 // Provide the token generation process info.
 #include <addons/TokenHelper.h>
@@ -26,7 +26,7 @@
 #include <addons/RTDBHelper.h>
 
 // Built-in ESP8266 SSL Client
-#include "sslclient/MB_ESP8266_SSLClient.h"
+#include "sslclient/esp8266/MB_ESP8266_SSLClient.h"
 
 #include <Ethernet.h>
 
