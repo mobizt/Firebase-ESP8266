@@ -12,8 +12,7 @@
 
 /** This example shows the basic RTDB usage with external Client.
  * This example used ESP8266 device and built-in ESP8266 SSL Client as the client.
-*/
-
+ */
 
 #include <FirebaseESP8266.h>
 
@@ -106,9 +105,11 @@ void setup()
 
     Serial_Printf("Firebase Client v%s\n\n", FIREBASE_CLIENT_VERSION);
 
+    /* Assign the basic Client (Ethernet) pointer to the SSL Client */
     ssl_client.setClient(&basic_client);
 
-    ssl_client.setInSecure();
+    /* Similar to WiFiClientSecure */
+    ssl_client.setInsecure();
 
     /* Assign the api key (required) */
     config.api_key = API_KEY;

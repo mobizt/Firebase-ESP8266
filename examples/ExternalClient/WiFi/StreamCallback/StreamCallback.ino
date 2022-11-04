@@ -157,13 +157,17 @@ void setup()
 
     Serial_Printf("Firebase Client v%s\n\n", FIREBASE_CLIENT_VERSION);
 
+    /* Assign the basic Client (Ethernet) pointer to the SSL Client */
     ssl_client1.setClient(&basic_client1);
 
-    ssl_client1.setInSecure();
+    /* Similar to WiFiClientSecure */
+    ssl_client1.setInsecure();
 
+    /* Assign the basic Client (Ethernet) pointer to the SSL Client */
     ssl_client2.setClient(&basic_client2);
 
-    ssl_client2.setInSecure();
+    /* Similar to WiFiClientSecure */
+    ssl_client2.setInsecure();
 
     /* Assign the api key (required) */
     config.api_key = API_KEY;
