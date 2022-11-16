@@ -89,11 +89,11 @@ Don't be confused with other Firebase Arduino libraries, this library has differ
 
 ## Dependencies
 
-This library required **ESP8266 Core SDK version 2.6.2 and above**.
-
 For Arduino IDE, ESP8266 Core SDK can be installed through **Boards Manager**. 
 
 For PlatfoemIO IDE, ESP8266 Core SDK can be installed through **PIO Home** > **Platforms** > **Espressif 8266**.
+
+ESP8266 Core SDK v2.5.0 and older versions are not supported.
 
 
 
