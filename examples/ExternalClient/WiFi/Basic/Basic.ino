@@ -4,26 +4,23 @@
  *
  * Email: k_suwatchai@hotmail.com
  *
- * Github: https://github.com/mobizt/Firebase-ESP8266
+ * Github: https://github.com/mobizt/Firebase-ESP32
  *
  * Copyright (c) 2022 mobizt
  *
  */
 
 /** This example shows the basic RTDB usage with external Client.
- * This example used ESP8266 device and built-in ESP8266 SSL Client as the client.
+ * This example used ESP32 device and WiFiClientSecure as the client.
  */
 
-#include <FirebaseESP8266.h>
+#include <FirebaseESP32.h>
 
 // Provide the token generation process info.
 #include <addons/TokenHelper.h>
 
 // Provide the RTDB payload printing info and other helper functions.
 #include <addons/RTDBHelper.h>
-
-// Built-in ESP8266 SSL Client
-#include "sslclient/esp8266/MB_ESP8266_SSLClient.h"
 
 /* 1. Define the WiFi credentials */
 #define WIFI_SSID "WIFI_AP"
@@ -51,9 +48,7 @@ unsigned long sendDataPrevMillis = 0;
 
 unsigned long count = 0;
 
-WiFiClient basic_client;
-
-MB_ESP8266_SSLClient ssl_client;
+WiFiClientSecure ssl_client;
 
 void networkConnection()
 {
@@ -62,6 +57,7 @@ void networkConnection()
 
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
     Serial.print("Connecting to Wi-Fi");
+    unsigned long ms = millis();
     while (WiFi.status() != WL_CONNECTED)
     {
         Serial.print(".");
@@ -105,10 +101,6 @@ void setup()
 
     Serial_Printf("Firebase Client v%s\n\n", FIREBASE_CLIENT_VERSION);
 
-    /* Assign the basic Client (Ethernet) pointer to the SSL Client */
-    ssl_client.setClient(&basic_client);
-
-    /* Similar to WiFiClientSecure */
     ssl_client.setInsecure();
 
     /* Assign the api key (required) */
@@ -126,7 +118,7 @@ void setup()
 
     /* fbdo.setExternalClient and fbdo.setExternalClientCallbacks must be called before Firebase.begin */
 
-    /* Assign the pointer to global defined SSL Client object */
+    /* Assign the pointer to global defined external SSL Client object */
     fbdo.setExternalClient(&ssl_client);
 
     /* Assign the required callback functions */

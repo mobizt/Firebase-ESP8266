@@ -3,26 +3,23 @@
  *
  * Email: k_suwatchai@hotmail.com
  *
- * Github: https://github.com/mobizt/Firebase-ESP8266
+ * Github: https://github.com/mobizt/Firebase-ESP-Client
  *
  * Copyright (c) 2022 mobizt
  *
  */
 
 /** This example shows the RTDB data changed notification with external Client.
- * This example used ESP8266 device and built-in ESP8266 SSL Client as the client.
+ * This example used ESP32 device and WiFiClientSecure as the client.
  */
 
-#include <FirebaseESP8266.h>
+#include <FirebaseESP32.h>
 
 // Provide the token generation process info.
 #include <addons/TokenHelper.h>
 
 // Provide the RTDB payload printing info and other helper functions.
 #include <addons/RTDBHelper.h>
-
-// Built-in ESP8266 SSL Client
-#include "sslclient/esp8266/MB_ESP8266_SSLClient.h"
 
 /* 1. Define the WiFi credentials */
 #define WIFI_SSID "WIFI_AP"
@@ -53,11 +50,9 @@ int count = 0;
 
 volatile bool dataChanged = false;
 
-WiFiClient basic_client1;
-WiFiClient basic_client2;
+WiFiClientSecure ssl_client1;
 
-MB_ESP8266_SSLClient ssl_client1;
-MB_ESP8266_SSLClient ssl_client2;
+WiFiClientSecure ssl_client2;
 
 void networkConnection()
 {
@@ -66,6 +61,7 @@ void networkConnection()
 
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
     Serial.print("Connecting to Wi-Fi");
+    unsigned long ms = millis();
     while (WiFi.status() != WL_CONNECTED)
     {
         Serial.print(".");
@@ -157,16 +153,7 @@ void setup()
 
     Serial_Printf("Firebase Client v%s\n\n", FIREBASE_CLIENT_VERSION);
 
-    /* Assign the basic Client (Ethernet) pointer to the SSL Client */
-    ssl_client1.setClient(&basic_client1);
-
-    /* Similar to WiFiClientSecure */
     ssl_client1.setInsecure();
-
-    /* Assign the basic Client (Ethernet) pointer to the SSL Client */
-    ssl_client2.setClient(&basic_client2);
-
-    /* Similar to WiFiClientSecure */
     ssl_client2.setInsecure();
 
     /* Assign the api key (required) */
@@ -190,13 +177,13 @@ void setup()
 
     /* fbdo.setExternalClient and fbdo.setExternalClientCallbacks must be called before Firebase.begin */
 
-    /* Assign the pointer to global defined SSL Client object */
+    /* Assign the pointer to global defined external SSL Client object */
     fbdo.setExternalClient(&ssl_client1);
 
     /* Assign the required callback functions */
     fbdo.setExternalClientCallbacks(tcpConnectionRequestCallback1, networkConnection, networkStatusRequestCallback);
 
-    /* Assign the pointer to global defined SSL Client object */
+    /* Assign the pointer to global defined external SSL Client object */
     stream.setExternalClient(&ssl_client2);
 
     /* Assign the required callback functions */
@@ -214,9 +201,6 @@ void setup()
 
 void loop()
 {
-
-    // Process the stream repeatedly in loop
-    Firebase.RTDB.readStream(&stream);
 
     // Firebase.ready() should be called repeatedly to handle authentication tasks.
 

@@ -4,27 +4,20 @@
  *
  * Email: k_suwatchai@hotmail.com
  *
- * Github: https://github.com/mobizt/Firebase-ESP8266
+ * Github: https://github.com/mobizt/Firebase-ESP-Client
  *
  * Copyright (c) 2022 mobizt
  *
  */
 
 /** This example shows the basic RTDB usage with external Client.
- * This example used ESP8266 and WIZnet W5500 (Ethernet) devices which built-in SSL Client will be used as the external Client.
- *
- * Even the example for Ethernet that supports ENC28J60 and WIZnet W55xx is available at BasicEthernet/ESP8266/ESP8266.ino,
- * this example will show how to use external SSL Client that supports other network interfaces e.g. GSMClient and especially
- * EthernetClient in this example.
- *
- * For other non-espressif (ESP32 and ESP8266) devices, this SSL Client library can be used
- * https://github.com/OPEnSLab-OSU/SSLClient
+ * This example used ESP32 and WIZnet W5500 (Ethernet) devices which ESP_SSLClient will be used as the external Client.
  *
  * Don't gorget to define this in FirebaseFS.h
  * #define FB_ENABLE_EXTERNAL_CLIENT
  */
 
-#include <FirebaseESP8266.h>
+#include <FirebaseESP32.h>
 
 // Provide the token generation process info.
 #include <addons/TokenHelper.h>
@@ -32,15 +25,10 @@
 // Provide the RTDB payload printing info and other helper functions.
 #include <addons/RTDBHelper.h>
 
-// Include built-in SSL Client which supports other network interfaces
-#include "sslclient/esp8266/MB_ESP8266_SSLClient.h"
-
-// You can use MB_ESP8266_SSLClient.h in your ESP8266 project in the same way as normal WiFiClientSecure
-// You can't use this SSL Client library https://github.com/OPEnSLab-OSU/SSLClient in your ESP8266 project because of wdt reset error,
-// and you should not install it in Arduino libraries folder because it can cause the conflicts in ESP8266 WiFiClientSecure class because
-// the different BearSSL library sources were installed.
-
 #include <Ethernet.h>
+
+// https://github.com/mobizt/ESP_SSLClient
+#include <ESP_SSLClient.h>
 
 // For NTP time client
 #include "MB_NTP.h"
@@ -58,11 +46,11 @@
 #define USER_PASSWORD "USER_PASSWORD"
 
 /* 4. Defined the Ethernet module connection */
-#define WIZNET_RESET_PIN 5 // Connect W5500 Reset pin to GPIO 5 (D1) of ESP8266
-#define WIZNET_CS_PIN 4    // Connect W5500 CS pin to GPIO 4 (D2) of ESP8266
-#define WIZNET_MISO_PIN 12 // Connect W5500 MISO pin to GPIO 12 (D6) of ESP8266
-#define WIZNET_MOSI_PIN 13 // Connect W5500 MOSI pin to GPIO 13 (D7) of ESP8266
-#define WIZNET_SCLK_PIN 14 // Connect W5500 SCLK pin to GPIO 14 (D5) of ESP8266
+#define WIZNET_RESET_PIN 26 // Connect W5500 Reset pin to GPIO 26 of ESP32
+#define WIZNET_CS_PIN 5     // Connect W5500 CS pin to GPIO 5 of ESP32
+#define WIZNET_MISO_PIN 19  // Connect W5500 MISO pin to GPIO 19 of ESP32
+#define WIZNET_MOSI_PIN 23  // Connect W5500 MOSI pin to GPIO 23 of ESP32
+#define WIZNET_SCLK_PIN 18  // Connect W5500 SCLK pin to GPIO 18 of ESP32
 
 /* 5. Define MAC */
 uint8_t Eth_MAC[] = {0x02, 0xF0, 0x0D, 0xBE, 0xEF, 0x01};
@@ -80,9 +68,11 @@ unsigned long sendDataPrevMillis = 0;
 
 int count = 0;
 
+volatile bool dataChanged = false;
+
 EthernetClient basic_client;
 
-MB_ESP8266_SSLClient ssl_client;
+ESP_SSLClient ssl_client;
 
 // For NTP client
 EthernetUDP udpClient;
@@ -169,7 +159,7 @@ void setup()
     networkConnection();
 
     Serial_Printf("Firebase Client v%s\n\n", FIREBASE_CLIENT_VERSION);
-
+    
     /* Assign the basic Client (Ethernet) pointer to the SSL Client */
     ssl_client.setClient(&basic_client);
 
