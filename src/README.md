@@ -1,7 +1,7 @@
-# Firebase Realtime Database Arduino Library for ESP8266
+# Firebase Realtime Database Arduino Library for ESP8266 and RP2040 Pico
 
 
-Google's Firebase Realtime Database Arduino Library for ESP8266
+Google's Firebase Realtime Database Arduino Library for ESP8266 and RP2040 Pico.
 
 
 
@@ -2671,6 +2671,17 @@ param **`fbdo`** Firebase Data Object to hold data and instances.
 
 ```cpp
 void removeMultiPathStreamCallback(FirebaseData &fbdo);
+```
+
+
+
+#### Run Stream manually.
+
+To manually triggering the stream callback function, 
+this should call repeatedly in loop().
+
+```cpp
+void runStream();
 ```
 
 

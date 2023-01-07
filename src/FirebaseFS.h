@@ -21,8 +21,11 @@
  * #define DEFAULT_FLASH_FS FFat  //For ESP32 FAT
  *
  */
-#if defined(ESP8266) || defined(ESP32)
+#if defined(ESP8266)
 #define DEFAULT_FLASH_FS SPIFFS
+#elif defined(PICO_RP2040)
+#include <LittleFS.h>
+#define DEFAULT_FLASH_FS LittleFS
 #endif
 
 /**
@@ -35,7 +38,7 @@
  *
  */
 
-#if defined(ESP8266) || defined(ESP32)
+#if defined(ESP8266) || defined(ESP32) || defined(PICO_RP2040)
 #include <SD.h>
 #define DEFAULT_SD_FS SD
 #define CARD_TYPE_SD 1
@@ -97,3 +100,8 @@
 #endif
 
 #endif
+
+/////////////////////////////////// WARNING ///////////////////////////////////
+// Using RP2040 Pico Arduino SDK, FreeRTOS with LittleFS will cause device hangs 
+// when write the data to flash filesystem.
+// Do not include FreeRTOS.h or even it excluded from compilation by using macro, it  issue.

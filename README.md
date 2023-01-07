@@ -1,4 +1,4 @@
-# Firebase Realtime Database Arduino Library for ESP8266
+# Firebase Realtime Database Arduino Library for ESP8266 and RP2040 Pico
 
 ![Compile](https://github.com/mobizt/Firebase-ESP8266/actions/workflows/compile_library.yml/badge.svg) ![Examples](https://github.com/mobizt/Firebase-ESP8266/actions/workflows/compile_examples.yml/badge.svg) [![Github Stars](https://img.shields.io/github/stars/mobizt/Firebase-ESP8266?logo=github)](https://github.com/mobizt/Firebase-ESP8266/stargazers) ![Github Issues](https://img.shields.io/github/issues/mobizt/Firebase-ESP8266?logo=github)
 
@@ -29,6 +29,7 @@ Please try it here https://github.com/mobizt/Firebase-ESP-Client
  * NodeMCU
  * ESP-12F
  * LinkNode
+ * RP2040 Pico W
 
 
 
@@ -42,6 +43,10 @@ The authentication with OAuth2.0 and custom auth tokens, RTDB error queue and do
 
 The flash and SD filesystems supports depend on the devices and third party filesystems libraries installed.
 
+
+## Known Issues
+
+For Raspberry Pi Pico, by including `FreeRTOS.h`, Pico device will hang when format or writing data to flash filesystem (LittleFS).
 
 
 ## Features
@@ -95,6 +100,7 @@ For PlatfoemIO IDE, ESP8266 Core SDK can be installed through **PIO Home** > **P
 
 ESP8266 Core SDK v2.5.0 and older versions are not supported.
 
+The RP2040 boards required Arduino-Pico SDK from Earle F. Philhower https://github.com/earlephilhower/arduino-pico
 
 
 ## Installation
@@ -150,6 +156,25 @@ For example, the library version 3.7.5 and earlier were installed manually by do
 In this case, you need to delete **Firebase-ESP8266-master** folder from libraries folder.
 
 
+### RP2040 Arduino SDK installation
+
+For Arduino IDE, the Arduino-Pico SDK can be installed from Boards Manager by searching pico and choose Raspberry Pi Pico/RP2040 to install.
+
+For PlatformIO, the Arduino-Pico SDK can be installed via platformio.ini
+
+```ini
+[env:rpipicow]
+platform = https://github.com/maxgerhardt/platform-raspberrypi.git
+board = rpipicow
+framework = arduino
+board_build.core = earlephilhower
+monitor_speed = 115200
+board_build.filesystem_size = 1m
+```
+
+See this Arduino-Pico SDK [documentation](https://arduino-pico.readthedocs.io/en/latest/) for more information.
+
+
 
 ## Usages
 
@@ -165,8 +190,12 @@ See [function description](/src/README.md) for all available functions.
 
 ```cpp
 
-// Include ESP8266WiFi.h
+#include <Arduino.h>
+#if defined(PICO_RP2040)
+#include <WiFi.h>
+#elif defined(ESP8266)
 #include <ESP8266WiFi.h>
+#endif
 
 // Include Firebase ESP8266 library (this library)
 #include <FirebaseESP8266.h>

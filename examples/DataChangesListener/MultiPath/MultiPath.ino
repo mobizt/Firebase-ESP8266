@@ -9,11 +9,15 @@
  *
  */
 
+#include <Arduino.h>
 #if defined(ESP32)
 #include <WiFi.h>
 #include <FirebaseESP32.h>
 #elif defined(ESP8266)
 #include <ESP8266WiFi.h>
+#include <FirebaseESP8266.h>
+#elif defined(PICO_RP2040)
+#include <WiFi.h>
 #include <FirebaseESP8266.h>
 #endif
 
@@ -176,8 +180,12 @@ void setup()
 
 void loop()
 {
-  
+
   // Firebase.ready() should be called repeatedly to handle authentication tasks.
+
+#if defined(PICO_RP2040)
+  Firebase.runStream();
+#endif
 
   if (Firebase.ready() && (millis() - sendDataPrevMillis > 15000 || sendDataPrevMillis == 0))
   {
