@@ -38,9 +38,14 @@
  *
  */
 
-#if defined(ESP8266) || defined(ESP32) || defined(PICO_RP2040)
+#if defined(ESP8266)
 #include <SD.h>
 #define DEFAULT_SD_FS SD
+#define CARD_TYPE_SD 1
+#elif  defined(PICO_RP2040)
+// Use SDFS (ESP8266SdFat) instead of SD
+#include <SDFS.h>
+#define DEFAULT_SD_FS SDFS
 #define CARD_TYPE_SD 1
 #endif
 
@@ -57,6 +62,9 @@
 
 // To enable OTA updates
 #define ENABLE_OTA_FIRMWARE_UPDATE
+
+// Use Keep Alive connection mode
+#define USE_CONNECTION_KEEP_ALIVE_MODE
 
 // For ESP8266 W5100 Ethernet module
 // #define ENABLE_ESP8266_W5100_ETH
@@ -80,8 +88,15 @@
 #ifndef CustomFirebaseFS_H
 #define CustomFirebaseFS_H
 
-// Use external client instead of internal client
-#define FB_ENABLE_EXTERNAL_CLIENT // define to use external client
+// To enable external Client for ESP8266 and Raspberry Pi Pico.
+// This will enable automatically for other devices.
+//  #define FB_ENABLE_EXTERNAL_CLIENT
+
+// For ESP8266 W5100 Ethernet module
+// #define ENABLE_ESP8266_W5100_ETH
+
+// For ESP8266 W5500 Ethernet module
+// #define ENABLE_ESP8266_W5500_ETH
 
 // Use LittleFS instead of SPIFFS
 #include "LittleFS.h"

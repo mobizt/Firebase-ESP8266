@@ -85,24 +85,6 @@ void networkStatusRequestCallback()
     fbdo.setNetworkStatus(WiFi.status() == WL_CONNECTED);
 }
 
-// Define the callback function to handle server connection
-void tcpConnectionRequestCallback(const char *host, int port)
-{
-
-    // You may need to set the system timestamp to use for
-    // auth token expiration checking.
-
-    Firebase.setSystemTime(WiFi.getTime());
-
-    Serial.print("Connecting to server via external Client... ");
-    if (!client.connect(host, port))
-    {
-        Serial.println("failed.");
-        return;
-    }
-    Serial.println("success.");
-}
-
 void setup()
 {
 
@@ -130,13 +112,18 @@ void setup()
     /* Assign the callback function for the long running token generation task */
     config.token_status_callback = tokenStatusCallback; // see addons/TokenHelper.h
 
+    // The WiFi credentials are required for SAMD21
+    // due to it does not have reconnect feature.
+    config.wifi.clearAP();
+    config.wifi.addAP(WIFI_SSID, WIFI_PASSWORD);
+
     /* fbdo.setExternalClient and fbdo.setExternalClientCallbacks must be called before Firebase.begin */
 
     /* Assign the pointer to global defined external SSL Client object */
     fbdo.setExternalClient(&client);
 
     /* Assign the required callback functions */
-    fbdo.setExternalClientCallbacks(tcpConnectionRequestCallback, networkConnection, networkStatusRequestCallback);
+    fbdo.setExternalClientCallbacks(networkConnection, networkStatusRequestCallback);
 
     // Comment or pass false value when WiFi reconnection will control by your code or third party library
     Firebase.reconnectWiFi(true);

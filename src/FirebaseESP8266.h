@@ -1,15 +1,21 @@
 
 #ifndef FIREBASE_CLIENT_VERSION
-#define FIREBASE_CLIENT_VERSION "4.3.2"
+#define FIREBASE_CLIENT_VERSION "4.3.3"
 #endif
 
 /**
- * Google's Firebase Realtime Database Arduino Library for ESP8266 and RP2040 Pico, v4.3.2
+ * Google's Firebase Realtime Database Arduino Library for ESP8266 and RP2040 Pico, v4.3.3
  *
- * Created January 8, 2023
+ * Created January 19, 2023
  *
- *   Updates:
- * - Fix Token expiry bug which introduced in v4.3.0.
+*   Updates:
+ * - Fix chunked response handling issue for authentications.
+ * - Fix NTP client issue.
+ * - Fix Firebase.ready returns true when network disconnected.
+ * - Fix wdt in ESP8266 core v3.1.1 as delay(0) replaced by esp suspend. 
+ * - Improve network (WiFi) resume task.
+ * - Add support non-ESP device WiFi resume.
+ * - Add support SDFS (ESP8266SdFat) filesystem for RP2040/Pico.
  *
  *
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
