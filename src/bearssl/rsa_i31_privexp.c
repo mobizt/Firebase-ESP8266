@@ -23,6 +23,8 @@
  */
 
 #include "inner.h"
+#include <Arduino.h>
+#if defined(ESP8266) || defined(PICO_RP2040)
 
 /* see bearssl_rsa.h */
 size_t
@@ -316,3 +318,5 @@ br_rsa_i31_compute_privexp(void *d,
 	br_i31_encode(d, dlen, z);
 	return dlen;
 }
+
+#endif

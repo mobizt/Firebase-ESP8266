@@ -23,6 +23,8 @@
  */
 
 #include "inner.h"
+#include <Arduino.h>
+#if defined(ESP8266) || defined(PICO_RP2040)
 
 /* see inner.h */
 uint32_t
@@ -37,3 +39,5 @@ br_i31_iszero(const uint32_t *x)
 	}
 	return ~(z | -z) >> 31;
 }
+
+#endif

@@ -23,6 +23,8 @@
  */
 
 #include "inner.h"
+#include <Arduino.h>
+#if defined(ESP8266) || defined(PICO_RP2040)
 
 /* see bearssl_rsa.h */
 br_rsa_compute_modulus
@@ -34,3 +36,5 @@ br_rsa_compute_modulus_get_default(void)
 	return &br_rsa_i31_compute_modulus;
 #endif
 }
+
+#endif

@@ -23,6 +23,8 @@
  */
 
 #include "inner.h"
+#include <Arduino.h>
+#if defined(ESP8266) || defined(PICO_RP2040)
 
 /*
  * Hash some data. This is put as a separate function so that stack
@@ -110,3 +112,6 @@ br_rsa_oaep_pad(const br_prng_class **rnd, const br_hash_class *dig,
 	buf[0] = 0x00;
 	return k;
 }
+
+
+#endif

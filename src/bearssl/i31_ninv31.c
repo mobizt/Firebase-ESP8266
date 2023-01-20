@@ -23,6 +23,8 @@
  */
 
 #include "inner.h"
+#include <Arduino.h>
+#if defined(ESP8266) || defined(PICO_RP2040)
 
 /* see inner.h */
 uint32_t
@@ -37,3 +39,5 @@ br_i31_ninv31(uint32_t x)
 	y *= 2 - y * x;
 	return MUX(x & 1, -y, 0) & 0x7FFFFFFF;
 }
+
+#endif

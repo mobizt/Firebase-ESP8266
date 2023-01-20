@@ -23,6 +23,8 @@
  */
 
 #include "inner.h"
+#include <Arduino.h>
+#if defined(ESP8266) || defined(PICO_RP2040)
 
 /* see bearssl_rsa.h */
 size_t
@@ -97,3 +99,5 @@ br_rsa_i15_compute_modulus(void *n, const br_rsa_private_key *sk)
 	}
 	return nlen;
 }
+
+#endif

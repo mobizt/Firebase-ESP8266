@@ -23,6 +23,8 @@
  */
 
 #include "inner.h"
+#include <Arduino.h>
+#if defined(ESP8266) || defined(PICO_RP2040)
 
 /* see bearssl_rsa.h */
 uint32_t
@@ -35,3 +37,5 @@ br_rsa_i31_keygen(const br_prng_class **rng,
 		sk, kbuf_priv, pk, kbuf_pub, size, pubexp,
 		&br_i31_modpow_opt);
 }
+
+#endif

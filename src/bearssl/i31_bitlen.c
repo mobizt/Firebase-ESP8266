@@ -23,6 +23,9 @@
  */
 
 #include "inner.h"
+#include <Arduino.h>
+#if defined(ESP8266) || defined(PICO_RP2040)
+
 
 /* see inner.h */
 uint32_t
@@ -42,3 +45,5 @@ br_i31_bit_length(uint32_t *x, size_t xlen)
 	}
 	return (twk << 5) + BIT_LENGTH(tw);
 }
+
+#endif

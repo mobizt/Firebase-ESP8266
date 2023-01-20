@@ -23,6 +23,8 @@
  */
 
 #include "inner.h"
+#include <Arduino.h>
+#if defined(ESP8266) || defined(PICO_RP2040)
 
 /* see bearssl_rsa.h */
 br_rsa_private
@@ -36,3 +38,5 @@ br_rsa_private_get_default(void)
 	return &br_rsa_i31_private;
 #endif
 }
+
+#endif

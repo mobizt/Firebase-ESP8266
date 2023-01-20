@@ -23,6 +23,8 @@
  */
 
 #include "inner.h"
+#include <Arduino.h>
+#if defined(ESP8266) || defined(PICO_RP2040)
 
 /* see bearssl_rsa.h */
 uint32_t
@@ -39,3 +41,5 @@ br_rsa_i15_oaep_decrypt(const br_hash_class *dig,
 	r &= br_rsa_oaep_unpad(dig, label, label_len, data, len);
 	return r;
 }
+
+#endif

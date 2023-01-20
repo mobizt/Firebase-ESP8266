@@ -23,6 +23,8 @@
  */
 
 #include "inner.h"
+#include <Arduino.h>
+#if defined(ESP8266) || defined(PICO_RP2040)
 
 /* see bearssl_rsa.h */
 uint32_t
@@ -50,3 +52,5 @@ br_rsa_ssl_decrypt(br_rsa_private core, const br_rsa_private_key *sk,
 	memmove(data, data + len - 48, 48);
 	return x;
 }
+
+#endif

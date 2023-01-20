@@ -23,6 +23,8 @@
  */
 
 #include "inner.h"
+#include <Arduino.h>
+#if defined(ESP8266) || defined(PICO_RP2040)
 
 /*
  * In this file, we handle big integers with a custom format, i.e.
@@ -463,3 +465,4 @@ br_i15_moddiv(uint16_t *x, const uint16_t *y, const uint16_t *m, uint16_t m0i,
 	}
 	return EQ0(r);
 }
+#endif

@@ -23,6 +23,8 @@
  */
 
 #include "inner.h"
+#include <Arduino.h>
+#if defined(ESP8266) || defined(PICO_RP2040)
 
 /* see inner.h */
 uint32_t
@@ -98,3 +100,5 @@ br_rsa_pkcs1_sig_pad(const unsigned char *hash_oid,
 	memcpy(x + u, hash, hash_len);
 	return 1;
 }
+
+#endif

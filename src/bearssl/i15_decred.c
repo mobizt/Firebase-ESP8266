@@ -23,6 +23,10 @@
  */
 
 #include "inner.h"
+#include <Arduino.h>
+#if defined(ESP8266) || defined(PICO_RP2040)
+
+#include "inner.h"
 
 /* see inner.h */
 void
@@ -77,7 +81,7 @@ br_i15_decode_reduce(uint16_t *x,
 	acc_len = 0;
 	while (k < len) {
 		uint32_t v;
-		delay(0);
+		esp_bssl_idle();
 
 		v = buf[k ++];
 		acc = (acc << 8) | v;
@@ -99,3 +103,5 @@ br_i15_decode_reduce(uint16_t *x,
 		br_i15_muladd_small(x, acc, m);
 	}
 }
+
+#endif

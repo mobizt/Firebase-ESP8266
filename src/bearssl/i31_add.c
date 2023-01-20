@@ -23,6 +23,8 @@
  */
 
 #include "inner.h"
+#include <Arduino.h>
+#if defined(ESP8266) || defined(PICO_RP2040)
 
 /* see inner.h */
 uint32_t
@@ -44,3 +46,5 @@ br_i31_add(uint32_t *a, const uint32_t *b, uint32_t ctl)
 	}
 	return cc;
 }
+
+#endif

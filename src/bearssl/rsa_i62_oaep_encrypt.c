@@ -23,6 +23,8 @@
  */
 
 #include "inner.h"
+#include <Arduino.h>
+#if defined(ESP8266) || defined(PICO_RP2040)
 
 #if BR_INT128 || BR_UMUL128
 
@@ -60,5 +62,7 @@ br_rsa_i62_oaep_encrypt_get(void)
 {
 	return 0;
 }
+
+#endif
 
 #endif

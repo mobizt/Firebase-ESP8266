@@ -23,6 +23,8 @@
  */
 
 #include "inner.h"
+#include <Arduino.h>
+#if defined(ESP8266) || defined(PICO_RP2040)
 
 /* see bearssl_rsa.h */
 size_t
@@ -42,3 +44,5 @@ br_rsa_i31_oaep_encrypt(
 	}
 	return dlen & -(size_t)br_rsa_i31_public(dst, dlen, pk);
 }
+
+#endif

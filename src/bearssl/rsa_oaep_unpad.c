@@ -23,6 +23,8 @@
  */
 
 #include "inner.h"
+#include <Arduino.h>
+#if defined(ESP8266) || defined(PICO_RP2040)
 
 /*
  * Hash some data and XOR the result into the provided buffer. This is put
@@ -143,3 +145,5 @@ br_rsa_oaep_unpad(const br_hash_class *dig,
 	}
 	return s;
 }
+
+#endif

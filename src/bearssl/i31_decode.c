@@ -23,6 +23,8 @@
  */
 
 #include "inner.h"
+#include <Arduino.h>
+#if defined(ESP8266) || defined(PICO_RP2040)
 
 /* see inner.h */
 void
@@ -55,3 +57,5 @@ br_i31_decode(uint32_t *x, const void *src, size_t len)
 	}
 	x[0] = br_i31_bit_length(x + 1, v - 1);
 }
+
+#endif

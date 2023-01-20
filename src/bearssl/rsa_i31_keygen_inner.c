@@ -23,6 +23,8 @@
  */
 
 #include "inner.h"
+#include <Arduino.h>
+#if defined(ESP8266) || defined(PICO_RP2040)
 
 /*
  * Make a random integer of the provided size. The size is encoded.
@@ -89,7 +91,10 @@ static const unsigned char SMALL_PRIMES[] = {
  * is greater than 4464 (default value is 4096, so the 2-kB limit is
  * maintained unless BR_MAX_RSA_SIZE was modified).
  */
+//Conflicts with MIN MAX defined in pico/platform.h
+#if defined(ESP8266)
 #define MAX(x, y)   ((x) > (y) ? (x) : (y))
+#endif
 #define ROUND2(x)   ((((x) + 1) >> 1) << 1)
 
 #define TEMPS   MAX(512, ROUND2(7 * ((((BR_MAX_RSA_SIZE + 1) >> 1) + 61) / 31)))
@@ -606,3 +611,5 @@ br_rsa_i31_keygen_inner(const br_prng_class **rng,
 
 	return r;
 }
+
+#endif

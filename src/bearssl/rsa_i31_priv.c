@@ -23,6 +23,8 @@
  */
 
 #include "inner.h"
+#include <Arduino.h>
+#if defined(ESP8266) || defined(PICO_RP2040)
 
 #define U      (2 + ((BR_MAX_RSA_FACTOR + 30) / 31))
 #define TLEN   (8 * U)
@@ -201,3 +203,5 @@ br_rsa_i31_private(unsigned char *x, const br_rsa_private_key *sk)
 	 */
 	return p0i & q0i & r;
 }
+
+#endif

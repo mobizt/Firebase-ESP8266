@@ -23,6 +23,8 @@
  */
 
 #include "inner.h"
+#include <Arduino.h>
+#if defined(ESP8266) || defined(PICO_RP2040)
 
 /*
  * As a strict minimum, we need four buffers that can hold a
@@ -104,3 +106,5 @@ br_rsa_i31_public(unsigned char *x, size_t xlen,
 	br_i31_encode(x, xlen, a);
 	return r;
 }
+
+#endif

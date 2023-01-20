@@ -23,6 +23,8 @@
  */
 
 #include "inner.h"
+#include <Arduino.h>
+#if defined(ESP8266) || defined(PICO_RP2040)
 
 /* see inner.h */
 void
@@ -64,3 +66,5 @@ br_i15_reduce(uint16_t *x, const uint16_t *a, const uint16_t *m)
 		br_i15_muladd_small(x, a[u], m);
 	}
 }
+
+#endif

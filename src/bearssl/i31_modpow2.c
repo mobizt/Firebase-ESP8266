@@ -23,6 +23,8 @@
  */
 
 #include "inner.h"
+#include <Arduino.h>
+#if defined(ESP8266) || defined(PICO_RP2040)
 
 /* see inner.h */
 uint32_t
@@ -158,3 +160,5 @@ br_i31_modpow_opt(uint32_t *x,
 	br_i31_from_monty(x, m, m0i);
 	return 1;
 }
+
+#endif

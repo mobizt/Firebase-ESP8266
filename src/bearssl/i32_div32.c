@@ -23,6 +23,8 @@
  */
 
 #include "inner.h"
+#include <Arduino.h>
+#if defined(ESP8266) || defined(PICO_RP2040)
 
 /* see inner.h */
 uint32_t
@@ -54,3 +56,5 @@ br_divrem(uint32_t hi, uint32_t lo, uint32_t d, uint32_t *r)
 	*r = MUX(cf, lo - d, lo);
 	return q;
 }
+
+#endif

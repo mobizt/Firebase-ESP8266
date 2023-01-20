@@ -23,6 +23,10 @@
  */
 
 #include "inner.h"
+#include <Arduino.h>
+#if defined(ESP8266) || defined(PICO_RP2040)
+
+#include "inner.h"
 
 /* see inner.h */
 void
@@ -57,3 +61,5 @@ br_i15_from_monty(uint16_t *x, const uint16_t *m, uint16_t m0i)
 	 */
 	br_i15_sub(x, m, NOT(br_i15_sub(x, m, 0)));
 }
+
+#endif

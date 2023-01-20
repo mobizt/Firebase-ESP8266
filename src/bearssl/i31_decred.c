@@ -23,6 +23,8 @@
  */
 
 #include "inner.h"
+#include <Arduino.h>
+#if defined(ESP8266) || defined(PICO_RP2040)
 
 /* see inner.h */
 void
@@ -101,3 +103,5 @@ br_i31_decode_reduce(uint32_t *x,
 		br_i31_muladd_small(x, acc, m);
 	}
 }
+
+#endif

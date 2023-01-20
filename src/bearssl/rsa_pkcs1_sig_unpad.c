@@ -23,6 +23,8 @@
  */
 
 #include "inner.h"
+#include <Arduino.h>
+#if defined(ESP8266) || defined(PICO_RP2040)
 
 /* see bearssl_rsa.h */
 uint32_t
@@ -119,3 +121,5 @@ br_rsa_pkcs1_sig_unpad(const unsigned char *sig, size_t sig_len,
 	memcpy(hash_out, sig + sig_len - hash_len, hash_len);
 	return 1;
 }
+
+#endif

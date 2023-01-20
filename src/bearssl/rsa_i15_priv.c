@@ -23,6 +23,8 @@
  */
 
 #include "inner.h"
+#include <Arduino.h>
+#if defined(ESP8266) || defined(PICO_RP2040)
 
 #define U      (2 + ((BR_MAX_RSA_FACTOR + 14) / 15))
 #define TLEN   (8 * U)
@@ -113,7 +115,7 @@ br_rsa_i15_private(unsigned char *x, const br_rsa_private_key *sk)
 	 */
 	t2 = mq + 2 * fwlen;
 	br_i15_zero(t2, mq[0]);
-	delay(0);
+	esp_bssl_idle();
 	br_i15_mulacc(t2, mq, t1);
 
 	/*
@@ -131,7 +133,7 @@ br_rsa_i15_private(unsigned char *x, const br_rsa_private_key *sk)
 	r = 0;
 	while (u > 0) {
 		uint32_t wn, wx;
-		delay(0);
+		esp_bssl_idle();
 		u--;
 		wn = ((unsigned char *)t3)[u];
 		wx = x[u];
@@ -203,7 +205,7 @@ br_rsa_i15_private(unsigned char *x, const br_rsa_private_key *sk)
 	 * Therefore, we have ample room for t3 by simply using s2.
 	 */
 	t3 = s2;
-	delay(0);
+	esp_bssl_idle();
 	br_i15_mulacc(t3, mq, t2);
 
 	/*
@@ -218,3 +220,5 @@ br_rsa_i15_private(unsigned char *x, const br_rsa_private_key *sk)
 	 */
 	return p0i & q0i & r;
 }
+
+#endif

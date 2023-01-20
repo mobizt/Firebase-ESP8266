@@ -23,6 +23,8 @@
  */
 
 #include "inner.h"
+#include <Arduino.h>
+#if defined(ESP8266) || defined(PICO_RP2040)
 
 /*
  * Recompute public exponent, based on factor p and reduced private
@@ -150,3 +152,5 @@ br_rsa_i31_compute_pubexp(const br_rsa_private_key *sk)
 	eq = get_pubexp(sk->q, sk->qlen, sk->dq, sk->dqlen);
 	return ep & -EQ(ep, eq);
 }
+
+#endif

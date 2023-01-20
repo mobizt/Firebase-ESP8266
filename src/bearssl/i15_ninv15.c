@@ -23,6 +23,8 @@
  */
 
 #include "inner.h"
+#include <Arduino.h>
+#if defined(ESP8266) || defined(PICO_RP2040)
 
 /* see inner.h */
 uint16_t
@@ -36,3 +38,5 @@ br_i15_ninv15(uint16_t x)
 	y = MUL15(y, 2 - MUL15(x, y));
 	return MUX(x & 1, -y, 0) & 0x7FFF;
 }
+
+#endif
