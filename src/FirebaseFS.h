@@ -66,8 +66,14 @@
 // Use Keep Alive connection mode
 #define USE_CONNECTION_KEEP_ALIVE_MODE
 
+// For ESP8266 ENC28J60 Ethernet module
+// #define ENABLE_ESP8266_ENC28J60_ETH
+
 // For ESP8266 W5100 Ethernet module
 // #define ENABLE_ESP8266_W5100_ETH
+
+// For ESP8266 W5500 Ethernet module
+// #define ENABLE_ESP8266_W5500_ETH
 
 
 // To enable external Client for ESP8266.

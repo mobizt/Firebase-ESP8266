@@ -11,13 +11,13 @@
  */
 
 /** This example shows the basic RTDB usage with external Client.
- * This example used ESP32 and WIZnet W5500 (Ethernet) devices which ESP_SSLClient will be used as the external Client.
+ * This example used ESP8266 and WIZnet W5500 (Ethernet) devices which ESP_SSLClient will be used as the external Client.
  *
  * Don't gorget to define this in FirebaseFS.h
  * #define FB_ENABLE_EXTERNAL_CLIENT
  */
 
-#include <FirebaseESP32.h>
+#include <FirebaseESP8266.h>
 
 // Provide the token generation process info.
 #include <addons/TokenHelper.h>
@@ -46,11 +46,11 @@
 #define USER_PASSWORD "USER_PASSWORD"
 
 /* 4. Defined the Ethernet module connection */
-#define WIZNET_RESET_PIN 26 // Connect W5500 Reset pin to GPIO 26 of ESP32
-#define WIZNET_CS_PIN 5     // Connect W5500 CS pin to GPIO 5 of ESP32
-#define WIZNET_MISO_PIN 19  // Connect W5500 MISO pin to GPIO 19 of ESP32
-#define WIZNET_MOSI_PIN 23  // Connect W5500 MOSI pin to GPIO 23 of ESP32
-#define WIZNET_SCLK_PIN 18  // Connect W5500 SCLK pin to GPIO 18 of ESP32
+#define WIZNET_RESET_PIN 5 // Connect W5500 Reset pin to GPIO 5 (D1) of ESP8266
+#define WIZNET_CS_PIN 4    // Connect W5500 CS pin to GPIO 4 (D2) of ESP8266
+#define WIZNET_MISO_PIN 12 // Connect W5500 MISO pin to GPIO 12 (D6) of ESP8266
+#define WIZNET_MOSI_PIN 13 // Connect W5500 MOSI pin to GPIO 13 (D7) of ESP8266
+#define WIZNET_SCLK_PIN 14 // Connect W5500 SCLK pin to GPIO 14 (D5) of ESP8266
 
 /* 5. Define MAC */
 uint8_t Eth_MAC[] = {0x02, 0xF0, 0x0D, 0xBE, 0xEF, 0x01};
@@ -109,7 +109,7 @@ void networkConnection()
     }
     else
     {
-        Serial.println("Can't connected");
+        Serial.println("Can't connect");
     }
 }
 
