@@ -30,8 +30,12 @@
 #include <FirebaseESP8266.h>
 
 #include <ENC28J60lwIP.h>
-//#include <W5100lwIP.h>
-//#include <W5500lwIP.h>
+// #include <W5100lwIP.h>
+// #include <W5500lwIP.h>
+
+/** Don't gorget to define this in FirebaseFS.h
+  #define ENABLE_ESP8266_ENC28J60_ETH
+*/
 
 #define FIREBASE_FCM_SERVER_KEY "FIREBASE_PROJECT_CLOUD_MESSAGING_SERVER_KEY"
 #define FIREBASE_FCM_DEVICE_TOKEN_1 "RECIPIENT_DEVICE_TOKEN"
@@ -89,9 +93,15 @@ void setup()
 
     Firebase.reconnectWiFi(true);
 
+#if defined(ENABLE_ESP8266_ENC28J60_ETH)
     spi_ethernet_module.enc28j60 = &eth;
-    // spi_ethernet_module.w5100 = &eth;
-    // spi_ethernet_module.w5500 = &eth;
+#endif
+#if defined(ENABLE_ESP8266_W5100_ETH)
+    spi_ethernet_module.w5100 = &eth;
+#endif
+#if defined(ENABLE_ESP8266_W5500_ETH)
+    spi_ethernet_module.w5500 = &eth;
+#endif
 
     fbdo.fcm.begin(FIREBASE_FCM_SERVER_KEY, &spi_ethernet_module);
 
