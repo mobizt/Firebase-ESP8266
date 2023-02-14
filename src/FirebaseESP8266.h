@@ -9,7 +9,7 @@
  * Created February 14, 2023
  *
  *   Updates:
- * - Add mising connection status error event during token refreshing when WiFi reconnection was disabled.
+ * - Add missing connection status error event during token refreshing when WiFi reconnection was disabled.
  *
  *
  * This library provides ESP8266 to perform REST API by GET PUT, POST, PATCH, DELETE data from/to with Google's Firebase database using get, set, update
