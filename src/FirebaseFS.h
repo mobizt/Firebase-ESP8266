@@ -25,7 +25,7 @@
  */
 #if defined(ESP8266)
 #define DEFAULT_FLASH_FS SPIFFS
-#elif defined(PICO_RP2040)
+#elif defined(ARDUINO_ARCH_RP2040) && !defined(ARDUINO_NANO_RP2040_CONNECT)
 #include <LittleFS.h>
 #define DEFAULT_FLASH_FS LittleFS
 #endif
@@ -44,7 +44,7 @@
 #include <SD.h>
 #define DEFAULT_SD_FS SD
 #define CARD_TYPE_SD 1
-#elif  defined(PICO_RP2040)
+#elif defined(ARDUINO_ARCH_RP2040) && !defined(ARDUINO_NANO_RP2040_CONNECT)
 // Use SDFS (ESP8266SdFat) instead of SD
 #include <SDFS.h>
 #define DEFAULT_SD_FS SDFS
@@ -77,19 +77,17 @@
 // For ESP8266 W5500 Ethernet module
 // #define ENABLE_ESP8266_W5500_ETH
 
-
 // To enable external Client for ESP8266.
 // This will enable automatically for other devices.
 // #define FB_ENABLE_EXTERNAL_CLIENT
 
-
 //::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::://
-// You can create your own header file "CustomFirebaseFS.h" in the same diectory of 
-// "FirebaseFS.h" and put your own custom config to overwrite or 
+// You can create your own header file "CustomFirebaseFS.h" in the same diectory of
+// "FirebaseFS.h" and put your own custom config to overwrite or
 // change the default config in "FirebaseFS.h".
 //::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::://
 
-/** This is an example of "CustomFirebaseFS.h" 
+/** This is an example of "CustomFirebaseFS.h"
 
 #pragma once
 
@@ -125,6 +123,6 @@
 #endif
 
 /////////////////////////////////// WARNING ///////////////////////////////////
-// Using RP2040 Pico Arduino SDK, FreeRTOS with LittleFS will cause device hangs 
+// Using RP2040 Pico Arduino SDK, FreeRTOS with LittleFS will cause device hangs
 // when write the data to flash filesystem.
 // Do not include FreeRTOS.h or even it excluded from compilation by using macro, it  issue.
