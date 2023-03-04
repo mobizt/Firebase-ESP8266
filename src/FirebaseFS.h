@@ -1,6 +1,8 @@
 #ifndef FirebaseFS_H
 #define FirebaseFS_H
+
 #include <Arduino.h>
+#include "mbfs/MB_MCU.h"
 
 #pragma once
 
