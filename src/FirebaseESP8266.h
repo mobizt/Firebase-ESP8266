@@ -1,7 +1,7 @@
 
 
 /**
- * Google's Firebase Realtime Database Arduino Library for ESP8266 and RP2040 Pico, v4.3.9
+ * Google's Firebase Realtime Database Arduino Library for ESP8266 and RP2040 Pico
  *
  * Created April 5, 2023
  *
