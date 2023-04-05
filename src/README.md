@@ -3223,6 +3223,18 @@ String errorReason();
 
 
 
+#### Get the error code from the process
+
+return **`The error code (int).`**
+
+See src/FB_Error.h
+
+```cpp
+String errorCode();
+```
+
+
+
 #### Return the integer data of server returned payload (RTDB only).
 
 return **`Integer value.`**

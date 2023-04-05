@@ -1,3 +1,8 @@
+#include "Firebase_Client_Version.h"
+#if !FIREBASE_CLIENT_VERSION_CHECK(40309)
+#error "Mixed versions compilation."
+#endif
+
 #ifndef FirebaseFS_H
 #define FirebaseFS_H
 
@@ -50,6 +55,13 @@
 #define DEFAULT_SD_FS SDFS
 #define CARD_TYPE_SD 1
 #endif
+
+// For RTDB legacy token usage only
+// #define USE_LEGACY_TOKEN_ONLY
+
+// Enable the error string from fbdo.errorReason */
+// You can get the error code from fbdo.errorCode() when disable this option
+#define ENABLE_ERROR_STRING
 
 // Comment to exclude the Firebase Realtime Database
 #define ENABLE_RTDB
