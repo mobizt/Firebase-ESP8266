@@ -116,6 +116,10 @@ void setup()
 
   Firebase.reconnectWiFi(true);
 
+  // You can use TCP KeepAlive For more reliable stream operation and tracking the server connection status, please read this for detail.
+  // https://github.com/mobizt/Firebase-ESP8266#enable-tcp-keepalive-for-reliable-http-streaming
+  // stream.keepAlive(5, 5, 1);
+
   if (!Firebase.beginStream(stream, "/test/stream/data"))
     Serial.printf("sream begin error, %s\n\n", stream.errorReason().c_str());
 
