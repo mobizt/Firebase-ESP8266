@@ -157,6 +157,8 @@ void setup()
 
   // You can use TCP KeepAlive For more reliable stream operation and tracking the server connection status, please read this for detail.
   // https://github.com/mobizt/Firebase-ESP8266#enable-tcp-keepalive-for-reliable-http-streaming
+  // You can use keepAlive in ESP8266 core version newer than v3.1.2.
+  // Or you can use git version (v3.1.2) https://github.com/esp8266/Arduino
   // stream.keepAlive(5, 5, 1);
 
   if (!Firebase.beginStream(stream, "/test/stream/data"))
@@ -214,5 +216,11 @@ void loop()
   {
     dataChanged = false;
     // When stream data is available, do anything here...
+  }
+
+  // After calling stream.keepAlive, now we can track the server connecting status
+  if (!stream.httpConnected())
+  {
+    // Server was disconnected!
   }
 }
