@@ -2,13 +2,10 @@
 name: Bug report
 about: Create a report to help us improve
 title: BUG
-labels: bug, wontfix
+labels: bug, good first issue, invalid, wontfix
 assignees: ''
 
 ---
-
-**Just ask something**
-If you have questions, use [Discussions](https://github.com/mobizt/Firebase-ESP8266/discussions) instead. 
 
 **Describe the bug**
 A clear and concise description of what the bug is.

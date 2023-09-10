@@ -7,9 +7,6 @@ assignees: ''
 
 ---
 
-**Just ask something**
-If you have questions, use [Discussions](https://github.com/mobizt/Firebase-ESP8266/discussions) instead. 
-
 **Is your feature request related to a problem? Please describe.**
 A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
 

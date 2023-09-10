@@ -10,16 +10,8 @@
  */
 
 #include <Arduino.h>
-#if defined(ESP32)
-#include <WiFi.h>
-#include <FirebaseESP32.h>
-#elif defined(ESP8266)
 #include <ESP8266WiFi.h>
 #include <FirebaseESP8266.h>
-#elif defined(ARDUINO_RASPBERRY_PI_PICO_W)
-#include <WiFi.h>
-#include <FirebaseESP8266.h>
-#endif
 
 // Provide the token generation process info.
 #include <addons/TokenHelper.h>
@@ -104,6 +96,11 @@ void setup()
   /* Assign the callback function for the long running token generation task */
   config.token_status_callback = tokenStatusCallback; // see addons/TokenHelper.h
 
+  Firebase.reconnectWiFi(true);
+
+  // required for large file data, increase Rx size as needed.
+  fbdo.setBSSLBufferSize(4096 /* Rx buffer size in bytes from 512 - 16384 */, 1024 /* Tx buffer size in bytes from 512 - 16384 */);
+
   // The WiFi credentials are required for Pico W
   // due to it does not have reconnect feature.
 #if defined(ARDUINO_RASPBERRY_PI_PICO_W)
@@ -118,8 +115,6 @@ void setup()
   // To connect without auth in Test Mode, see Authentications/TestMode/TestMode.ino
 
   Firebase.begin(&config, &auth);
-
-  Firebase.reconnectWiFi(true);
 
   // You can use TCP KeepAlive For more reliable stream operation and tracking the server connection status, please read this for detail.
   // https://github.com/mobizt/Firebase-ESP8266#enable-tcp-keepalive-for-reliable-http-streaming
