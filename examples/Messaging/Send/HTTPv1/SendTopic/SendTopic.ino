@@ -106,9 +106,10 @@ void setup()
     config.service_account.data.project_id = FIREBASE_PROJECT_ID;
     config.service_account.data.private_key = PRIVATE_KEY;
 
-    Firebase.reconnectWiFi(true);
+    Firebase.reconnectNetwork(true);
 
-    // required for large file data, increase Rx size as needed.
+    // Since v4.4.x, BearSSL engine was used, the SSL buffer need to be set.
+    // Large data transmission may require larger RX buffer, otherwise the data read time out can be occurred.
     fbdo.setBSSLBufferSize(4096 /* Rx buffer size in bytes from 512 - 16384 */, 1024 /* Tx buffer size in bytes from 512 - 16384 */);
 
     // The WiFi credentials are required for Pico W

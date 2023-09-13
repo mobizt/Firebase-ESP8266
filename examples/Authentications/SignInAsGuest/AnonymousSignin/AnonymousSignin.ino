@@ -102,7 +102,7 @@ void setup()
     /* Assign the RTDB URL */
     config.database_url = DATABASE_URL;
 
-    Firebase.reconnectWiFi(true);
+    Firebase.reconnectNetwork(true);
 
     // required for large file data, increase Rx size as needed.
     fbdo.setBSSLBufferSize(4096 /* Rx buffer size in bytes from 512 - 16384 */, 1024 /* Tx buffer size in bytes from 512 - 16384 */);

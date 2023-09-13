@@ -18,10 +18,10 @@
 
 #include <SoftwareSerial.h>
 
-#define ESP8266_RX_PIN 14 //ESP8266 GPIO 14 connected to SIM7600 Pin 71 (TX)
-#define ESP8266_TX_PIN 12 //ESP8266 GPIO 12 connected to SIM7600 Pin 68 (RX)
-#define ESP8266_PWR_PIN 5 //ESP8266 GPIO 5 connected to SIM7600 Pin 3 (PWRKEY)
-#define ESP8266_RESET 4 //ESP8266 GPIO 4 connected to SIM7600 Pin 4 (RESET)
+#define ESP8266_RX_PIN 14 // ESP8266 GPIO 14 connected to SIM7600 Pin 71 (TX)
+#define ESP8266_TX_PIN 12 // ESP8266 GPIO 12 connected to SIM7600 Pin 68 (RX)
+#define ESP8266_PWR_PIN 5 // ESP8266 GPIO 5 connected to SIM7600 Pin 3 (PWRKEY)
+#define ESP8266_RESET 4   // ESP8266 GPIO 4 connected to SIM7600 Pin 4 (RESET)
 #define UART_BAUD 115200
 
 SoftwareSerial softSerial;
@@ -33,7 +33,6 @@ SoftwareSerial softSerial;
 
 // Set serial for AT commands (to the module)
 #define SerialAT softSerial
-
 
 // See all AT commands, if wanted
 // #define DUMP_AT_COMMANDS
@@ -160,9 +159,10 @@ void setup()
     fbdo.setGSMClient(&gsm_client, &modem, GSM_PIN, apn, gprsUser, gprsPass);
 
     // Comment or pass false value when WiFi reconnection will control by your code or third party library
-    Firebase.reconnectWiFi(true);
+    Firebase.reconnectNetwork(true);
 
-    // required for large file data, increase Rx size as needed.
+    // Since v4.4.x, BearSSL engine was used, the SSL buffer need to be set.
+    // Large data transmission may require larger RX buffer, otherwise the data read time out can be occurred.
     fbdo.setBSSLBufferSize(4096 /* Rx buffer size in bytes from 512 - 16384 */, 1024 /* Tx buffer size in bytes from 512 - 16384 */);
 
     Firebase.setDoubleDigits(5);
