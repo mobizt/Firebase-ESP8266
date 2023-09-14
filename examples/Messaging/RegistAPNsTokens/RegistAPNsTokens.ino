@@ -89,6 +89,7 @@ void setup()
 
     Firebase.FCM.setServerKey(FIREBASE_FCM_SERVER_KEY);
 
+    // Comment or pass false value when WiFi reconnection will control by your code or third party library e.g. WiFiManager
     Firebase.reconnectNetwork(true);
 
     // Since v4.4.x, BearSSL engine was used, the SSL buffer need to be set.

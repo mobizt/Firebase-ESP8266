@@ -129,11 +129,11 @@ void setup()
     fbdo.setGenericClient(&client1, networkConnection, networkStatusRequestCallback);
     stream.setGenericClient(&client2, networkConnection, networkStatusRequestCallback);
 
-    // Comment or pass false value when network reconnection will control by your code or third party library
+    // Comment or pass false value when WiFi reconnection will control by your code or third party library e.g. WiFiManager
     Firebase.reconnectNetwork(true);
 
     // Since v4.4.x, BearSSL engine was used, the SSL buffer need to be set.
-    // Large data transmission may require larger RX buffer, otherwise the data read time out can be occurred.
+    // Large data transmission may require larger RX buffer, otherwise connection issue or data read time out can be occurred.
     fbdo.setBSSLBufferSize(2048 /* Rx buffer size in bytes from 512 - 16384 */, 1024 /* Tx buffer size in bytes from 512 - 16384 */);
     stream.setBSSLBufferSize(2048 /* Rx buffer size in bytes from 512 - 16384 */, 1024 /* Tx buffer size in bytes from 512 - 16384 */);
 
@@ -147,11 +147,12 @@ void setup()
 
 void loop()
 {
-    // For use with stream callback function
-    // for non-ESP devices
-    Firebase.RTDB.runStream();
 
     // Firebase.ready() should be called repeatedly to handle authentication tasks.
+
+#if !defined(ESP8266) && !defined(ESP32)
+    Firebase.runStream();
+#endif
 
     if (Firebase.ready() && (millis() - sendDataPrevMillis > 15000 || sendDataPrevMillis == 0))
     {
@@ -160,7 +161,7 @@ void loop()
         FirebaseJson json;
         json.add("data", "hello");
         json.add("num", count);
-        Serial_Printf("Set json... %s\n\n", Firebase.setJSON(fbdo, "/test/stream/data/json", &json) ? "ok" : fbdo.errorReason().c_str());
+        Serial_Printf("Set json... %s\n\n", Firebase.setJSON(fbdo, "/test/stream/data/json", json) ? "ok" : fbdo.errorReason().c_str());
     }
 
     if (dataChanged)

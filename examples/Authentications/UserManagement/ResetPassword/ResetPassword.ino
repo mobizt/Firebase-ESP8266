@@ -83,6 +83,7 @@ void setup()
     /* Assign the RTDB URL */
     config.database_url = DATABASE_URL;
 
+    // Comment or pass false value when WiFi reconnection will control by your code or third party library e.g. WiFiManager
     Firebase.reconnectNetwork(true);
 
     // The WiFi credentials are required for Pico W
