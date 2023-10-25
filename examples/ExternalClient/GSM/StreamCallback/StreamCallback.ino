@@ -11,8 +11,8 @@
 
 /** This example shows the RTDB data changed notification with with SIM7600x, ESP8266 and TinyGSMClient. */
 
-// To allow TinyGSM library integration, the following macro should be defined in src/ESP_Mail_FS.h or
-// your custom config file src/Custom_ESP_Mail_FS.h.
+// To allow TinyGSM library integration, the following macro should be defined in src/FirebaseFS.h or
+// your custom config file src/CustomFirebaseFS.h.
 //  #define TINY_GSM_MODEM_SIM7600
 
 #include <SoftwareSerial.h>
